@@ -1,0 +1,296 @@
+{
+  "name": "FirstCreatedProject GitHub",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c0ec50aa-7f54-48b7-a755-a112465caf77",
+      "name": "Schedule Trigger",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are a helpful personal assistant that recommends a trail run for the day. Check my calendar, the weather, air quality, and my list of trails to find the best option. Use the GetWeather tool to check the forecast, the GetTrailList tool to find the list of trails and details like distance and altitude, and the EmailMyself tool to send myself the recommendation for the day. Only recommend a trail if there is not already a 'trail run' event on my calendar today. Send an email to me with a single trail recommendation, including the weather. Keep it brief and helpful.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        480,
+        -96
+      ],
+      "id": "95313f39-c1e1-4ab7-a7b7-b4bb701397b9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        128
+      ],
+      "id": "f79ce43e-4dc2-4e90-a853-c9a79bf9910e",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "bAWlELwNId9hFzyQ",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=trail-run-session"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        352,
+        128
+      ],
+      "id": "1026ae60-5b05-4296-88fc-405b9b0eaf71",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "aaron.hogancamp@gmail.com",
+          "mode": "list",
+          "cachedResultName": "aaron.hogancamp@gmail.com"
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        128
+      ],
+      "id": "6f0cf22c-34e3-4f78-af39-828dca6d2ebc",
+      "name": "CheckCalendar"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1t_KxdMWafg_5dY7xjMQnaQOGX6v4HvDm-WfkYqAho1s",
+          "mode": "list",
+          "cachedResultName": "Trails",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1t_KxdMWafg_5dY7xjMQnaQOGX6v4HvDm-WfkYqAho1s/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Runs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1t_KxdMWafg_5dY7xjMQnaQOGX6v4HvDm-WfkYqAho1s/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        608,
+        128
+      ],
+      "id": "caec4236-3c2b-4d7d-8b78-7746801782e4",
+      "name": "GetTrailList"
+    },
+    {
+      "parameters": {
+        "options": {},
+        "optimizeResponse": true
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.3,
+      "position": [
+        0,
+        240
+      ],
+      "id": "c3ba3bd5-03bf-4491-9cee-514cd85823dc",
+      "name": "GetAirQuality",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "format": "imperial",
+        "cityName": "Nashville"
+      },
+      "type": "n8n-nodes-base.openWeatherMapTool",
+      "typeVersion": 1,
+      "position": [
+        736,
+        128
+      ],
+      "id": "ea450ab1-c231-4d0e-985f-254c3f2fef82",
+      "name": "GetWeather"
+    },
+    {
+      "parameters": {
+        "sendTo": "aaron.hogancamp@gmail.com",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        864,
+        128
+      ],
+      "id": "f6371edf-2af4-47f0-8b5f-f958168d1431",
+      "name": "EmailMyself",
+      "webhookId": "db55fc7a-3fbc-4caf-8aa0-d3b03240c86b"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -192
+      ],
+      "id": "7a213d0e-eecd-47f8-bc38-9fa33226c7af",
+      "name": "When clicking ‘Execute workflow’"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CheckCalendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetTrailList": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GetAirQuality": {
+      "ai_tool": [
+        []
+      ]
+    },
+    "GetWeather": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EmailMyself": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "17aca899-b10c-4d05-9853-f3a4942b3963",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "78a2420e523dabc3de1577ef916145fd6804921004989fef5b960fdca598b776"
+  },
+  "id": "990sGL9lY1sT3sN7",
+  "tags": [
+    {
+      "updatedAt": "2025-11-23T17:33:28.035Z",
+      "createdAt": "2025-11-23T17:33:28.035Z",
+      "id": "JEhgHoZ1MBjoCeVM",
+      "name": "NoKeys"
+    }
+  ]
+}
