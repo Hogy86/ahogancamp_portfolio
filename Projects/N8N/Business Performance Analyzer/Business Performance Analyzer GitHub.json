@@ -1,0 +1,265 @@
+{
+  "name": "Business Performance Analyzer GitHub",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "52af406f-7053-4e1d-9aff-439986bfc9e7",
+      "name": "Sunday @ 5 AM"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appNDK0VcbmsbETSX",
+          "mode": "list",
+          "cachedResultName": "Products Base",
+          "cachedResultUrl": "https://airtable.com/appNDK0VcbmsbETSX"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblRK1n56wqrHelkl",
+          "mode": "list",
+          "cachedResultName": "products",
+          "cachedResultUrl": "https://airtable.com/appNDK0VcbmsbETSX/tblRK1n56wqrHelkl"
+        },
+        "returnAll": false,
+        "limit": 10,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "a1ec0eb9-2286-4584-ad5f-ddfdea6220f0",
+      "name": "Get Airtable Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ✅ Process all Airtable records into a clean JSON array\nconst cleanedData = $input.all().map(item => {\n  const record = item.json;\n\n  return {\n    id: record.id,\n    cost: parseFloat(record.cost),\n    category: record.category,\n    name: record.name,\n    brand: record.brand,\n    retail_price: parseFloat(record.retail_price),\n    profit_margin: parseFloat(record.retail_price) - parseFloat(record.cost),\n    department: record.department,\n    sku: record.sku,\n    distribution_center_id: record.distribution_center_id\n  };\n});\n\n// ✅ Return a single item with the array inside `records`\nreturn [\n  {\n    json: {\n      records: cleanedData\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "b27ccfe1-b9b6-4753-b522-02fa17e5cc6b",
+      "name": "Create Profit Margin Field and output a single JSON item with 521 entries"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        208
+      ],
+      "id": "e1e624be-8e36-48d7-b641-6fb56658315c",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "bAWlELwNId9hFzyQ",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "n8n-performance-analyzer"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        208
+      ],
+      "id": "62b7586b-da4f-4b0b-b5be-dd3cb4fc2600",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "sendTo": "aaron.hogancamp@gmail.com",
+        "subject": "Weekly Report from N8N Demo",
+        "message": "={{ $json.output[0].content[0].text }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1328,
+        0
+      ],
+      "id": "70469bb5-2207-41eb-b3ce-e116d83529fb",
+      "name": "Send Email",
+      "webhookId": "784bbbb9-70d5-4f83-a0d7-cd29cbb9f801"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a meticulous product data analyst. Please analyze this exact product catalog data and create a structured, data-driven report with deeper insights.\n\nThe dataset contains 521 products**.\n\nHere is the detailed product dataset:\n{{ $json.records.map((item, index) => `${index + 1}. ${item.name}\n- Category: ${item.category}\n- Department: ${item.department}\n- Brand: ${item.brand}\n- SKU: ${item.sku}\n- Cost: $${item.cost}\n- Retail Price: $${item.retail_price}\n- Profit Margin: $${(item.retail_price - item.cost).toFixed(2)}`).join('\\n\\n') }}\n\n---\n\n### Please use this **exact structure** for your response:\n\n1. **Executive Summary**\n   - Provide 2–3 high-level findings about pricing, margins, or trends.\n   - Mention any interesting overall pattern in the dataset.\n\n2. **Key Metrics**\n   - Total number of products\n   - Average profit margin (calculate it)\n   - Highest and lowest profit margin\n\n3. **Top Brands**\n   - List top 3 brands by number of products\n   - Provide counts for each\n\n4. **Retail Pricing by Category**\n   - Category with highest average retail price\n   - Category with lowest average retail price\n\n5. **Profit Margins by Department**\n   - Department with highest average profit margin\n   - Department with lowest average profit margin\n\n6. **Outlier Products**\n   - Identify 3 products with **very high** profit margins\n   - Identify 3 products with **very low** or negative margins\n\nUse **bullet points or tables** where appropriate.\nEnsure insights are easy to follow. **Store the entire dataset in memory** for follow-up queries.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "a0a10686-a7d3-4f37-9fbd-8d57db4bda10",
+      "name": "Performance Analyzer Agent"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "responses": {
+          "values": [
+            {
+              "content": "=You are an AI report formatter. Convert the following plain-text report into a professionally formatted HTML email.\n\nRequirements:\n- Start with: \"Hey Everyone<br><br>Good morning! Hope you had an amazing weekend.<br>Sharing the weekly report for the last whole week.\"\n- Use <h2> or <h3> for section headers.\n- Use <strong> for key labels and values.\n- Use <p> for paragraphs and <ul>/<ol> for lists where appropriate.\n- Use tables (<table>, <tr>, <th>, <td>) for structured data like brand counts or metrics.\n- Highlight important metrics using <blockquote> or <div> with subtle styling.\n- At the end, include this signature:\n\n  <br><br>Thanks,<br>Regards,<br><strong>Utkarsh</strong><br>Product Manager<br>InterviewKickstart\n\n- End with this note, in bold:\n\n  <br><br><strong>Note:</strong>\n Also just mention this report is generated for demo purposes via Automated workflow on n8n Low/ No Code Tool.\n\nDo not include ```html or triple backticks anywhere. The output should be a valid HTML snippet that can be pasted into an n8n email node.\n\nHere is the content to format:\n{{ $json.output }}\n"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2,
+      "position": [
+        976,
+        0
+      ],
+      "id": "0a6f474d-a469-4cc0-81dd-017085b59244",
+      "name": "Email Formatter"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Sunday @ 5 AM": {
+      "main": [
+        [
+          {
+            "node": "Get Airtable Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Airtable Data": {
+      "main": [
+        [
+          {
+            "node": "Create Profit Margin Field and output a single JSON item with 521 entries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Profit Margin Field and output a single JSON item with 521 entries": {
+      "main": [
+        [
+          {
+            "node": "Performance Analyzer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Performance Analyzer Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Performance Analyzer Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Performance Analyzer Agent": {
+      "main": [
+        [
+          {
+            "node": "Email Formatter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Formatter": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5baa966a-2e15-436c-a48e-6adc533e19b6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "78a2420e523dabc3de1577ef916145fd6804921004989fef5b960fdca598b776"
+  },
+  "id": "LFtaxzj2TTGlL4ha",
+  "tags": [
+    {
+      "updatedAt": "2025-11-23T17:33:28.035Z",
+      "createdAt": "2025-11-23T17:33:28.035Z",
+      "id": "JEhgHoZ1MBjoCeVM",
+      "name": "NoKeys"
+    }
+  ]
+}
