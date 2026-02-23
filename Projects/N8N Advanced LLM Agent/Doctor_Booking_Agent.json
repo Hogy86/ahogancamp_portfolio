@@ -1,0 +1,249 @@
+{
+  "name": "Doctor Booking Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "options": {
+          "systemMessage": "=# Role:\nYou are a healthcare appointment agent. You help users find and confirm doctor appointments using connected tools.\n\n# Behavior\n\n- Use `doctors_slots` to query available times. Each slot has doctor_id, datetime, is_available.\n- Use `doctor_info` to look up doctor details and return id, name, specialization, contact.\n- Use the id field from doctor_info to query from the doctors_slots tool.\n- Use the email tool (aka `email_user`) to send the confirmation email.\n\n\n# General Workflow:\n1. Extract doctor name or specialty from user input.\n2. Look up matching doctors in `doctor_info` and return all matching fields.\n3. Query `doctors_slots` for future slots (`is_available = 1`) for those doctors\n4. Return the **first available slot** for each matching doctor.\n5. Ask for user confirmation before proceeding.\n6. Upon confirmation, ask for their email address.\n7. Send an email via the `email_user` tool with the appointment details.\n\n# Guidelines:\n- Based on the user input, you may start from the begining or middle of workflow.\n- If the user doesn’t specify a doctor or specialty, ask for one.\n- If the user input has all the appointment information (the doctor's name and date and time of slot details), proceed to get the email to send confirmation.\n- If the user input has all the appointment information (the doctor's name and date, time of slot details) AND the email , send a confirmation email.\n- Do NOT re-fetch doctor or slot data unless no context is provided.\n\n\n# Format:\nWhen suggesting a slot, present it in this markdown format:\n\n> **Doctor:** <doctor_name>  \n> **Specialization:** <specialty>  \n> **Next Available:** <datetime>  \n> **Contact:** <contact_number>\n \n\nIf the email is provided, call the tool like this:\n\n```json\n{\n  \"tool\": \"email_user\",\n  \"input\": {\n    \"to\": \"<user_email>\",\n    \"subject\": \"Appointment Confirmation\",\n    \"body\": \"Your appointment with Dr. <doctor_name> (Specialty: <specialty>) is confirmed for <datetime>. Contact: <contact>.\"\n  }\n}\n\n# Additional Guidelines:\nAlways prioritize the earliest available."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        260,
+        380
+      ],
+      "id": "27724631-49b0-48b2-88fe-37df637141b1",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        120,
+        620
+      ],
+      "id": "141f32f7-6891-49fb-a8ab-ec24a708c37c",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "N19zlicishMyKerz",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1t54S4McKFp4syGKRRy6Bu3kpvje44Bis3GY7EV3vkgU",
+          "mode": "list",
+          "cachedResultName": "doctors_slots_data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1t54S4McKFp4syGKRRy6Bu3kpvje44Bis3GY7EV3vkgU/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 702660195,
+          "mode": "list",
+          "cachedResultName": "doctors_slots_data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1t54S4McKFp4syGKRRy6Bu3kpvje44Bis3GY7EV3vkgU/edit#gid=702660195"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "doctor_id",
+              "lookupValue": "={{ $fromAI('id', `doctor id in data`, 'number') }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        300,
+        620
+      ],
+      "id": "4a6e8ef0-70c2-4afb-901f-1b27136d7128",
+      "name": "doctor_slots",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "w6rAzHyUuFh6fXYs",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1VDRn6-iQ0FwLkxhx54B1RvKKU1Ky9Kh4RDyDYMXiVt4",
+          "mode": "list",
+          "cachedResultName": "doctors_info",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VDRn6-iQ0FwLkxhx54B1RvKKU1Ky9Kh4RDyDYMXiVt4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1025102007,
+          "mode": "list",
+          "cachedResultName": "doctors_info",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1VDRn6-iQ0FwLkxhx54B1RvKKU1Ky9Kh4RDyDYMXiVt4/edit#gid=1025102007"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        400,
+        620
+      ],
+      "id": "fd78c39e-9b44-488f-9d4d-cdfdbb52c6b7",
+      "name": "doctors_info",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "w6rAzHyUuFh6fXYs",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        520,
+        620
+      ],
+      "id": "327de873-e183-4d40-a8f3-83e87ced48b4",
+      "name": "email_user",
+      "webhookId": "86348c32-97d3-463d-9e85-abf91e05cb88",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "KEETuqR186rfZPDu",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Booking Agent\n",
+        "height": 540,
+        "width": 820
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        300
+      ],
+      "id": "9cea9934-5502-4d1e-ab98-d5a6f1eb4b6b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -40,
+        380
+      ],
+      "id": "7e3b5779-f8e1-4788-a601-f1037547cf98",
+      "name": "start_wf"
+    }
+  ],
+  "pinData": {
+    "start_wf": [
+      {
+        "json": {
+          "query": "list oncology doctors"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "doctor_slots": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "doctors_info": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "email_user": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "start_wf": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "128feea5-c354-4b23-af01-4c10ed9dd88c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f8915628d001c9f12c477501d438b0ef663b51074cad39b3fe2c37a0f1ebd929"
+  },
+  "id": "g1O0dLH7vMmeZ4Hy",
+  "tags": []
+}

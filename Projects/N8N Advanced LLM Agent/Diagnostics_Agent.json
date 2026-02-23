@@ -1,0 +1,172 @@
+{
+  "name": "Diagnostics Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "options": {
+          "systemMessage": "=# Role:\nYou are a Diagnostic Services Agent helping users identify lab tests based on their symptoms and sending urgent SMS reminders for test preparation.\n\n# Tools:\n- Use `lab_tests_sheet` to look up relevant tests. Each entry has:\n  - test_name\n  - associated_symptoms\n  - description\n  - preparation\n  - hospital_name\n  - city\n\n- Use `send_sms` to send preparation instructions via SMS to the user.\n\n# General Workflow:\n1. From the user's input, extract the symptom(s).\n2. Search the `lab_tests_sheet` tool to find relevant lab tests whose associated_symptoms match the user query.\n3. For each relevant lab test:\n   - Provide test name\n   - Description\n   - Any important preparation notes\n   - Hospital name and city\n4. Ask the user if they would like to receive a preparation reminder by SMS.\n5. If confirmed, request the user’s phone number in international format (e.g., +919812345678).\n6. Use the `send_sms` tool to send a short and clear message.\n\n# Format:\nWhen suggesting tests, use this format:\n\n> 🧪 **Test Name:** <test_name>  \n> 📋 **Description:** <description>  \n> 🏥 **Hospital:** <hospital_name>, <city>  \n> ⚠️ **Preparation:** <preparation>\n\n# SMS Format:\nOnce the user shares their number, send this using `send_sms` tool:\n\n```json\n{\n  \"tool\": \"send_sms\",\n  \"input\": {\n    \"to\": \"<user_phone_number>\",\n    \"message\": \"Reminder: Your test '<test_name>' requires preparation: <short_preparation>. For help, reply to this number. - HealthSense AI\"\n  }\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        280,
+        0
+      ],
+      "id": "fa058a82-a969-4373-a93b-6a81389e863c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-2024-05-13",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-2024-05-13"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        260
+      ],
+      "id": "40f60a98-b9cc-4830-82c3-3d936cd5d46a",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "N19zlicishMyKerz",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9befe8a1-62f9-41b0-ae44-4d780ae732af",
+      "name": "start_wf"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1pDMKxIWsqPtFHZpXf9YYvyrq6lQxWp3T-y_T_ddTPe4",
+          "mode": "list",
+          "cachedResultName": "Hospital_Information_with_Lab_Tests",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pDMKxIWsqPtFHZpXf9YYvyrq6lQxWp3T-y_T_ddTPe4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 378203457,
+          "mode": "list",
+          "cachedResultName": "Hospital_Information_with_Lab_Tests",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pDMKxIWsqPtFHZpXf9YYvyrq6lQxWp3T-y_T_ddTPe4/edit#gid=378203457"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.5,
+      "position": [
+        460,
+        260
+      ],
+      "id": "dc1d30fa-4637-4d58-bdda-d337d2468253",
+      "name": "Hospital Info With Lab Test",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "w6rAzHyUuFh6fXYs",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "latest"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        340,
+        220
+      ],
+      "id": "0ee2e53c-140d-48e7-9222-dd6ee31b5b2b",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {
+    "start_wf": [
+      {
+        "json": {
+          "query": "What tests should I take for persistent headaches?"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "start_wf": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hospital Info With Lab Test": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "85c183ac-8d14-4288-8b8b-8d2b1b5a1d01",
+  "meta": {
+    "instanceId": "f8915628d001c9f12c477501d438b0ef663b51074cad39b3fe2c37a0f1ebd929"
+  },
+  "id": "tSxQJbWgAyGeAquZ",
+  "tags": []
+}

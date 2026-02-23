@@ -1,0 +1,257 @@
+{
+  "name": "Hospital Comparison Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        80,
+        80
+      ],
+      "id": "69ef80b3-29e3-4228-8219-d03211371a65",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.query }}",
+        "options": {
+          "systemMessage": "# Role:\nYou are a hospital and emergency service assistant. Your job is to answer questions about hospital details and ambulance availability.\n\n\n# Tools:\nYou are connected to tools:\n\n1. **Hospital_Info** : Is used to search for hospital information.These are teh table fields separated by comma:\nProvider ID,Hospital Name,Address,City,State,ZIP Code,County Name,Phone Number,Hospital Type,Hospital Ownership,Emergency Services,Meets criteria for meaningful use of EHRs,Hospital overall rating,Hospital overall rating footnote,Mortality national comparison,Mortality national comparison footnote,Safety of care national comparison,Safety of care national comparison footnote,Readmission national comparison,Readmission national comparison footnote,Patient experience national comparison,Patient experience national comparison footnote,Effectiveness of care national comparison,Effectiveness of care national comparison footnote,Timeliness of care national comparison,Timeliness of care national comparison footnote,Efficient use of medical imaging national comparison,Efficient use of medical imaging national comparison footnote,Location\n\n\n# Guidelines:\n- Use tools to search for and answer all questions.\n- Each paragraph should begin with a relevant heading (e.g., Hospital Info, Emergency Access).\n- Use concise, readable English with proper formatting.\n- For AirTable Tools, generate a formula that is compatible with the Airtable API. Remember that to build formulas to search records in Airtable:\n- Field names must be wrapped in curly braces {Field Name}\n- String literals must be in double quotes\n- For case-insensitive searching, wrap fields and search terms in LOWER() or UPPER()\n- Boolean operations use AND(), OR(), NOT().\nSample:\n1) LOWER({Field Name}) = LOWER(\"search term\")\n2) OR(\n    LOWER({Field1}) = LOWER(\"term1\"),\n    LOWER({Field2}) = LOWER(\"term2\")\n)\n\n\n# Workflow:\n1. Parse the user's request: location, hospital type, quality criteria\n2. Query the `Hospital_Infor` and/or `Emergency_Info` as needed.\n4. Return your findings in clean paragraph form. Example\n\n**Hospital Info**  \nMarshall Medical Center South is located in Boaz, AL 35957. It is an acute care hospital. The contact number is (256) 555-1234.\n\n**Care Quality**  \nThe hospital has above-average timeliness of care and same-as-average patient experience.\n\n\n# Constraints:\n- Only use tools for data.\n- Never generate summaries or content on your own.\n\n# Ask When Needed:\n- Ask for clarification on quality measures if vague (e.g., “What do you mean by good?”).\n\n# Output Style:\n- Use paragraph structure; bullet points are optional.\n- Avoid raw JSON or tables unless asked.\n\n\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        380,
+        80
+      ],
+      "id": "cba458f2-d66e-4d73-aac0-2155ae8739ee",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        300,
+        300
+      ],
+      "id": "410e28ab-34d5-4c60-818e-59e6fb5cdfcc",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "N19zlicishMyKerz",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Search in Hospitals\n",
+        "height": 540,
+        "width": 960
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "faae73ee-51c8-4583-838a-d5d2db09eb66",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "data": "={\n  \"type\": \"bar\",\n  \"data\": {\n    \"labels\": {{ $json.labels }},\n    \"datasets\": [{\n      \"label\": \"Hospital Info\",\n      \"data\": {{ $json.values }}\n    }]\n  }\n}",
+        "chartOptions": {},
+        "datasetOptions": {}
+      },
+      "type": "n8n-nodes-base.quickChart",
+      "typeVersion": 1,
+      "position": [
+        800,
+        300
+      ],
+      "id": "9f07c6c9-7443-40d3-b84b-0410724a5c82",
+      "name": "QuickChart"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1BHadMiRhHDo1YqHN0CYaGtxsBa8UmDrsFqJCEJu__Lc",
+          "mode": "list",
+          "cachedResultName": "hospitals_emergency_data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BHadMiRhHDo1YqHN0CYaGtxsBa8UmDrsFqJCEJu__Lc/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 530094247,
+          "mode": "list",
+          "cachedResultName": "hospitals_emergency_data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1BHadMiRhHDo1YqHN0CYaGtxsBa8UmDrsFqJCEJu__Lc/edit#gid=530094247"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        440,
+        340
+      ],
+      "id": "11958452-a0eb-4655-9f11-1ff3432857ea",
+      "name": "Hospital Emergency Data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "w6rAzHyUuFh6fXYs",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.output;\n\nlet labels = [];\nlet values = [];\n\n// Detect type of response\nif (text.includes('Hospital Overall Rating')) {\n  // Care Quality Summary — extract key metrics\n  labels = [\n    'Overall Rating',\n    'Mortality',\n    'Safety of Care',\n    'Readmission',\n    'Patient Experience',\n    'Effectiveness',\n    'Timeliness',\n    'Imaging Efficiency'\n  ];\n\n  values = [\n    3, // Overall Rating\n    3, // Mortality: Same as\n    4, // Safety: Above\n    2, // Readmission: Below\n    2, // Patient Experience: Below\n    4, // Effectiveness: Above\n    3, // Timeliness: Same as\n    3  // Imaging: Same as\n  ];\n} else if (text.includes('Kendall Regional Medical Center') && text.includes('Miami')) {\n  // Hospital List in Miami (you can count or plot counts/types)\n  labels = ['Kendall Regional Medical Center'];\n  values = [1]; // Could be count or rating if available\n} else {\n  labels = ['No chartable data'];\n  values = [0];\n}\n\nreturn [{ json: { labels, values } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        80
+      ],
+      "id": "1e8c2429-ccc3-4874-803b-1eb471a0219c",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "https://airtable.com/appa80eAqjRflAgxs/tblTwpHljWFNwEvie/viwEBakiE7IEQPyJx",
+          "mode": "url"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblTwpHljWFNwEvie",
+          "mode": "list",
+          "cachedResultName": "Hospital_General_Information",
+          "cachedResultUrl": "https://airtable.com/appa80eAqjRflAgxs/tblTwpHljWFNwEvie"
+        },
+        "filterByFormula": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Filter_By_Formula', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtableTool",
+      "typeVersion": 2.1,
+      "position": [
+        600,
+        340
+      ],
+      "id": "b3d79964-80fc-49d0-bc6d-29486a4f880b",
+      "name": "Hospital General Info",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "Yfeyz1TA0mUkMolL",
+          "name": "Airtable Personal Access Token account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "query": "List  hospitals in Miami"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hospital Emergency Data": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "QuickChart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hospital General Info": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4dcb2f75-1a4a-4d70-b021-029c34fc23e8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f8915628d001c9f12c477501d438b0ef663b51074cad39b3fe2c37a0f1ebd929"
+  },
+  "id": "iDcmT8VWG5q6YSpX",
+  "tags": []
+}

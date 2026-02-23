@@ -1,0 +1,823 @@
+{
+  "name": "Stock Analysis Workflow Solution",
+  "nodes": [
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "=5762423671"
+      },
+      "id": "2cfed987-f94b-49ff-b984-9c2ffcfe1c96",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "position": [
+        1940,
+        540
+      ],
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "name": "getChart",
+        "description": "Call this tool to get an analysis of a requested stock. The URL that is output from this tool must be returned in markdown format. For example, ![](url)\n\nIt'll be obligatory to pass ticker and chart style. Both can be specified by user. If chart style is not specified by user, use \"candle\" as default. Possible options for style: [bar, candle, line, area, heikinAshi, hollowCandle, baseline, hiLo, column]",
+        "workflowId": {
+          "__rl": true,
+          "value": "z9jSeFUkKveMFuuc",
+          "mode": "list",
+          "cachedResultName": "Trading Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticker": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ticker', ``, 'string') }}",
+            "chart_style": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('chart_style', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ticker",
+              "displayName": "ticker",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "chart_style",
+              "displayName": "chart_style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "id": "ae92ecb8-d055-474e-9293-2e08322e33f6",
+      "name": "Get Chart",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "position": [
+        2080,
+        560
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "=# Overview  \n\nYou are an AI agent specializing in  analyzing stocks. You can perform technical analysis using the **GetChart** tool to generate stock graphs.  \n\n\n# Instructions \n\n1. Begin by offering a warm and professional greeting.\n2. Maintain a conversational style when discussing finance and stock markets.\n3. If a user requests technical analysis of a stock, supplying its ticker:\n- Send only the stock ticker to the GetChart tool.\n- Present the chart's analysis and insights in a conversational format.\n4. When addressing financial subjects, provide thorough, easy-to-understand explanations suitable for the user's knowledge.\n5. Refrain from giving direct financial recommendations(buy or sell) or making predictions.\n\n\n## Tools  \n\n- **GetChart**: Used for generating stock graphs based on provided tickers.  \n\n## Standard Operating Procedure\n\n1. Interact with the user: Maintain a professional and approachable demeanor.\n2. Conduct stock analysis:\n- Upon request for technical analysis, send the stock's ticker symbol to the GetChart tool.\n- Present the chart's findings in an easy-to-understand, conversational manner.\n3. Clarify financial topics: Simplify intricate terms into accessible explanations suitable for the user's knowledge level.\n4. Refrain from offering financial recommendations: Deliver information and analysis without suggesting specific actions.\n5. Verify user understanding: Ask clarifying questions to ensure all needs are met."
+        }
+      },
+      "id": "284ede7f-74a9-4b5d-b88d-410f4709bb81",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        1840,
+        320
+      ],
+      "typeVersion": 1.7
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "id": "dbed9db3-21ee-4e3a-b7b2-59c599c0641a",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "position": [
+        940,
+        320
+      ],
+      "webhookId": "dbf7f0b7-5cdd-45a3-8c91-39f0665aba76",
+      "typeVersion": 1.1,
+      "credentials": {
+        "telegramApi": {
+          "id": "HCwCSIqWY8XtuPtN",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "=5762423671",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "3057e9df-23f1-4a7d-97b4-08a834d4ddf7",
+      "name": "Send Analysis",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        2220,
+        320
+      ],
+      "webhookId": "949b8c67-29b9-4714-8a42-b0e59e91ae10",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "HCwCSIqWY8XtuPtN",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "ticker"
+            },
+            {
+              "name": "chart_style"
+            }
+          ]
+        }
+      },
+      "id": "c593aa86-5a14-4fb5-9de4-acbfe279e974",
+      "name": "Workflow Input Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        960,
+        960
+      ],
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o",
+          "cachedResultName": "gpt-4o"
+        },
+        "options": {}
+      },
+      "id": "ce171f67-e29f-4b4a-86cc-17fa3fa0fb2a",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "position": [
+        1780,
+        540
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "openAiApi": {
+          "id": "wQrA5xkob4FJQFnO",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "leftValue": "={{ $json.message.voice.file_id }}",
+                    "rightValue": ""
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Voice"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "8c844924-b2ed-48b0-935c-c66a8fd0c778",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "leftValue": "={{ $json.message.text }}",
+                    "rightValue": ""
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d3f9e01c-7b24-4bf6-890a-8789be70d0dc",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        1120,
+        320
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "id": "45b4efb5-3bd6-4cc0-b28a-51440c0b3700",
+      "name": "Transcribe",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        1640,
+        240
+      ],
+      "typeVersion": 1.6,
+      "credentials": {
+        "openAiApi": {
+          "id": "wQrA5xkob4FJQFnO",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.voice.file_id }}"
+      },
+      "id": "58f318d9-608e-4afa-a047-960621facdde",
+      "name": "Download File",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        1480,
+        240
+      ],
+      "webhookId": "83bb7385-33f6-4105-8294-1a91c0ebbee5",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "HCwCSIqWY8XtuPtN",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fe7ecc99-e1e8-4a5e-bdd6-6fce9757b234",
+              "name": "text",
+              "type": "string",
+              "value": "={{ $json.message.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "38918401-e7e1-465c-9a56-76758204e7f3",
+      "name": "Set Text",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1540,
+        440
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "12a80fbc-ac59-48f3-b6fd-683d7c420995",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "b5d094a0-714f-455a-b346-334926654ee5",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        1480,
+        60
+      ],
+      "webhookId": "12a80fbc-ac59-48f3-b6fd-683d7c420995",
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fe7ecc99-e1e8-4a5e-bdd6-6fce9757b234",
+              "name": "text",
+              "type": "string",
+              "value": "={{ $json.body.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "231afb6e-7d5a-4c09-ad0f-2a4b961f0dc6",
+      "name": "Set Text1",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1640,
+        60
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use the tool when user asks to save ticker for future reports",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appasSykWJGFiUE5k",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "mode": "id",
+          "value": "tblWnozDlrWu0vLg0"
+        },
+        "columns": {
+          "value": {
+            "Name": "={{ $fromAI(\"ticker\") }}"
+          },
+          "schema": [
+            {
+              "id": "Name",
+              "type": "string",
+              "display": true,
+              "removed": false,
+              "readOnly": false,
+              "required": false,
+              "displayName": "Name",
+              "defaultMatch": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Name"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "267f96ae-4975-460f-9e36-f38acba2c21e",
+      "name": "Save Ticker",
+      "type": "n8n-nodes-base.airtableTool",
+      "position": [
+        2200,
+        540
+      ],
+      "typeVersion": 2.1,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "0xgdArMCLm81mz1G",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "5b09ffef-9d01-4935-b64e-c01851df9af1",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        1380,
+        1340
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {}
+          ]
+        }
+      },
+      "id": "0d200b00-6527-418f-a048-7931b6b315fb",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        980,
+        1340
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/12a80fbc-ac59-48f3-b6fd-683d7c420995",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "=text",
+              "value": "=Please analyze {{ $json.Name }} stocks"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a9d4ac17-ac5e-406c-b201-da8517e079ce",
+      "name": "Run Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1560,
+        1420
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appasSykWJGFiUE5k",
+          "mode": "id"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblWnozDlrWu0vLg0",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "1526df0f-0987-409a-a85a-161d50af5909",
+      "name": "Get tokens",
+      "type": "n8n-nodes-base.airtable",
+      "position": [
+        1180,
+        1340
+      ],
+      "typeVersion": 2.1,
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "0xgdArMCLm81mz1G",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## Scenario 1 - AI Agent",
+        "height": 780,
+        "width": 1540,
+        "color": 6
+      },
+      "id": "f906a31a-b029-44d2-a582-c5cb68ba3097",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        900,
+        20
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "## Scenario 2 - Scheduled analyses",
+        "height": 420,
+        "width": 1540,
+        "color": 2
+      },
+      "id": "3f0853a4-49dd-43bf-8bf5-76816b906943",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        900,
+        1220
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "content": "# n8n Workflow Overview: Stock Analysis Automation\n\nThis document provides a detailed overview of the n8n workflow designed to automate stock analysis, delivering technical chart analysis and insights through Telegram and scheduled processes.\n\n## Workflow Components\n\n### Telegram Trigger\n- Initiates the workflow by receiving user messages or voice inputs via Telegram.\n- Supports text-based requests or voice transcription for stock analysis.\n\n### Webhook\n- Handles external HTTP POST requests to trigger stock analysis programmatically.\n- Processes incoming data to extract text for analysis.\n\n### Switch\n- Routes incoming Telegram messages based on input type (voice or text).\n- Directs voice messages to transcription and text messages to processing.\n\n### Download File\n- Retrieves voice message files from Telegram for transcription.\n- Prepares audio data for further processing.\n\n### Transcribe\n- Utilizes OpenAI's transcription service to convert voice messages into text.\n- Integrates transcribed text into the analysis workflow.\n\n### Set Text\n- Extracts and sets text from Telegram messages or webhook inputs.\n- Prepares user queries for AI-driven analysis.\n\n### AI Agent\n- Core component powered by OpenAI's GPT-4o model, specializing in stock analysis.\n- Processes user requests, interacts with tools, and generates conversational responses.\n- Maintains a professional tone and avoids direct financial recommendations.\n- Uses Window Buffer Memory to retain context across interactions.\n\n### Window Buffer Memory\n- Stores conversation history to provide context-aware responses.\n- Enhances the AI Agent's ability to maintain coherent interactions.\n\n### Get Chart\n- Calls a sub-workflow to generate stock charts based on user-specified ticker and chart style (e.g., candle, bar, line).\n- Defaults to \"candle\" style if not specified.\n- Returns chart URLs in markdown format for inclusion in responses.\n\n### Workflow Input Trigger\n- Accepts ticker and chart style inputs for chart generation.\n- Initiates the chart creation process.\n\n### Set Values\n- Assigns ticker and chart style values from user inputs or AI Agent outputs.\n- Ensures accurate data for chart generation.\n\n### Get Chart URL\n- Sends a POST request to the chart API to generate a stock chart.\n- Configures chart parameters, including style, theme, interval (1-week), and technical indicators (Volume, RSI, Stochastic RSI).\n- Returns the chart URL for further processing.\n\n### Download Chart\n- Downloads the generated chart image from the provided URL.\n- Prepares the chart for technical analysis.\n\n### Technical Analysis\n- Analyzes stock charts using OpenAI's GPT-4o model.\n- Evaluates candlestick patterns, RSI, Stochastic RSI, trading volume, and market sentiment.\n- Provides detailed insights, including:\n  - Candlestick pattern interpretation (e.g., bullish engulfing, doji).\n  - RSI value and market positioning (overbought, oversold, neutral).\n  - Stochastic RSI K and D line analysis, including crossovers and divergences.\n- Delivers clear, data-driven conclusions for informed decision-making.\n\n### Send Chart\n- Sends the generated chart to the user via Telegram as a photo.\n- Ensures seamless delivery of visual data.\n\n### Send Analysis\n- Delivers the AI Agent's textual analysis and insights to the user via Telegram.\n- Includes markdown-formatted chart URLs and conversational explanations.\n\n### Save Ticker\n- Stores user-specified tickers in an Airtable database for future reports.\n- Triggered when users request to save a ticker for recurring analysis.\n\n### Schedule Trigger\n- Initiates scheduled stock analysis for predefined tickers.\n- Runs at specified intervals to automate recurring reports.\n\n### Get Tokens\n- Retrieves saved tickers from the Airtable database.\n- Provides input for scheduled analysis loops.\n\n### Loop Over Items\n- Iterates over retrieved tickers to generate individual stock analyses.\n- Supports batch processing for multiple tickers.\n\n### Run Agent\n- Sends HTTP POST requests to the webhook for each ticker in the scheduled loop.\n- Triggers AI Agent analysis for each stock.\n\n## Workflow Scenarios\n\n### Scenario 1: AI Agent Interaction\n- Users interact via Telegram, sending text or voice requests for stock analysis.\n- The AI Agent processes requests, generates charts, and delivers technical insights.\n- Charts and analyses are sent back to the user via Telegram.\n\n### Scenario 2: Scheduled Analyses\n- Automatically analyzes predefined tickers stored in Airtable on a set schedule.\n- Generates and sends reports for each ticker without user intervention.\n\n## Key Features\n- **Conversational Analysis**: Provides clear, user-friendly explanations of complex financial data.\n- **Technical Depth**: Includes detailed analysis of candlestick patterns, RSI, Stochastic RSI, and volume.\n- **Flexible Inputs**: Supports text, voice, and scheduled triggers for versatile use cases.\n- **Scalability**: Handles multiple tickers through looping and batch processing.\n- **Data Persistence**: Saves tickers in Airtable for recurring analysis.\n\nThis workflow combines AI-driven insights, automated chart generation, and seamless Telegram integration to deliver a robust solution for stock analysis.\n",
+        "height": 3040,
+        "width": 820,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a4e07740-ac90-4e11-8561-ffbb6f1a7d55",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "## Scenario 1 - AI Agent Interaction",
+        "height": 300,
+        "width": 1540,
+        "color": 4
+      },
+      "id": "6814513a-c437-45b9-a216-2eb893681545",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2860,
+        820
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "z9jSeFUkKveMFuuc",
+          "mode": "list",
+          "cachedResultName": "Trading Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticker": "={{ $json.ticker }}",
+            "chart_style": "={{ $json.chart_style }}"
+          },
+          "matchingColumns": [
+            "ticker",
+            "chart_style"
+          ],
+          "schema": [
+            {
+              "id": "ticker",
+              "displayName": "ticker",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "chart_style",
+              "displayName": "chart_style",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1720,
+        960
+      ],
+      "name": "Call Trading Agent",
+      "id": "0e6417fd-2076-40d7-95de-e8b9508d2ce2"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Set Text1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Text": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Chart": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Agent": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Text1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get tokens": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Ticker": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Transcribe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Run Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get tokens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Workflow Input Trigger": {
+      "main": [
+        [
+          {
+            "node": "Call Trading Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e3c98751-3903-4a79-bf66-1902500a8d6a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d2200dd471d9aeadd72cc0a1e5e32db8e5b4440c040a3d567ae0fa428cff6839"
+  },
+  "id": "a2YGv5Kto4IxzkaE",
+  "tags": []
+}

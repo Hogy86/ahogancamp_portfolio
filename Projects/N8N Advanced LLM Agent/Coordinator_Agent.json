@@ -1,0 +1,233 @@
+{
+  "name": "Coordinator Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e413f252-b495-45fd-94ab-6372712f8bf3",
+      "name": "When chat message received",
+      "webhookId": "ac73d9ee-7561-48a8-a692-cd83e8e00238"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -80,
+        320
+      ],
+      "id": "066d13e4-37b0-4c03-8e61-207d705156d6",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "N19zlicishMyKerz",
+          "name": "OpenAi account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are an AI orchestrator agent called Hero.\n\n# Role:\nYour job is to handle the user's requests and queries by coordinating other domain-specific agents (tools). Each tool has a specific function (e.g., booking a doctor, hospital and emrgency information, generating diagnostics, or sending an email). You do not generate answers yourself — you call the appropriate tool and return its response to the user.\n\n# Behavior:\n- Always call the correct tool based on the user's query.\n- Think carefully about the correct sequence of tool calls. For example, booking may require confirmation before sending an email.\n- When a tool asks for more information (e.g., user confirmation, email address), relay that question to the user and wait for their reply.\n- Then, pass the reply back to the same tool to continue the interaction.\n- Do not complete multi-step actions out of order. Wait for required inputs at each step.\n- when working with tools be transparent and transfer the user replies to the tools.\n- If a tool (like booking) previously responded with a question (e.g., asking for confirmation or email), store that intent and relay the user's next reply back to the tool along with the previous relevant contexts (e.g., doctor, datetime). Tools do not retain memory, so you must inject it.\n\n# Constraints:\n- You never send emails, generate summaries, charts, or book appointments yourself.\n- You always rely on the tools to perform every user-facing action.\n- If no tool is used or a query is unclear, politely ask the user to rephrase.\n- Track what the last tool said and whether it was asking the user for confirmation or more input. Once the user replies, send the answer back to the same tool using a follow-up input structure.\n\n# Output:\n- You only speak when relaying a tool’s output or question.\n- The only way you provide a final response to the user is via a tool’s output.\n\n\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        280,
+        0
+      ],
+      "id": "515b495e-a6ea-4191-b58a-62bd5f967921",
+      "name": "Coordinator"
+    },
+    {
+      "parameters": {
+        "name": "HospitalInfo",
+        "description": "Call this tool for queries and information for hospitals, emergencies, ambulance availability, finding hospitals in zip codes, hospital types, and contacts.",
+        "workflowId": {
+          "__rl": true,
+          "value": "iDcmT8VWG5q6YSpX",
+          "mode": "list",
+          "cachedResultName": "Build Your Advanced Agent Project — Hospital Comparison Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.1,
+      "position": [
+        640,
+        340
+      ],
+      "id": "f9cb8dae-da19-4bd4-bcbd-753667184826",
+      "name": "Hospital Comparison Agent"
+    },
+    {
+      "parameters": {
+        "name": "booking",
+        "description": "Call this tool for all user queries to find and list the doctors, finding the avilable dates and booking and confirming the appointments",
+        "workflowId": {
+          "__rl": true,
+          "value": "g1O0dLH7vMmeZ4Hy",
+          "mode": "list",
+          "cachedResultName": "Build Your Advanced Agent Project — Doctor Booking Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.1,
+      "position": [
+        280,
+        300
+      ],
+      "id": "bc3b005c-bb4d-454b-9c4b-1c2398eb12bd",
+      "name": "Doctor Booking Agent"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        140,
+        320
+      ],
+      "id": "f212c18d-071a-4ebe-ba51-dd70ba40d88c",
+      "name": "Agent Simple Memory"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "tSxQJbWgAyGeAquZ",
+          "mode": "list",
+          "cachedResultName": "Build Your Advanced Agent Project — Diagnostics Agent"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        460,
+        300
+      ],
+      "id": "b1a9944f-3bba-4f36-a9ea-bae044801f22",
+      "name": "Diagnostics Agent"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Coordinator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Coordinator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hospital Comparison Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Coordinator",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Doctor Booking Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Coordinator",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Coordinator",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Diagnostics Agent": {
+      "ai_tool": [
+        [
+          {
+            "node": "Coordinator",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6c131c64-0716-4912-9eb3-64e83e4633a7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f8915628d001c9f12c477501d438b0ef663b51074cad39b3fe2c37a0f1ebd929"
+  },
+  "id": "6XSmMTI2DgCHSXDi",
+  "tags": []
+}

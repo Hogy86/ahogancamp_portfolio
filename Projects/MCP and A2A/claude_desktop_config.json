@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "globalstore": {
+      "command": "python3",
+      "args": [
+        "/absolute/path/to/store_mcp.py"
+      ],
+      "env": {}
+    }
+  }
+}
