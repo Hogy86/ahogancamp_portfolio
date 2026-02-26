@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Adoption vs AI Revenue – US Companies</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-content">
+      <div>
+        <h1>AI Adoption vs AI Revenue</h1>
+        <p class="subtitle">Illustrative view of how US-based companies are using AI and how it contributes to revenue.</p>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <section class="intro">
+      <h2>Overview</h2>
+      <p>
+        This simple dashboard uses fictional but realistic data for several US-based companies to compare
+        <strong>AI adoption levels</strong> with the <strong>share of revenue driven by AI-enabled products and services</strong>.
+      </p>
+    </section>
+
+    <section class="charts-grid">
+      <article class="card">
+        <h3>AI Adoption &amp; AI Revenue by Company</h3>
+        <p class="chart-caption">
+          Bar/line combo chart showing AI adoption rate vs. percentage of total revenue that is AI-driven.
+        </p>
+        <canvas id="adoptionRevenueChart" aria-label="AI adoption and revenue by company" role="img"></canvas>
+      </article>
+
+      <article class="card">
+        <h3>Correlation: Adoption vs AI Revenue Share</h3>
+        <p class="chart-caption">
+          Scatter plot mapping each company's AI adoption level against its AI revenue share.
+        </p>
+        <canvas id="correlationChart" aria-label="Correlation between AI adoption and AI revenue share" role="img"></canvas>
+      </article>
+    </section>
+
+    <section class="notes">
+      <h2>About the Data</h2>
+      <ul>
+        <li>The data is <strong>illustrative only</strong> and not taken from a specific public source.</li>
+        <li>Each point represents a hypothetical US-based company with a unique AI strategy.</li>
+        <li>Use this page as a visual talking point in your portfolio when discussing AI impact on business.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>AI Usage Dashboard &middot; Portfolio Visualization</p>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
+
