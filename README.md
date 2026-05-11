@@ -34,6 +34,9 @@ This repository is organized to help you quickly understand **how I think and op
 - **Src/**  
   Supporting utilities and prototypes created to enable teams, test ideas quickly, or reduce delivery friction.
 
+- **Assets/**  
+  Reference/training PDFs and images used within notebooks/projects.
+  
 ---
 
 ## Product Strengths Demonstrated
@@ -75,6 +78,9 @@ My product philosophy is consistent across initiatives:
 - **Make tradeoffs explicit**  
   Document why decisions are made, not just what was chosen.
 
+- **Design for the customer**  
+  Keep in mind the target audience. Narrow scope of audience and features for quick iteration.
+
 - **Optimize for outcomes**  
   Success is measured by impact, adoption, and clarity—not feature count.
 
@@ -93,7 +99,7 @@ I enjoy working on products that sit at the intersection of **strategy, data, an
 ## Contact
 
 - GitHub: https://github.com/Hogy86
-- LinkedIn: *(add link if desired)*
+- LinkedIn: https://linkedin.com/in/aaron-hogancamp
 
 ---
 
