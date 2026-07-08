@@ -6,6 +6,12 @@
 // the fixed-timestep accumulator) are deterministic - no reliance on real RAF
 // pacing or wall-clock time.
 //
+// v2 additions: §F18 AC2/AC5/AC8 (the level-intro freeze gates Movement/Formation/
+// EnemyFire/Projectile even though state === 'PLAYING' - this is the one place that
+// property can be exercised end to end, since the gate lives in GameLoop's private
+// stepSimulation) and §F12 AC11 (the boss-incoming warning cue does NOT gate those
+// systems - the player retains full move/throw control during it, unlike F18's intro).
+//
 // GameStateMachine.test.ts and PowerUpSystem.test.ts each explicitly defer F6 AC7
 // to "the GameLoop level" (see their leading comments) - this file is that
 // coverage. It does not re-test per-system decrement logic (PowerUpSystem.test.ts
@@ -20,7 +26,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GameLoop } from './GameLoop';
-import { FIXED_DT } from '../config/constants';
+import { BOSS_WARNING_SECONDS, FIXED_DT, LEVEL_INTRO_SECONDS } from '../config/constants';
 import { makePlayingWorld } from '../test-utils/worldFactory';
 import type { World } from './types';
 
@@ -49,6 +55,15 @@ function installFakeRaf(): { fire: (timestamp: number) => void; cancelCount: () 
   };
 }
 
+/** Dispatches a real keydown/keyup on `window`, since GameLoop's InputManager
+ * listens on the real global window by default (no override is passed in). */
+function pressKey(key: string): void {
+  window.dispatchEvent(new KeyboardEvent('keydown', { key, cancelable: true }));
+}
+function releaseKey(key: string): void {
+  window.dispatchEvent(new KeyboardEvent('keyup', { key, cancelable: true }));
+}
+
 describe('GameLoop (F6 AC7, ADR-0002 decision 3)', () => {
   let raf: ReturnType<typeof installFakeRaf>;
 
@@ -62,9 +77,7 @@ describe('GameLoop (F6 AC7, ADR-0002 decision 3)', () => {
 
   it('does not advance simulation time/effects while state is PAUSED', () => {
     const world = makePlayingWorld();
-    world.effects.hitPowerRemaining = 8;
-    world.effects.speedRemaining = 8;
-    world.effects.shieldRemaining = 8;
+    world.effects = { type: 'HIT_POWER', remaining: 8 };
     world.state = 'PAUSED';
 
     const enemyYBefore = world.enemies[0]!.y;
@@ -81,17 +94,15 @@ describe('GameLoop (F6 AC7, ADR-0002 decision 3)', () => {
       raf.fire(ts);
     }
 
-    expect(world.effects.hitPowerRemaining).toBe(8);
-    expect(world.effects.speedRemaining).toBe(8);
-    expect(world.effects.shieldRemaining).toBe(8);
+    expect(world.effects.remaining).toBe(8);
     expect(world.enemies[0]!.y).toBe(enemyYBefore);
 
     loop.stop();
   });
 
-  it('advances simulation (effect timers count down) while state is PLAYING', () => {
+  it('advances simulation (the active effect timer counts down) while state is PLAYING', () => {
     const world = makePlayingWorld();
-    world.effects.hitPowerRemaining = 8;
+    world.effects = { type: 'HIT_POWER', remaining: 8 };
     world.state = 'PLAYING';
 
     const loop = new GameLoop(world, () => {});
@@ -104,15 +115,15 @@ describe('GameLoop (F6 AC7, ADR-0002 decision 3)', () => {
 
     const expectedSteps = Math.floor(0.15 / FIXED_DT);
     expect(expectedSteps).toBeGreaterThan(0);
-    expect(world.effects.hitPowerRemaining).toBeLessThan(8);
-    expect(world.effects.hitPowerRemaining).toBeCloseTo(8 - expectedSteps * FIXED_DT, 5);
+    expect(world.effects.remaining).toBeLessThan(8);
+    expect(world.effects.remaining).toBeCloseTo(8 - expectedSteps * FIXED_DT, 5);
 
     loop.stop();
   });
 
   it('pausing mid-run freezes an active timer, and resuming continues from the remaining duration with no drift', () => {
     const world = makePlayingWorld();
-    world.effects.hitPowerRemaining = 8;
+    world.effects = { type: 'HIT_POWER', remaining: 8 };
     world.state = 'PLAYING';
 
     const loop = new GameLoop(world, () => {});
@@ -122,7 +133,7 @@ describe('GameLoop (F6 AC7, ADR-0002 decision 3)', () => {
     raf.fire(0);
     raf.fire(150);
     const stepsBeforePause = Math.floor(0.15 / FIXED_DT);
-    const remainingAtPause = world.effects.hitPowerRemaining;
+    const remainingAtPause = world.effects.remaining;
     expect(remainingAtPause).toBeCloseTo(8 - stepsBeforePause * FIXED_DT, 5);
 
     // Pause: a large amount of further elapsed wall-clock time must not touch
@@ -133,7 +144,7 @@ describe('GameLoop (F6 AC7, ADR-0002 decision 3)', () => {
       pausedTs += 500; // 500ms/frame while paused - large relative to FIXED_DT
       raf.fire(pausedTs);
     }
-    expect(world.effects.hitPowerRemaining).toBe(remainingAtPause);
+    expect(world.effects.remaining).toBe(remainingAtPause);
 
     // Resume: exactly one more 150ms frame's worth of decrement should occur -
     // proving no time was lost or gained by the pause (no drift).
@@ -141,10 +152,7 @@ describe('GameLoop (F6 AC7, ADR-0002 decision 3)', () => {
     raf.fire(pausedTs + 150);
     const stepsAfterResume = Math.floor(0.15 / FIXED_DT);
 
-    expect(world.effects.hitPowerRemaining).toBeCloseTo(
-      remainingAtPause - stepsAfterResume * FIXED_DT,
-      5,
-    );
+    expect(world.effects.remaining).toBeCloseTo(remainingAtPause - stepsAfterResume * FIXED_DT, 5);
   });
 
   it('per-screen input dispatch (e.g. Esc) still runs every tick even while PAUSED, distinct from simulation systems', () => {
@@ -169,7 +177,7 @@ describe('GameLoop (F6 AC7, ADR-0002 decision 3)', () => {
     // If uncapped, a 10-minute gap would run ~36000 fixed steps in one frame;
     // capped, at most 0.25s / FIXED_DT (~15) fixed steps are processed.
     const world = makePlayingWorld();
-    world.effects.hitPowerRemaining = 100; // large enough to not hit the revert-to-0 floor
+    world.effects = { type: 'HIT_POWER', remaining: 100 }; // large enough to not hit the revert-to-0 floor
     world.state = 'PLAYING';
 
     const loop = new GameLoop(world, () => {});
@@ -182,7 +190,7 @@ describe('GameLoop (F6 AC7, ADR-0002 decision 3)', () => {
     const minDecrement = FIXED_DT; // at least one fixed step must run
     const maxDecrement = maxPossibleStepsProcessed * FIXED_DT;
 
-    const decremented = 100 - world.effects.hitPowerRemaining;
+    const decremented = 100 - world.effects.remaining;
     expect(decremented).toBeGreaterThanOrEqual(minDecrement);
     expect(decremented).toBeLessThanOrEqual(maxDecrement + 1e-9);
 
@@ -220,6 +228,98 @@ describe('GameLoop (F6 AC7, ADR-0002 decision 3)', () => {
       expect(renderedWorld).toBe(world);
     });
 
+    loop.stop();
+  });
+});
+
+describe('GameLoop - v2 level-intro gate (F18 AC2/AC5/AC8)', () => {
+  let raf: ReturnType<typeof installFakeRaf>;
+
+  beforeEach(() => {
+    raf = installFakeRaf();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('freezes Movement/Formation/EnemyFire/Projectile while levelIntroRemaining > 0, even though state === PLAYING', () => {
+    const world = makePlayingWorld();
+    world.levelIntroRemaining = LEVEL_INTRO_SECONDS;
+    world.state = 'PLAYING';
+    const startX = world.player.x;
+    const startShieldCount = world.shields.length;
+    const startFormationOffsetX = world.formation.offsetX;
+
+    const loop = new GameLoop(world, () => {});
+    pressKey('ArrowRight');
+    loop.start();
+
+    raf.fire(0);
+    raf.fire(150); // well under the 3s intro - several fixed steps would normally run
+
+    expect(world.player.x).toBe(startX); // Movement never ran
+    expect(world.formation.offsetX).toBe(startFormationOffsetX); // Formation never ran
+    expect(world.shields).toHaveLength(startShieldCount); // Projectile never ran
+    expect(world.levelIntroRemaining).toBeLessThan(LEVEL_INTRO_SECONDS); // but the intro itself ticks down
+
+    releaseKey('ArrowRight');
+    loop.stop();
+  });
+
+  it('unlocks Movement once levelIntroRemaining reaches 0', () => {
+    const world = makePlayingWorld();
+    world.levelIntroRemaining = 2 * FIXED_DT; // about to elapse
+    world.state = 'PLAYING';
+    const startX = world.player.x;
+
+    const loop = new GameLoop(world, () => {});
+    pressKey('ArrowRight');
+    loop.start();
+
+    raf.fire(0);
+    raf.fire(1000); // comfortably past the remaining intro time
+
+    expect(world.levelIntroRemaining).toBe(0);
+    expect(world.player.x).toBeGreaterThan(startX); // movement now runs post-intro
+
+    releaseKey('ArrowRight');
+    loop.stop();
+  });
+});
+
+describe('GameLoop - v2 boss-incoming warning does NOT gate play (F12 AC11)', () => {
+  let raf: ReturnType<typeof installFakeRaf>;
+
+  beforeEach(() => {
+    raf = installFakeRaf();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("the player retains full move/throw control while bossPhase is WARNING - unlike F18's intro, this cue freezes nothing", () => {
+    const world = makePlayingWorld(5); // a boss level, so the WARNING phase is meaningful
+    world.levelIntroRemaining = 0;
+    world.state = 'PLAYING';
+    world.enemies = []; // regular formation already cleared
+    world.bossPhase = 'WARNING';
+    world.bossWarningRemaining = BOSS_WARNING_SECONDS;
+    const startX = world.player.x;
+
+    const loop = new GameLoop(world, () => {});
+    pressKey('ArrowRight');
+    loop.start();
+
+    raf.fire(0);
+    raf.fire(50); // well under the ~1.75s warning window
+
+    expect(world.player.x).toBeGreaterThan(startX); // player moved - not frozen
+    expect(world.bossWarningRemaining).toBeLessThan(BOSS_WARNING_SECONDS); // warning is ticking down
+    expect(world.bossPhase).toBe('WARNING'); // boss has not spawned yet
+
+    releaseKey('ArrowRight');
     loop.stop();
   });
 });

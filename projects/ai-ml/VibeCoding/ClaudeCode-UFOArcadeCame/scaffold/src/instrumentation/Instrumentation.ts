@@ -13,7 +13,10 @@ export type InstrumentationEvent =
   | 'runRestart'
   | 'powerUpCaught'
   | 'gameOver'
-  | 'victory';
+  | 'victory'
+  // v2 (F12 AC10, F16 AC2): boss-incoming warning cue started; player caught an in-flight shield.
+  | 'bossWarningStarted'
+  | 'shieldCaught';
 
 type CounterMap = Record<string, number>;
 

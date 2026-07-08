@@ -70,10 +70,7 @@ describe('Instrumentation - localStorage read path fails closed (security findin
     // to one via a nested structure is not possible either - assert the validator
     // directly rejects a map shape that *would* decode to non-finite via a stand-in
     // string that a lenient implementation might Number()-coerce.
-    localStorage.setItem(
-      INSTRUMENTATION_STORAGE_KEY,
-      JSON.stringify({ sessionStart: '1e999' }),
-    );
+    localStorage.setItem(INSTRUMENTATION_STORAGE_KEY, JSON.stringify({ sessionStart: '1e999' }));
     emit('sessionStart');
     const stored = JSON.parse(localStorage.getItem(INSTRUMENTATION_STORAGE_KEY)!);
     expect(stored).toEqual({ sessionStart: 1 });

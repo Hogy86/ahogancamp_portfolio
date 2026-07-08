@@ -1,7 +1,8 @@
 // Implements PRD §F6 (pause overlay + options), §F6 AC9 (blocked-quit fallback
 // text), §F6 AC10 (keyboard-navigable menu, visible non-color-only selection),
-// §F6 AC11 (Restart Game confirmation guard), §F8 AC4/AC6 (Game Over / Victory
-// screens), §F9 AC1 (Vanguard vs Sentinels premise readable with no narrative).
+// §F6 AC11 (Restart Game confirmation guard), §F8 AC4 (Game Over screen), §F19
+// (v2: "Game Complete" celebration screen replaces the v1 static Victory screen),
+// §F9 AC1 (Vanguard vs Sentinels premise readable with no narrative).
 // All text is written via textContent only (security binding constraint #2 -
 // see ui/dom.ts). ADR-0002: this module only ever renders what GameStateMachine's
 // dispatch table already decided - it has no independent state-transition logic.
@@ -116,15 +117,26 @@ export class ScreenController {
     this.root.append(overlay);
   }
 
+  /** F19: the "Game Complete" celebration replaces v1's static Victory screen. The heading
+   * and score are DOM-drawn text (this class's existing end-screen pattern); the fireworks
+   * are canvas-drawn (CanvasRenderer.drawVictoryFireworks) since there are no entities left
+   * to compose them around. No "Press Enter..." prompt - the sequence auto-returns to TITLE
+   * with no input required (F19 AC5); GameStateMachine's VICTORY case separately supports an
+   * optional key-press hold (F19 AC9), which needs no visible prompt to remain valid.
+   *
+   * design-review-v2-round4.md FAIL-1: unlike Title/Pause/GameOver, this is the one screen
+   * where canvas content behind the overlay (the fireworks, F19 AC4) is itself a requirement,
+   * so it cannot reuse the opaque `.screen-overlay` background - the
+   * `screen-overlay--transparent-bg` modifier removes the wash while a text-shadow (in
+   * style.css) keeps the heading/score legible against the animated fireworks behind them. */
   private renderVictory(world: World): void {
-    const overlay = createElement('div', 'screen-overlay');
+    const overlay = createElement('div', 'screen-overlay screen-overlay--transparent-bg');
     overlay.setAttribute('role', 'alert');
     overlay.setAttribute('aria-live', 'assertive');
     overlay.append(
-      createElement('h1', undefined, 'VICTORY'),
-      createElement('p', undefined, 'The Sentinel formations have been cleared.'),
+      createElement('h1', undefined, 'GAME COMPLETE'),
+      createElement('p', undefined, 'The Sentinel forces have been defeated.'),
       createElement('p', undefined, `Final Score: ${world.score}`),
-      createElement('p', undefined, 'Press Enter to start a new run'),
     );
     this.root.append(overlay);
   }

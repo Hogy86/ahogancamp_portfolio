@@ -4,10 +4,14 @@
 
 import { describe, expect, it, vi } from 'vitest';
 import { updateCollisions } from './CollisionSystem';
-import { consumeGuaranteedDrop, getGuaranteedDropsRemaining, resetGuaranteedDrops } from './levelRuntimeState';
+import {
+  consumeGuaranteedDrop,
+  getGuaranteedDropsRemaining,
+  resetGuaranteedDrops,
+} from './levelRuntimeState';
 import { getLevelConfig } from '../config/levelConfig';
 import { makePlayingWorld } from '../test-utils/worldFactory';
-import type { Enemy } from '../core/types';
+import type { Enemy, ShieldProjectile } from '../core/types';
 
 function makeEnemy(id: number, overrides: Partial<Enemy> = {}): Enemy {
   return {
@@ -22,6 +26,22 @@ function makeEnemy(id: number, overrides: Partial<Enemy> = {}): Enemy {
     hitsTaken: 0,
     isBoss: false,
     alive: true,
+    ...overrides,
+  };
+}
+
+function makeShield(overrides: Partial<ShieldProjectile> = {}): ShieldProjectile {
+  return {
+    id: 1,
+    x: 0,
+    y: 0,
+    radius: 8,
+    active: true,
+    vx: 0,
+    vy: -480,
+    lifetimeRemaining: 6,
+    lastHitEnemyId: null,
+    trail: [],
     ...overrides,
   };
 }
@@ -59,9 +79,7 @@ describe('F7 AC1: at least one power-up is guaranteed to drop per level', () => 
     let dropSeen = false;
     for (const enemy of world.enemies) {
       world.enemies = [enemy];
-      world.shields = [
-        { id: enemy.id + 1000, x: enemy.x + 10, y: enemy.y + 10, radius: 8, active: true },
-      ];
+      world.shields = [makeShield({ id: enemy.id + 1000, x: enemy.x + 10, y: enemy.y + 10 })];
       world.powerUps = [];
       updateCollisions(world);
       if (world.powerUps.length > 0) dropSeen = true;
@@ -82,13 +100,13 @@ describe('F7 AC1: at least one power-up is guaranteed to drop per level', () => 
     const enemyA = makeEnemy(1);
     const enemyB = makeEnemy(2);
     world.enemies = [enemyA];
-    world.shields = [{ id: 101, x: enemyA.x + 10, y: enemyA.y + 10, radius: 8, active: true }];
+    world.shields = [makeShield({ id: 101, x: enemyA.x + 10, y: enemyA.y + 10 })];
     updateCollisions(world); // consumes the guaranteed drop
     expect(getGuaranteedDropsRemaining()).toBe(0);
 
     world.enemies = [enemyB];
     world.powerUps = [];
-    world.shields = [{ id: 102, x: enemyB.x + 10, y: enemyB.y + 10, radius: 8, active: true }];
+    world.shields = [makeShield({ id: 102, x: enemyB.x + 10, y: enemyB.y + 10 })];
     updateCollisions(world);
 
     expect(world.powerUps).toHaveLength(0);

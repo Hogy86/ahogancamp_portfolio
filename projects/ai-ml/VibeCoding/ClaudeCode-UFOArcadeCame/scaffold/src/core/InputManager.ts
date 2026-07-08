@@ -1,5 +1,6 @@
 // Implements PRD §F1 AC5 (opposing keys cancel), §F2 (throw), §F6 AC1/AC8/AC10
-// (Esc/menu nav), NFR-3 (input latency), NFR-5 (keyboard only).
+// (Esc/menu nav), §F19 AC9 (v2: "any key" celebration-hold gesture), NFR-3 (input
+// latency), NFR-5 (keyboard only).
 // ADR-0001 §Component responsibilities: InputManager whitelists specific keys and
 // ignores everything else - no free-text, no injection surface.
 
@@ -13,6 +14,11 @@ export interface InputSnapshot {
   menuUpPressed: boolean;
   menuDownPressed: boolean;
   menuConfirmPressed: boolean;
+  /** Edge-triggered: fires once on the initial press of ANY whitelisted key, including
+   * Escape. F19 AC9's "any key holds the celebration screen" reads this rather than a
+   * specific key; Esc's exemption from that gesture is applied at the point of use
+   * (GameStateMachine), not here, since InputManager only reports intents. */
+  anyKeyPressed: boolean;
 }
 
 const WHITELISTED_KEYS = new Set([
@@ -37,6 +43,7 @@ export class InputManager {
   private upEdge = false;
   private downEdge = false;
   private confirmEdge = false;
+  private anyKeyEdge = false;
 
   constructor(private readonly target: Window = window) {
     this.target.addEventListener('keydown', this.handleKeyDown);
@@ -57,6 +64,7 @@ export class InputManager {
     this.held.add(event.key);
 
     if (alreadyHeld) return; // edge triggers only fire on the initial press
+    this.anyKeyEdge = true;
     if (event.key === 'Escape') this.escEdge = true;
     if (event.key === 'ArrowUp') this.upEdge = true;
     if (event.key === 'ArrowDown') this.downEdge = true;
@@ -81,6 +89,7 @@ export class InputManager {
       menuUpPressed: this.upEdge,
       menuDownPressed: this.downEdge,
       menuConfirmPressed: this.confirmEdge,
+      anyKeyPressed: this.anyKeyEdge,
     };
   }
 
@@ -90,5 +99,6 @@ export class InputManager {
     this.upEdge = false;
     this.downEdge = false;
     this.confirmEdge = false;
+    this.anyKeyEdge = false;
   }
 }

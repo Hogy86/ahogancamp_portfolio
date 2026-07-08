@@ -1,7 +1,9 @@
 // Tests PRD §F6 (pause menu / Esc semantics per screen) AC1-AC6, AC8, AC9, AC10, AC11.
 // F6 AC7 (timers paused/resumed without drift) is tested at the GameLoop-integration
 // level in GameLoop.test.ts, since it depends on the loop only ticking simulation
-// while state == PLAYING.
+// while state == PLAYING. v2: §F19 AC9 (the VICTORY/"Game Complete" screen is mostly
+// non-interactive - Esc is a silent no-op throughout per F6 AC8's continuation; any
+// other key press holds the celebration once, a second such press advances to TITLE).
 
 import { describe, expect, it } from 'vitest';
 import { dispatchStateInput, PAUSE_MENU_OPTIONS, startNewRun } from './GameStateMachine';
@@ -35,13 +37,6 @@ describe('GameStateMachine - Esc dispatch per screen (F6 AC1, AC8)', () => {
     world.state = 'GAMEOVER';
     expect(() => dispatchStateInput(world, makeInput({ escPressed: true }))).not.toThrow();
     expect(world.state).toBe('GAMEOVER');
-  });
-
-  it('F6 AC8: Esc on VICTORY is a silent no-op', () => {
-    const world = playingWorld();
-    world.state = 'VICTORY';
-    expect(() => dispatchStateInput(world, makeInput({ escPressed: true }))).not.toThrow();
-    expect(world.state).toBe('VICTORY');
   });
 });
 
@@ -90,7 +85,7 @@ describe('GameStateMachine - pause menu options and navigation (F6 AC2, AC10)', 
   });
 });
 
-describe('GameStateMachine - Restart Level (F6 AC4)', () => {
+describe('GameStateMachine - Restart Level (F6 AC4, F18 AC9)', () => {
   it('F6 AC4: selecting Restart Level resets the current level and resumes PLAYING without reload', () => {
     const world = playingWorld();
     world.state = 'PAUSED';
@@ -103,6 +98,28 @@ describe('GameStateMachine - Restart Level (F6 AC4)', () => {
     expect(world.state).toBe('PLAYING');
     expect(world.score).toBe(999);
     expect(world.enemies.every((e) => e.alive)).toBe(true);
+  });
+
+  it('F18 AC9 (round-1 B2): Restart Level skips the 3s level-intro countdown entirely - play begins immediately', () => {
+    const world = playingWorld();
+    world.state = 'PAUSED';
+    world.pauseMenuSelectedIndex = 1; // 'Restart Level'
+    world.levelIntroRemaining = 0; // simulate mid-play (intro already elapsed before pausing)
+
+    dispatchStateInput(world, makeInput({ menuConfirmPressed: true }));
+
+    expect(world.levelIntroRemaining).toBe(0);
+  });
+
+  it('F18 AC9: Restart Level skips the countdown even if it happened to still be armed at the moment of restarting', () => {
+    const world = playingWorld();
+    world.levelIntroRemaining = 3; // e.g. player paused during the fresh-start intro itself
+    world.state = 'PAUSED';
+    world.pauseMenuSelectedIndex = 1;
+
+    dispatchStateInput(world, makeInput({ menuConfirmPressed: true }));
+
+    expect(world.levelIntroRemaining).toBe(0);
   });
 });
 
@@ -166,7 +183,7 @@ describe('GameStateMachine - Quit (F6 AC6, AC9)', () => {
   });
 });
 
-describe('GameStateMachine - fresh run from end screens (F8 AC7)', () => {
+describe('GameStateMachine - fresh run from Game Over (F8 AC7)', () => {
   it('F8 AC7: confirming on GAMEOVER starts a fresh run without a page reload', () => {
     const world = playingWorld();
     world.state = 'GAMEOVER';
@@ -177,16 +194,73 @@ describe('GameStateMachine - fresh run from end screens (F8 AC7)', () => {
     expect(world.state).toBe('PLAYING');
     expect(world.score).toBe(0);
   });
+});
 
-  it('F8 AC7: confirming on VICTORY starts a fresh run without a page reload', () => {
+describe('GameStateMachine - VICTORY / "Game Complete" input handling (F19 AC9, F6 AC8 continuation)', () => {
+  function victoryWorld(): World {
     const world = playingWorld();
     world.state = 'VICTORY';
     world.score = 9999;
+    world.victoryCelebrationRemaining = 5;
+    world.victoryHeld = false;
+    return world;
+  }
 
-    dispatchStateInput(world, makeInput({ menuConfirmPressed: true }));
+  it('F19 AC9 / F6 AC8: Esc is a silent no-op on VICTORY - it never holds or advances', () => {
+    const world = victoryWorld();
 
-    expect(world.state).toBe('PLAYING');
+    dispatchStateInput(world, makeInput({ escPressed: true, anyKeyPressed: true }));
+
+    expect(world.state).toBe('VICTORY');
+    expect(world.victoryHeld).toBe(false);
+  });
+
+  it('F19 AC9: a second Esc press still does not hold/advance, even after other Esc presses', () => {
+    const world = victoryWorld();
+    dispatchStateInput(world, makeInput({ escPressed: true, anyKeyPressed: true }));
+    dispatchStateInput(world, makeInput({ escPressed: true, anyKeyPressed: true }));
+
+    expect(world.state).toBe('VICTORY');
+    expect(world.victoryHeld).toBe(false);
+  });
+
+  it('F19 AC9: no key press at all leaves the celebration running untouched', () => {
+    const world = victoryWorld();
+    dispatchStateInput(world, makeInput());
+    expect(world.state).toBe('VICTORY');
+    expect(world.victoryHeld).toBe(false);
+  });
+
+  it('F19 AC9: the first qualifying (non-Esc) key press holds the celebration - pauses, does not advance', () => {
+    const world = victoryWorld();
+
+    dispatchStateInput(world, makeInput({ anyKeyPressed: true }));
+
+    expect(world.state).toBe('VICTORY');
+    expect(world.victoryHeld).toBe(true);
+    expect(world.score).toBe(9999); // still showing the same celebration/score
+  });
+
+  it('F19 AC9: a second qualifying key press (after the first already holds) advances straight to TITLE', () => {
+    const world = victoryWorld();
+    dispatchStateInput(world, makeInput({ anyKeyPressed: true })); // holds
+    expect(world.victoryHeld).toBe(true);
+
+    dispatchStateInput(world, makeInput({ anyKeyPressed: true })); // advances
+
+    expect(world.state).toBe('TITLE');
+  });
+
+  it('F19 AC8: advancing off VICTORY resets run state for a clean subsequent run (level 1, 3 lives, score 0, multiplier reset)', () => {
+    const world = victoryWorld();
+    world.permanentMultiplier = 3.24;
+    dispatchStateInput(world, makeInput({ anyKeyPressed: true })); // holds
+    dispatchStateInput(world, makeInput({ anyKeyPressed: true })); // advances to TITLE
+
+    expect(world.state).toBe('TITLE');
+    expect(world.level).toBe(1);
     expect(world.score).toBe(0);
+    expect(world.permanentMultiplier).toBe(1);
   });
 });
 

@@ -7,7 +7,12 @@
 
 import { describe, expect, it } from 'vitest';
 import { updateMovement } from './MovementSystem';
-import { PLAYER_BASE_SPEED, PLAYFIELD_WIDTH, FIXED_DT } from '../config/constants';
+import {
+  PLAYER_BASE_SPEED,
+  PLAYFIELD_WIDTH,
+  FIXED_DT,
+  SPEED_MULTIPLIER,
+} from '../config/constants';
 import { makeInput, makePlayingWorld } from '../test-utils/worldFactory';
 
 describe('MovementSystem (F1)', () => {
@@ -61,12 +66,20 @@ describe('MovementSystem (F1)', () => {
     expect(world.player.x).toBe(startX);
   });
 
-  it('F7 AC5 interaction: 3x speed power-up increases movement speed while active', () => {
+  it('F7 AC5 / F11 interaction: 3x Speed as the active effect (single-slot model) increases movement speed while active', () => {
     const world = makePlayingWorld();
-    world.effects.speedRemaining = 8;
+    world.effects = { type: 'SPEED', remaining: 8 };
     const startX = world.player.x;
     updateMovement(world, makeInput({ moveRight: true }), FIXED_DT);
     const movedWithBuff = world.player.x - startX;
-    expect(movedWithBuff).toBeCloseTo(PLAYER_BASE_SPEED * 3 * FIXED_DT, 5);
+    expect(movedWithBuff).toBeCloseTo(PLAYER_BASE_SPEED * SPEED_MULTIPLIER * FIXED_DT, 5);
+  });
+
+  it('F11: a different active effect (e.g. HIT_POWER) does not grant the speed buff', () => {
+    const world = makePlayingWorld();
+    world.effects = { type: 'HIT_POWER', remaining: 8 };
+    const startX = world.player.x;
+    updateMovement(world, makeInput({ moveRight: true }), FIXED_DT);
+    expect(world.player.x - startX).toBeCloseTo(PLAYER_BASE_SPEED * FIXED_DT, 5);
   });
 });

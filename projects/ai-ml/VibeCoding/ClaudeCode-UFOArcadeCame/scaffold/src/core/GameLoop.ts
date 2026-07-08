@@ -4,6 +4,9 @@
 // used strictly to drive the accumulator, never as a per-effect timer (that
 // distinction is what the binding security/architecture constraint #3 requires:
 // no wall-clock-driven gameplay timers, only wall-clock-driven frame pacing).
+// v2 additions: §F18 (level-intro freeze gates the rest of stepSimulation), §F12
+// AC10-11 (boss-incoming warning ticks alongside gameplay, never gates it), §F19
+// AC6 (the VICTORY celebration ticks on its own dedicated path, not stepSimulation).
 
 import { FIXED_DT } from '../config/constants';
 import { InputManager } from './InputManager';
@@ -15,6 +18,9 @@ import { updateProjectiles } from '../systems/ProjectileSystem';
 import { updateCollisions } from '../systems/CollisionSystem';
 import { updatePowerUps } from '../systems/PowerUpSystem';
 import { updateWinLoss } from '../systems/WinLossSystem';
+import { updateLevelIntro } from '../systems/LevelIntroSystem';
+import { updateBossWarning } from '../systems/BossWarningSystem';
+import { updateVictoryCelebration } from '../systems/VictoryCelebrationSystem';
 import type { World } from './types';
 
 /** Max accumulated time processed per animation frame, to avoid a "spiral of death"
@@ -68,6 +74,10 @@ export class GameLoop {
     while (this.accumulator >= FIXED_DT) {
       if (this.world.state === 'PLAYING') {
         this.stepSimulation(snapshot, FIXED_DT);
+      } else if (this.world.state === 'VICTORY') {
+        // F19 AC6: the Game Complete celebration is a single additive tick path - it does
+        // not weaken the "sim only ticks during PLAYING" rule for any other system.
+        updateVictoryCelebration(this.world, FIXED_DT);
       }
       this.accumulator -= FIXED_DT;
     }
@@ -80,10 +90,25 @@ export class GameLoop {
     this.rafHandle = requestAnimationFrame(this.tick);
   };
 
-  /** Deterministic fixed system order (ADR-0002 decision 4): Movement -> Formation
-   * -> EnemyFire -> Projectile -> Collision -> PowerUp -> WinLoss. All state feeding
-   * terminal conditions is finalized before WinLossSystem runs. */
+  /** Deterministic fixed system order (ADR-0002 decision 4): LevelIntro (gate) ->
+   * BossWarning -> Movement -> Formation -> EnemyFire -> Projectile -> Collision ->
+   * PowerUp -> WinLoss. All state feeding terminal conditions is finalized before
+   * WinLossSystem runs.
+   *
+   * F18 AC2/AC5/AC8: while the level-intro countdown is active, this returns immediately
+   * after ticking it - nobody moves or fires until it completes. This single early return
+   * is what makes "nobody moves or fires during the intro" a property of one gate rather
+   * than scattered per-system guards.
+   *
+   * F12 AC11: BossWarningSystem deliberately runs AFTER that gate (not before), and nothing
+   * below gates on `bossWarningRemaining` - the player retains full move/throw control
+   * during the boss-incoming cue; there simply are no enemies to hit yet. */
   private stepSimulation(snapshot: ReturnType<InputManager['snapshot']>, dt: number): void {
+    updateLevelIntro(this.world, dt);
+    if (this.world.levelIntroRemaining > 0) return;
+
+    updateBossWarning(this.world, dt);
+
     updateMovement(this.world, snapshot, dt);
     updateFormation(this.world, dt);
     updateEnemyFire(this.world, dt);
