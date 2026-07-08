@@ -1,9 +1,11 @@
 // Implements PRD §F3 (enemy formation & movement), §F3 AC6 (formation-approach warning,
-// Q7 - toggleable via FORMATION_WARNING_ENABLED). ADR-0003: reads formationSpeedMultiplier
-// from LevelConfig, no per-level branching.
+// Q7 - toggleable via FORMATION_WARNING_ENABLED), §F12 AC3 (v2: a lone boss uses a dedicated
+// speed multiplier instead of the regular speedup formula). ADR-0003: reads
+// formationSpeedMultiplier from LevelConfig, no per-level branching.
 
 import {
   BASE_FORMATION_SPEED,
+  BOSS_FORMATION_SPEED_MULTIPLIER,
   FORMATION_STEP_DOWN,
   FORMATION_WARNING_ENABLED,
   FORMATION_WARNING_ROW_MARGIN_PX,
@@ -38,12 +40,21 @@ function recomputeBounds(world: World): void {
   world.formation.lowestY = lowest;
 }
 
-/** F3 AC3: formation speed scales inversely with remaining enemy count. */
+/** F3 AC3: formation speed scales inversely with remaining enemy count. F12 AC3: a lone
+ * boss is a special case - the regular aliveCount/totalAtStart formula would instantly
+ * saturate its 3.5x "last enemy" cap for a single enemy, undercutting the boss's intended
+ * "big, tanky" feel, so it uses a dedicated, much gentler multiplier instead. */
 function currentSpeed(world: World): number {
   const config = getLevelConfig(world.level);
   const totalAtStart = config.rows * config.cols;
-  const aliveCount = world.enemies.filter((e) => e.alive).length;
+  const aliveEnemies = world.enemies.filter((e) => e.alive);
+  const aliveCount = aliveEnemies.length;
   if (aliveCount === 0) return 0;
+
+  const isSoloBoss = aliveCount === 1 && aliveEnemies[0]?.isBoss === true;
+  if (isSoloBoss) {
+    return BASE_FORMATION_SPEED * config.formationSpeedMultiplier * BOSS_FORMATION_SPEED_MULTIPLIER;
+  }
 
   // Inverse scaling: fewer enemies remaining => faster, capped at a reasonable multiple
   // so the very last enemy is dramatically faster without becoming unplayably instant.

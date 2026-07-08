@@ -1,7 +1,11 @@
 // Implements PRD §F6 (pause menu + Esc semantics per screen), §F6 AC8 (silent no-op
-// off active play), §F8 AC7 (fresh run from end screens without reload). ADR-0002
-// decision 2: input is dispatched by state so Esc's meaning is defined in exactly
-// one place - this module IS that dispatch table.
+// off active play), §F8 AC7 (fresh run from end screens without reload), §F18 AC9 (v2:
+// Restart Level skips the level-intro countdown), §F19 AC9 (v2: VICTORY/"Game Complete" is
+// mostly non-interactive, but any non-Esc key press holds the celebration once, and a
+// second such press advances to TITLE - Esc remains a silent no-op throughout, continuing
+// F6 AC8's precedent for the screen F19 replaces). ADR-0002 decision 2: input is dispatched
+// by state so Esc's meaning is defined in exactly one place - this module IS that dispatch
+// table.
 
 import type { InputSnapshot } from './InputManager';
 import { createNewRunWorld, resetForLevel } from './world';
@@ -87,12 +91,27 @@ export function dispatchStateInput(world: World, input: InputSnapshot): void {
       return;
     }
 
-    case 'GAMEOVER':
-    case 'VICTORY': {
-      // Esc is a silent no-op on both end screens (F6 AC8 / UX-B1).
+    case 'GAMEOVER': {
+      // Esc is a silent no-op on this end screen (F6 AC8 / UX-B1).
       if (input.menuConfirmPressed) {
         Object.assign(world, startNewRun());
       }
+      return;
+    }
+
+    case 'VICTORY': {
+      // F19 AC9: Esc is exempt from the celebration-hold gesture - a silent no-op
+      // throughout, continuing F6 AC8's precedent for the screen F19 replaces.
+      if (input.escPressed) return;
+      if (!input.anyKeyPressed) return;
+
+      if (!world.victoryHeld) {
+        // First qualifying (non-Esc) key press pauses the countdown (F19 AC9).
+        world.victoryHeld = true;
+        return;
+      }
+      // Second qualifying key press advances straight to TITLE (F19 AC5/AC8).
+      Object.assign(world, createNewRunWorld());
       return;
     }
   }
@@ -114,6 +133,9 @@ function applyPauseMenuSelection(world: World): void {
       return;
     case 'Restart Level':
       resetForLevel(world, world.level);
+      // F18 AC9 (round-1 B2, owner-approved): Restart Level is the sole exception that
+      // skips the "LEVEL [N]" countdown - play begins immediately.
+      world.levelIntroRemaining = 0;
       resetGuaranteedDrops(world.level);
       world.state = 'PLAYING';
       emit('runRestart', { scope: 'level', level: world.level });

@@ -1,11 +1,14 @@
 // Implements PRD §F4 (10-level difficulty table, exact owner-approved progression),
-// §F4 AC5 (monotonic escalation), ADR-0003 (data-driven level config, no per-level
-// branching in consuming systems).
+// §F4 AC5 (monotonic escalation), §F12 (v2: boss phase replaces the old embedded-boss
+// column - bossHp is now null except on levels 5/10, where it is 5x that level's
+// toughest regular HP tier), ADR-0003 (data-driven level config, no per-level branching
+// in consuming systems).
 //
 // This table is the single source of truth for per-level difficulty. Systems read
 // fields from `LEVEL_CONFIGS[level - 1]` - none of them branch on `level` directly
-// (ADR-0003 Risk R5). A monotonicity self-check runs at module load (dev-time
-// assertion) in addition to the unit test test-writer will add.
+// (ADR-0003 Risk R5). A monotonicity self-check and a boss-HP-formula self-check both
+// run at module load (dev-time assertions) in addition to the unit tests test-writer
+// will add.
 
 import type { LevelConfig } from '../core/types';
 
@@ -26,7 +29,7 @@ export const LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
     rows: 4,
     cols: 6,
     hpMix: { 1: 1.0 },
-    bossHp: 2,
+    bossHp: null,
     formationSpeedMultiplier: 1.1,
     fireRateMultiplier: 1.3,
     guaranteedPowerUpDrops: 1,
@@ -36,7 +39,7 @@ export const LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
     rows: 4,
     cols: 7,
     hpMix: { 1: 0.5, 2: 0.5 },
-    bossHp: 3,
+    bossHp: null,
     formationSpeedMultiplier: 1.2,
     fireRateMultiplier: 1.6,
     guaranteedPowerUpDrops: 1,
@@ -46,7 +49,7 @@ export const LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
     rows: 5,
     cols: 7,
     hpMix: { 1: 0.4, 2: 0.6 },
-    bossHp: 4,
+    bossHp: null,
     formationSpeedMultiplier: 1.35,
     fireRateMultiplier: 2.0,
     guaranteedPowerUpDrops: 1,
@@ -56,7 +59,8 @@ export const LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
     rows: 5,
     cols: 7,
     hpMix: { 1: 0.25, 2: 0.5, 3: 0.25 },
-    bossHp: 5,
+    // F12 AC2: 5x the level's toughest regular tier (3-hit) = 15.
+    bossHp: 15,
     formationSpeedMultiplier: 1.5,
     fireRateMultiplier: 2.4,
     guaranteedPowerUpDrops: 1,
@@ -66,7 +70,7 @@ export const LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
     rows: 5,
     cols: 8,
     hpMix: { 2: 0.5, 3: 0.5 },
-    bossHp: 6,
+    bossHp: null,
     formationSpeedMultiplier: 1.65,
     fireRateMultiplier: 2.8,
     guaranteedPowerUpDrops: 1,
@@ -76,7 +80,7 @@ export const LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
     rows: 5,
     cols: 8,
     hpMix: { 2: 0.4, 3: 0.6 },
-    bossHp: 7,
+    bossHp: null,
     formationSpeedMultiplier: 1.8,
     fireRateMultiplier: 3.3,
     guaranteedPowerUpDrops: 1,
@@ -86,7 +90,7 @@ export const LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
     rows: 6,
     cols: 8,
     hpMix: { 2: 0.25, 3: 0.5, 4: 0.25 },
-    bossHp: 8,
+    bossHp: null,
     formationSpeedMultiplier: 2.0,
     fireRateMultiplier: 3.8,
     guaranteedPowerUpDrops: 1,
@@ -96,7 +100,7 @@ export const LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
     rows: 6,
     cols: 8,
     hpMix: { 3: 0.5, 4: 0.5 },
-    bossHp: 9,
+    bossHp: null,
     formationSpeedMultiplier: 2.2,
     fireRateMultiplier: 4.4,
     guaranteedPowerUpDrops: 1,
@@ -106,7 +110,8 @@ export const LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
     rows: 6,
     cols: 9,
     hpMix: { 3: 0.4, 4: 0.6 },
-    bossHp: 12,
+    // F12 AC2: 5x the level's toughest regular tier (4-hit) = 20.
+    bossHp: 20,
     formationSpeedMultiplier: 2.5,
     fireRateMultiplier: 5.0,
     guaranteedPowerUpDrops: 1,
@@ -169,3 +174,38 @@ function assertMonotonicEscalation(configs: readonly LevelConfig[]): void {
 }
 
 assertMonotonicEscalation(LEVEL_CONFIGS);
+
+/** Highest regular-enemy HP tier present in a level's hpMix (the "toughest regular enemy"
+ * the F12 AC2 boss-HP formula is defined against). */
+function toughestRegularTier(config: LevelConfig): number {
+  const tiers = Object.keys(config.hpMix).map(Number);
+  return Math.max(0, ...tiers);
+}
+
+/**
+ * F12 AC1-AC2: only levels 5 and 10 have a boss, and each boss's HP is exactly 5x that
+ * level's toughest regular HP tier. Runs once at module load as a fast-fail dev assertion,
+ * mirroring assertMonotonicEscalation (ADR-0003); test-writer additionally covers this with
+ * a proper unit test.
+ */
+function assertBossHpFormula(configs: readonly LevelConfig[]): void {
+  const BOSS_HP_MULTIPLIER = 5;
+  const BOSS_LEVELS = new Set([5, 10]);
+
+  for (const config of configs) {
+    if (BOSS_LEVELS.has(config.level)) {
+      const expected = toughestRegularTier(config) * BOSS_HP_MULTIPLIER;
+      if (config.bossHp !== expected) {
+        throw new Error(
+          `LEVEL_CONFIGS boss HP violation: level ${config.level} bossHp ${String(config.bossHp)} !== expected ${expected}`,
+        );
+      }
+    } else if (config.bossHp !== null) {
+      throw new Error(
+        `LEVEL_CONFIGS boss HP violation: level ${config.level} has a boss but is not a boss level (5/10 only)`,
+      );
+    }
+  }
+}
+
+assertBossHpFormula(LEVEL_CONFIGS);

@@ -151,6 +151,24 @@ body {
   color: #c8c8e0;
 }
 
+/* design-review-v2-round4.md FAIL-1: the Victory ("Game Complete") screen is the one overlay
+   where the canvas content behind it (F19 AC4's fireworks) must stay genuinely visible, so it
+   cannot use `.screen-overlay`'s near-opaque background - that wash was suppressing the
+   fireworks to ~14% visibility. Text legibility is preserved with a strong text-shadow
+   (matching the `.hud-panel` precedent of scoping the contrast treatment to the text itself,
+   not a full-viewport wash) instead of a backing panel. */
+.screen-overlay--transparent-bg {
+  background: transparent;
+}
+
+.screen-overlay--transparent-bg h1,
+.screen-overlay--transparent-bg p {
+  text-shadow:
+    0 0 6px rgba(0, 0, 0, 0.95),
+    0 0 12px rgba(0, 0, 0, 0.85),
+    0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
 .menu-list {
   list-style: none;
   padding: 0;

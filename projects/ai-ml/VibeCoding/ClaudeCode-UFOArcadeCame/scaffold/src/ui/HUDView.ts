@@ -1,10 +1,19 @@
 // Implements PRD §F5 AC5 (level indicator), §F7 AC10/AC11 (permanent multiplier
-// readout + active-effect indicators), §F8 AC1 (lives), §F10 (score), §F9 AC2
-// (control-text line), NFR-9(b) (HUD contrast via backing panel band). All text is
-// written via textContent only (security binding constraint #2 - see ui/dom.ts).
+// readout), §F11 AC6 (v2: single active-temporary-effect indicator, replaces v1's up-to-
+// three simultaneous readouts), §F8 AC1 (lives), §F16 AC9 (v2: "+1 LIFE" catch-confirmation
+// cue), §F10 (score), §F9 AC2 (control-text line), NFR-9(b) (HUD contrast via backing panel
+// band). All text is written via textContent only (security binding constraint #2 - see
+// ui/dom.ts).
 
 import { clearChildren, createElement, setText } from './dom';
-import type { World } from '../core/types';
+import type { TemporaryEffectType, World } from '../core/types';
+
+/** F11 AC6: human-readable label per temporary effect type for the single-slot readout. */
+const TEMPORARY_EFFECT_LABELS: Record<TemporaryEffectType, string> = {
+  HIT_POWER: '5x Hit',
+  SPEED: '3x Speed',
+  SHIELD: 'Shield',
+};
 
 export class HUDView {
   private readonly scoreEl: HTMLElement;
@@ -69,11 +78,16 @@ export class HUDView {
       `Score: ${world.score}`,
       this.lastScoreText,
     );
+    // F16 AC9: a distinct, perceptible "+1 LIFE" cue at the instant of a shield catch,
+    // consistent with the existing multiplier catch-flash pattern (hud-effect-active pulse
+    // + a text change) rather than a silent one-frame tick of the lives counter.
+    const livesFlashing = world.lifeCatchFlashRemaining > 0;
     this.lastLivesText = this.setTextIfChanged(
       this.livesEl,
-      `Lives: ${world.lives}`,
+      livesFlashing ? `Lives: ${world.lives} (+1 LIFE)` : `Lives: ${world.lives}`,
       this.lastLivesText,
     );
+    this.livesEl.classList.toggle('hud-effect-active', livesFlashing);
     this.lastLevelText = this.setTextIfChanged(
       this.levelEl,
       `Level: ${world.level}/10`,
@@ -93,19 +107,18 @@ export class HUDView {
       this.lastMultiplierText,
     );
 
-    const activeEffects: string[] = [];
-    if (world.effects.hitPowerRemaining > 0)
-      activeEffects.push(`5x Hit ${world.effects.hitPowerRemaining.toFixed(1)}s`);
-    if (world.effects.speedRemaining > 0)
-      activeEffects.push(`3x Speed ${world.effects.speedRemaining.toFixed(1)}s`);
-    if (world.effects.shieldRemaining > 0)
-      activeEffects.push(`Shield ${world.effects.shieldRemaining.toFixed(1)}s`);
+    // F11 AC6: exactly one active-effect slot - switches to the new effect's type and full
+    // duration in the same frame a replacement catch lands (no stale/overlapping readouts).
+    const activeEffectText =
+      world.effects.type !== null
+        ? `${TEMPORARY_EFFECT_LABELS[world.effects.type]} ${world.effects.remaining.toFixed(1)}s`
+        : '';
     this.lastEffectsText = this.setTextIfChanged(
       this.effectsEl,
-      activeEffects.length > 0 ? activeEffects.join(' | ') : '',
+      activeEffectText,
       this.lastEffectsText,
     );
-    this.effectsEl.classList.toggle('hud-effect-active', activeEffects.length > 0);
+    this.effectsEl.classList.toggle('hud-effect-active', world.effects.type !== null);
 
     if (hasThrownOnce && !this.controlTextFaded) {
       this.controlTextFaded = true;

@@ -3,10 +3,11 @@
 // renders nothing), §F6 AC9 (blocked-Quit fallback shows the exact visible
 // text), §F6 AC10 (selected pause option is visibly highlighted via a
 // non-color-only `selected` class), §F8 AC4 (Game Over shows a clear message),
-// §F8 AC6 (Victory is visibly distinct from Game Over), §F10 AC5 (score shown
-// on both end screens), and the binding textContent-only DOM security
-// constraint (asserted behaviorally: HTML-looking input renders as literal
-// text, never interpreted markup).
+// §F10 AC5 (score shown on both end screens), and the binding textContent-only
+// DOM security constraint (asserted behaviorally: HTML-looking input renders as
+// literal text, never interpreted markup). v2: §F19 (the "Game Complete"
+// celebration screen replaces v1's static "VICTORY" screen - F8 AC6's "visibly
+// distinct end screen" intent is retained under the new heading/copy).
 //
 // These are real-DOM assertions against jsdom output - not a re-test of the
 // state transitions themselves (GameStateMachine.test.ts already covers those);
@@ -26,7 +27,7 @@ function pausedWorld(): World {
   return world;
 }
 
-describe('ScreenController (F6 AC2/AC8/AC9/AC10, F8 AC4/AC6, F10 AC5)', () => {
+describe('ScreenController (F6 AC2/AC8/AC9/AC10, F8 AC4, F10 AC5, F19)', () => {
   let root: HTMLElement;
   let controller: ScreenController;
 
@@ -131,15 +132,34 @@ describe('ScreenController (F6 AC2/AC8/AC9/AC10, F8 AC4/AC6, F10 AC5)', () => {
     });
   });
 
-  describe('F8 AC6: Victory is visibly distinct from Game Over', () => {
-    it('renders a "VICTORY" heading, not "GAME OVER"', () => {
+  describe('F19: "Game Complete" is visibly distinct from Game Over (supersedes v1 F8 AC6\'s "VICTORY" screen)', () => {
+    it('renders a "GAME COMPLETE" heading, not "GAME OVER" and not the old "VICTORY" heading', () => {
+      const world = makePlayingWorld();
+      world.state = 'VICTORY'; // GameState value is unchanged; only the rendered screen/copy changed
+      controller.render(world);
+
+      const heading = root.querySelector('h1');
+      expect(heading?.textContent).toBe('GAME COMPLETE');
+      expect(root.textContent).not.toContain('GAME OVER');
+      expect(heading?.textContent).not.toBe('VICTORY');
+    });
+
+    it('F19 AC5: renders no "Press Enter" prompt - the sequence auto-returns with no input required', () => {
       const world = makePlayingWorld();
       world.state = 'VICTORY';
       controller.render(world);
 
-      const heading = root.querySelector('h1');
-      expect(heading?.textContent).toBe('VICTORY');
-      expect(root.textContent).not.toContain('GAME OVER');
+      expect(root.textContent).not.toContain('Press Enter');
+    });
+
+    it('announces itself as an alert (role="alert", aria-live="assertive"), same outcome-announcement semantics as Game Over', () => {
+      const world = makePlayingWorld();
+      world.state = 'VICTORY';
+      controller.render(world);
+
+      const overlay = root.querySelector('.screen-overlay');
+      expect(overlay?.getAttribute('role')).toBe('alert');
+      expect(overlay?.getAttribute('aria-live')).toBe('assertive');
     });
   });
 
@@ -153,7 +173,7 @@ describe('ScreenController (F6 AC2/AC8/AC9/AC10, F8 AC4/AC6, F10 AC5)', () => {
       expect(root.textContent).toContain('Final Score: 4321');
     });
 
-    it('shows the final score on the Victory screen', () => {
+    it('shows the final score on the Game Complete screen', () => {
       const world = makePlayingWorld();
       world.state = 'VICTORY';
       world.score = 98765;

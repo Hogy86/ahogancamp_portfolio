@@ -1,10 +1,11 @@
 // Tests PRD §F5 AC5 (visible level indicator 1-10 at all times during play),
 // §F7 AC10 (persistent HUD readout of the permanent multiplier + distinct
-// on-catch flash feedback), §F7 AC11 (active-temporary-effect visible
-// indicator), §F8 AC1 (visible lives indicator), §F9 AC1/AC2 (one-line control
-// text, present until first throw, then fades), §F10 AC1 (score visible during
-// play, starting at 0), and the binding textContent-only DOM security
-// constraint (asserted behaviorally).
+// on-catch flash feedback), §F8 AC1 (visible lives indicator), §F9 AC1/AC2 (one-line
+// control text, present until first throw, then fades), §F10 AC1 (score visible
+// during play, starting at 0), and the binding textContent-only DOM security
+// constraint (asserted behaviorally). v2: §F11 AC6 (exactly one active-temporary-
+// effect indicator, replacing v1's up-to-three-simultaneous readouts) and §F16 AC9
+// ("+1 LIFE" catch-confirmation cue on the lives readout).
 //
 // These are real-DOM assertions against jsdom output - GameStateMachine/
 // PowerUpSystem tests already cover the underlying *state* this view reads
@@ -16,7 +17,7 @@ import { HUDView } from './HUDView';
 import { makePlayingWorld } from '../test-utils/worldFactory';
 import { FIXED_DT } from '../config/constants';
 
-describe('HUDView (F5 AC5, F7 AC10/AC11, F8 AC1, F9 AC1/AC2, F10 AC1)', () => {
+describe('HUDView (F5 AC5, F7 AC10, F8 AC1, F9 AC1/AC2, F10 AC1, F11 AC6, F16 AC9)', () => {
   let root: HTMLElement;
   let controlTextRoot: HTMLElement;
   let hud: HUDView;
@@ -27,7 +28,7 @@ describe('HUDView (F5 AC5, F7 AC10/AC11, F8 AC1, F9 AC1/AC2, F10 AC1)', () => {
     hud = new HUDView(root, controlTextRoot);
   });
 
-  /** Locates the panel currently rendering the active-temporary-effects text
+  /** Locates the panel currently rendering the active-temporary-effect text
    * (identified by content/class, not construction order, so this stays valid
    * across a harmless internal refactor of panel ordering). */
   function findEffectsPanel(): Element {
@@ -78,6 +79,23 @@ describe('HUDView (F5 AC5, F7 AC10/AC11, F8 AC1, F9 AC1/AC2, F10 AC1)', () => {
       world.lives = 1;
       hud.update(world, false, FIXED_DT);
       expect(root.textContent).toContain('Lives: 1');
+    });
+
+    it('F16 AC9: shows a distinct "+1 LIFE" cue at the instant of a shield catch (lifeCatchFlashRemaining > 0)', () => {
+      const world = makePlayingWorld();
+      world.lives = 4;
+      world.lifeCatchFlashRemaining = 1.0;
+      hud.update(world, false, FIXED_DT);
+      expect(root.textContent).toContain('Lives: 4 (+1 LIFE)');
+    });
+
+    it('F16 AC9: the "+1 LIFE" cue is gone once the flash window has elapsed', () => {
+      const world = makePlayingWorld();
+      world.lives = 4;
+      world.lifeCatchFlashRemaining = 0;
+      hud.update(world, false, FIXED_DT);
+      expect(root.textContent).toContain('Lives: 4');
+      expect(root.textContent).not.toContain('+1 LIFE');
     });
   });
 
@@ -147,7 +165,7 @@ describe('HUDView (F5 AC5, F7 AC10/AC11, F8 AC1, F9 AC1/AC2, F10 AC1)', () => {
     });
   });
 
-  describe('F7 AC11: active-temporary-effect visible indicator', () => {
+  describe('F11 AC6: single active-temporary-effect indicator (replaces v1 up-to-three-simultaneous readouts)', () => {
     it('renders no active-effect text when no temporary effect is active', () => {
       const world = makePlayingWorld();
       hud.update(world, false, FIXED_DT);
@@ -156,44 +174,51 @@ describe('HUDView (F5 AC5, F7 AC10/AC11, F8 AC1, F9 AC1/AC2, F10 AC1)', () => {
       expect(root.textContent).not.toContain('Shield ');
     });
 
-    it('renders a visible indicator with remaining duration while 5x Hit Power is active', () => {
+    it('renders a visible indicator with remaining duration while 5x Hit Power is the active effect', () => {
       const world = makePlayingWorld();
-      world.effects.hitPowerRemaining = 6.5;
+      world.effects = { type: 'HIT_POWER', remaining: 6.5 };
       hud.update(world, false, FIXED_DT);
       expect(root.textContent).toContain('5x Hit 6.5s');
     });
 
-    it('renders a visible indicator while 3x Speed is active', () => {
+    it('renders a visible indicator while 3x Speed is the active effect', () => {
       const world = makePlayingWorld();
-      world.effects.speedRemaining = 2.3;
+      world.effects = { type: 'SPEED', remaining: 2.3 };
       hud.update(world, false, FIXED_DT);
       expect(root.textContent).toContain('3x Speed 2.3s');
     });
 
-    it('renders a visible indicator while the Indestructible Shield is active', () => {
+    it('renders a visible indicator while the Indestructible Shield is the active effect', () => {
       const world = makePlayingWorld();
-      world.effects.shieldRemaining = 4.0;
+      world.effects = { type: 'SHIELD', remaining: 4.0 };
       hud.update(world, false, FIXED_DT);
       expect(root.textContent).toContain('Shield 4.0s');
     });
 
-    it('renders multiple simultaneously-active effect indicators, separated', () => {
+    it('F11 AC1/AC6: never renders two effect indicators at once - switching the active slot replaces the text, it does not add a second line', () => {
       const world = makePlayingWorld();
-      world.effects.hitPowerRemaining = 1.0;
-      world.effects.shieldRemaining = 2.0;
+      world.effects = { type: 'HIT_POWER', remaining: 1.0 };
       hud.update(world, false, FIXED_DT);
       expect(root.textContent).toContain('5x Hit 1.0s');
-      expect(root.textContent).toContain('Shield 2.0s');
+      expect(root.textContent).not.toContain('Speed');
+      expect(root.textContent).not.toContain('Shield ');
+
+      // F11 AC3/AC6: a replacement catch switches to the new effect in the same frame -
+      // no stale/overlapping readout of the old one.
+      world.effects = { type: 'SHIELD', remaining: 8.0 };
+      hud.update(world, false, FIXED_DT);
+      expect(root.textContent).toContain('Shield 8.0s');
+      expect(root.textContent).not.toContain('5x Hit');
     });
 
-    it('toggles a distinct "hud-effect-active" class on while any temporary effect is active, and off when none are', () => {
+    it('toggles a distinct "hud-effect-active" class on while a temporary effect is active, and off when none is', () => {
       const world = makePlayingWorld();
-      world.effects.speedRemaining = 3;
+      world.effects = { type: 'SPEED', remaining: 3 };
       hud.update(world, false, FIXED_DT);
       const activePanel = findEffectsPanel();
       expect(activePanel.classList.contains('hud-effect-active')).toBe(true);
 
-      world.effects.speedRemaining = 0;
+      world.effects = { type: null, remaining: 0 };
       hud.update(world, false, FIXED_DT);
       expect(activePanel.classList.contains('hud-effect-active')).toBe(false);
     });
@@ -239,7 +264,7 @@ describe('HUDView (F5 AC5, F7 AC10/AC11, F8 AC1, F9 AC1/AC2, F10 AC1)', () => {
     it('no <script> or <b> elements ever appear in the HUD subtree', () => {
       const world = makePlayingWorld();
       world.permanentMultiplier = 3.24;
-      world.effects.hitPowerRemaining = 5;
+      world.effects = { type: 'HIT_POWER', remaining: 5 };
       hud.update(world, false, FIXED_DT);
 
       expect(root.querySelector('script')).toBeNull();

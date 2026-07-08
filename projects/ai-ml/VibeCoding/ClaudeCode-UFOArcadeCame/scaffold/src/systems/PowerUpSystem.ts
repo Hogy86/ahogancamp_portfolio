@@ -1,6 +1,6 @@
 // Implements PRD §F7 AC2 (constant fall speed), §F7 AC3 (uncaught drops removed with
-// no effect), §F7 AC4-AC6 (temporary effect timers decrement, remaining-duration
-// pattern per ADR-0002 decision 5 - never wall-clock).
+// no effect), §F11 (single active-temporary-effect slot decrements, remaining-duration
+// pattern per ADR-0002 decision 5 - never wall-clock), §F16 AC9 (catch-confirmation cue timer).
 
 import { POWERUP_FALL_SPEED, PLAYFIELD_HEIGHT } from '../config/constants';
 import type { World } from '../core/types';
@@ -17,12 +17,15 @@ function updateFalling(world: World, dt: number): void {
 
 /** Decrements all timed effects by dt. Only ever called from update() while
  * state == PLAYING, so pause cannot leak wall-clock time into these counters
- * (ADR-0002 decision 3/5). */
+ * (ADR-0002 decision 3/5). F11: the single active-temporary-effect slot decrements as one
+ * unit and clears its type on expiry (replaces v1's three independent parallel timers). */
 function updateTimers(world: World, dt: number): void {
-  world.effects.hitPowerRemaining = Math.max(0, world.effects.hitPowerRemaining - dt);
-  world.effects.speedRemaining = Math.max(0, world.effects.speedRemaining - dt);
-  world.effects.shieldRemaining = Math.max(0, world.effects.shieldRemaining - dt);
+  if (world.effects.type !== null) {
+    world.effects.remaining = Math.max(0, world.effects.remaining - dt);
+    if (world.effects.remaining === 0) world.effects.type = null;
+  }
   world.player.postHitInvulnRemaining = Math.max(0, world.player.postHitInvulnRemaining - dt);
+  world.lifeCatchFlashRemaining = Math.max(0, world.lifeCatchFlashRemaining - dt); // F16 AC9.
 }
 
 export function updatePowerUps(world: World, dt: number): void {
