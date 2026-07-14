@@ -17,7 +17,7 @@ on:
   push:
     branches: [master]
     paths:
-      - "projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeCame/scaffold/**"
+      - "projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeGame/scaffold/**"
       - ".github/workflows/deploy-pages.yml"
   workflow_dispatch: {} # allows manually re-running from the Actions tab
 
@@ -34,7 +34,7 @@ concurrency:
 
 defaults:
   run:
-    working-directory: projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeCame/scaffold
+    working-directory: projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeGame/scaffold
 
 jobs:
   build:
@@ -46,7 +46,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeCame/scaffold/package-lock.json
+          cache-dependency-path: projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeGame/scaffold/package-lock.json
 
       - run: npm ci
 
@@ -68,7 +68,7 @@ jobs:
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeCame/scaffold/dist
+          path: projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeGame/scaffold/dist
 
   deploy:
     needs: build
