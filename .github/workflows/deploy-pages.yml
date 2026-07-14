@@ -1,0 +1,74 @@
+name: Deploy Vanguard vs. Sentinels to GitHub Pages
+
+# Interim/stopgap public deployment (see infra/aws/ for the primary AWS
+# deployment, currently blocked on AWS account verification for CloudFront).
+# Publishes the built game to GitHub Pages at
+# https://<owner>.github.io/ahogancamp_portfolio/vanguard-vs-sentinels/
+# rather than the repo's Pages root, leaving room for other portfolio
+# content to live at the root later.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeCame/scaffold/**"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch: {} # allows manually re-running from the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one Pages deployment should ever run at a time; a newer push
+# supersedes an in-flight older one rather than queuing behind it.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeCame/scaffold
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeCame/scaffold/package-lock.json
+
+      - run: npm ci
+
+      - run: npm run lint
+
+      - run: npm run test -- --run
+
+      # npm run build already runs `tsc --noEmit` before `vite build`
+      # (package.json), so typecheck failures block the deploy too.
+      - run: npm run build
+        env:
+          # GitHub Pages serves a project repo (not a <user>.github.io repo)
+          # under /<repo-name>/... - vite.config.ts reads this to emit
+          # correctly-prefixed asset paths. The Docker and AWS deployments
+          # don't set this and default to base '/' (domain root), unaffected
+          # by this workflow.
+          VITE_BASE_PATH: /ahogancamp_portfolio/vanguard-vs-sentinels/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeCame/scaffold/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
