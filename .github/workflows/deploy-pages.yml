@@ -3,9 +3,15 @@ name: Deploy Vanguard vs. Sentinels to GitHub Pages
 # Interim/stopgap public deployment (see infra/aws/ for the primary AWS
 # deployment, currently blocked on AWS account verification for CloudFront).
 # Publishes the built game to GitHub Pages at
-# https://<owner>.github.io/ahogancamp_portfolio/vanguard-vs-sentinels/
-# rather than the repo's Pages root, leaving room for other portfolio
-# content to live at the root later.
+# https://<owner>.github.io/ahogancamp_portfolio/
+#
+# actions/upload-pages-artifact uploads the CONTENTS of the given path as the
+# site root - it does not nest them under a subfolder. An earlier version of
+# this workflow set VITE_BASE_PATH to a /vanguard-vs-sentinels/ subpath while
+# still uploading dist/ straight to the artifact root, so the built
+# index.html referenced asset URLs one directory level deeper than where
+# they actually deployed (asset requests 404'd even though index.html itself
+# loaded). VITE_BASE_PATH now matches where the artifact actually lands.
 
 on:
   push:
@@ -56,8 +62,9 @@ jobs:
           # under /<repo-name>/... - vite.config.ts reads this to emit
           # correctly-prefixed asset paths. The Docker and AWS deployments
           # don't set this and default to base '/' (domain root), unaffected
-          # by this workflow.
-          VITE_BASE_PATH: /ahogancamp_portfolio/vanguard-vs-sentinels/
+          # by this workflow. Must match where upload-pages-artifact actually
+          # deploys dist/'s contents (the site root), not a subpath.
+          VITE_BASE_PATH: /ahogancamp_portfolio/
 
       - uses: actions/upload-pages-artifact@v3
         with:
