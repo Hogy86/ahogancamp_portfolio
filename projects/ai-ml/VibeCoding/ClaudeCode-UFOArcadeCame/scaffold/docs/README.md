@@ -333,7 +333,8 @@ The built output (`dist/` directory) is a static bundle: one HTML entry, a minif
 **Deploy to any static host:**
 - A CDN (Netlify, Vercel, AWS CloudFront, etc.)
 - A static server (nginx serving `dist/`)
-- The provided Docker container (see `deployment-engineer` notes)
+- The provided Docker container (see `deployment-engineer` notes) — best for local dev/preview
+- **AWS (S3 + CloudFront), no server to run or pay for:** `infra/aws/` has a ready-to-apply Terraform module (`terraform apply` + `./deploy.sh`), and [`docs/deployment/aws-console-walkthrough.md`](deployment/aws-console-walkthrough.md) walks through building the same thing by hand in the AWS Console if you want to see what's being created first. Costs roughly $0/month without a custom domain.
 
 **Browser requirements:** modern desktop browsers (Chrome, Firefox, Edge, Safari) of the latest 2 versions. Mobile browsers and gamepad input are not supported.
 
