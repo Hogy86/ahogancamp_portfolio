@@ -5,6 +5,7 @@ This repository contains selected projects and artifacts demonstrating my work a
 
 The focus of this portfolio is on **how product problems are identified, shaped, and solved**, with an emphasis on user value, business outcomes, and pragmatic delivery.
 
+Using vibe coding with Claude Code, I was able to create and deploy a game similar to Space Invaders, but it's Captain America (Sentinal) vs Ultron Robots (Vanguard). You throw shields that bounce around based on angles, catching the shield creates an extra life, and other fun changes. Check it out! https://hogy86.github.io/ahogancamp_portfolio/
 ---
 
 ## What This Portfolio Shows
