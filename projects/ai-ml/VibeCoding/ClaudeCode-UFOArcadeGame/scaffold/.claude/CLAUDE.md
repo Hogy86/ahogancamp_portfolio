@@ -125,3 +125,126 @@ for surfacing decisions, ambiguities, and gate failures to the owner
 with recommended options — see its Job 0. If the main session is
 unsure whether something needs owner input, default to asking via
 product-manager rather than guessing.
+
+---
+
+# Mobile Pipeline (Android)
+
+A second team in `.claude/agents/` (every file prefixed `mobile-`)
+builds the Android app of this same game, wrapped with Capacitor. The
+website pipeline above is unchanged; use this pipeline for any work on
+the Android app. The same orchestration rules apply: the owner talks
+to the main session, the main session calls one subagent at a time,
+subagents hand off through the docs they write, and reviewers see only
+files and specs.
+
+## Pipeline
+
+```
+1.  mobile-marketing-analyst          → docs/mobile/market/play-store-research.md
+                                        docs/mobile/market/listing-draft.md
+2.  mobile-product-manager            → docs/mobile/PRD-mobile.md
+                                        [asks owner as needed - Job 0]
+3.  mobile-ui-ux-designer (round 1)   → docs/mobile/ux/design-review-round1.md   [GATE]
+                                        docs/mobile/ux/store-assets-spec.md
+4.  mobile-solution-architect         → docs/mobile/architecture/mobile-architecture.md
+                                        docs/mobile/architecture/adr/000N-*.md
+5.  mobile-security-compliance-reviewer → docs/mobile/security/review-v1.md    [GATE]
+    (pass 1: architecture)
+6.  mobile-it-analyst                 → docs/mobile/tooling-setup-log.md
+    (initial setup; also on request at any step - see below)
+7.  mobile-junior-developer           → application code
+8.  mobile-lead-developer             → docs/mobile/reviews/code-review-round{N}.md [GATE, loop]
+9.  mobile-junior-tester              → tests
+                                        docs/mobile/tests/manual-only-criteria.md
+10. mobile-lead-tester                → docs/mobile/tests/validation-report.md  [GATE]
+                                        docs/mobile/tests/raw-output-round{N}.log
+                                        docs/mobile/tests/device-matrix.md
+11. mobile-ui-ux-designer (round 2)   → docs/mobile/ux/design-review-round{N}.md [GATE]
+12. mobile-security-compliance-reviewer → docs/mobile/security/review-v2.md    [GATE]
+    (pass 2: final app + Play Console answers)
+13. mobile-technical-writer           → public/privacy.html,
+                                        docs/mobile/README-mobile.md,
+                                        docs/mobile/release-runbook.md
+14. mobile-product-manager            → docs/mobile/tests/uat-plan.md
+                                        docs/mobile/tests/uat-results.md       [GATE]
+    (writes AND runs UAT on the emulator)
+15. mobile-release-engineer           → signed .aab on the closed testing track
+                                        docs/mobile/release/submission-checklist.md
+16. mobile-product-manager            → docs/mobile/tests/closed-test-results.md [GATE]
+    (runs the Google Play closed test)
+17. mobile-release-engineer           → production release                  [GATE: owner "go"]
+                                        docs/mobile/release/release-notes-v{N}.md
+```
+
+## Mobile gate rules
+
+- The website gate rules above apply here too: a `[GATE]` must report
+  PASS before the next step; a FAIL routes back to the owning writer
+  with the findings doc as input; mobile-product-manager raises it
+  with the owner only if it changes scope, cost, or risk.
+- `mobile-junior-developer` ↔ `mobile-lead-developer` (steps 7-8) loop
+  until PASS. A FAIL at step 10 or 11 also routes back to step 7, then
+  through step 8 again.
+- Step 17 requires the owner's explicit approval, relayed by
+  mobile-product-manager. Nothing is published to production on a
+  PASS alone.
+
+## Tool requests
+
+Any mobile subagent that needs a tool installed (Android SDK packages,
+an emulator image, a JDK version, etc.) appends a line to
+`docs/mobile/tooling-requests.md` — what, why, and which agent — and
+stops. The main session then calls `mobile-it-analyst`, and re-runs the
+requesting agent once the request is marked done. mobile-it-analyst
+escalates anything needing the owner's account, password, payment, or
+a large download through mobile-product-manager.
+
+## One codebase (owner decision)
+
+The website and the Android app are built from the same `src/`, and
+this is not negotiable without the owner:
+
+- Game rules and logic exist once. Only touch input, screen fitting,
+  back button, and lifecycle code may be platform-specific.
+- Any change to game rules or design — whether it starts from the
+  website pipeline or this one — updates the shared acceptance criteria
+  in docs/PRD.md (or its addenda) AND docs/mobile/PRD-mobile.md where
+  mobile behavior changes, and must pass the code review, test, and UX
+  gates for BOTH the website and the Android app before either ships.
+- `.github/workflows/deploy-pages.yml` is the single CI check for both
+  versions. Once the Android project exists, the Android debug build
+  and the phone-emulation tests are added to it, so a change that
+  breaks either version blocks the website deploy until fixed.
+- Never hand-edit the web assets copied into `android/`; rebuild and
+  `npx cap sync android`.
+- The Play Store version only changes when a new release ships (steps
+  15-17), so it can lag the website; the release runbook covers this.
+
+## Model policy (mobile)
+
+Same policy as the website team. Never downgrade
+`mobile-security-compliance-reviewer` or `mobile-lead-developer` below
+`sonnet`.
+
+| Subagent | Model | Rationale |
+|---|---|---|
+| mobile-marketing-analyst | sonnet | Research synthesis |
+| mobile-product-manager | opus | Owner-facing judgment calls cascade downstream |
+| mobile-ui-ux-designer | sonnet | Heuristic-driven critique, scoped by skills |
+| mobile-solution-architect | opus | Platform-boundary and lifecycle tradeoffs |
+| mobile-security-compliance-reviewer | opus | Highest cost-of-error: Play rejection, leaked key |
+| mobile-junior-developer | sonnet | Most implementation at a fraction of the cost |
+| mobile-lead-developer | opus | Independent reviewer reasons harder than the implementer |
+| mobile-junior-tester | sonnet | Acceptance criteria → tests |
+| mobile-lead-tester | sonnet | Structured verification + device matrix |
+| mobile-technical-writer | haiku | Templated generation from decided content |
+| mobile-it-analyst | haiku | Running installers and logging output |
+| mobile-release-engineer | sonnet | Signing and Play Console steps need care |
+
+## Where it runs
+
+Everything in this pipeline runs on the owner's Windows desktop (or a
+cloud session for steps that need no emulator). Steps 6, 10, 14, 15,
+and 17 need the Android SDK/emulator and, for 15-17, the owner's Play
+Console account and upload key, so run them on the owner's machine.
