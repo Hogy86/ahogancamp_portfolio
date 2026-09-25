@@ -1,0 +1,31 @@
+services:
+  vanguard-vs-sentinels:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vanguard-vs-sentinels:latest
+    ports:
+      # Host:container. App has no TLS of its own — see
+      # docs/deployment/deployment-notes.md "TLS" section. In production this
+      # sits behind a reverse proxy/host LB that terminates TLS and forwards
+      # plain HTTP to this container.
+      - "8080:8080"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      # nginx needs a small amount of writable scratch space even when only
+      # serving static files (temp buffers, pidfile). Backed by tmpfs instead
+      # of relaxing the read-only rootfs.
+      - /tmp
+      - /var/cache/nginx
+      - /var/run
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O-", "http://127.0.0.1:8080/healthz"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped

@@ -1,0 +1,24 @@
+# Copy this file to terraform.tfvars and adjust as needed:
+#   cp terraform.tfvars.example terraform.tfvars
+# terraform.tfvars is gitignored - it's the right place for anything you
+# don't want committed, though nothing here is actually secret.
+
+project_name = "vanguard-vs-sentinels"
+aws_region   = "us-east-1"
+
+# Leave blank to use the free *.cloudfront.net URL - the cheapest option
+# ($0/month, no domain registration or Route 53 hosted zone needed).
+domain_name = ""
+
+# Only relevant if domain_name is set above.
+# true  = Terraform creates a brand-new Route 53 hosted zone for this domain.
+#         After `terraform apply`, update your domain registrar's nameservers
+#         to the ones in the `route53_name_servers` output.
+# false = domain_name already has a hosted zone in THIS AWS account (e.g.
+#         already registered through Route 53). Terraform looks it up
+#         instead of creating a new one.
+create_hosted_zone = true
+
+# PriceClass_100 = North America + Europe edge locations only (cheapest).
+# See variables.tf for the other options.
+price_class = "PriceClass_100"
