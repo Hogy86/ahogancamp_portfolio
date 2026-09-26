@@ -271,3 +271,13 @@ All infrastructure-level tooling has been installed from official sources. The o
 ---
 
 **End of Log**
+
+## 2026-09-26 — Completion (main session)
+
+- Owner accepted the Android SDK licenses himself (`sdkmanager --licenses`); `C:\Users\aaron\Android\sdk\licenses\` now holds 7 license files.
+- User env vars set at the owner's request: `JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`, `ANDROID_HOME=C:\Users\aaron\Android\sdk` (PATH unchanged; tools are called by full path).
+- Installed with sdkmanager (exit 0): `platform-tools`, `emulator` (37.1.11.0), `platforms;android-24`, `platforms;android-36`, `build-tools;36.0.0`, `system-images;android-24;google_apis;x86_64`, `system-images;android-36;google_apis;x86_64`.
+- Hardware acceleration: `emulator -accel-check` → WHPX 10.0.26200 installed and usable.
+- AVDs created: `svr_api36_pixel7` (Pixel 7, API 36) and `svr_api24_small` (Nexus 5 = 360×640 dp, i.e. the 640×360 dp low-end landscape profile, API 24).
+- Boot check: `svr_api36_pixel7` booted headless, `sys.boot_completed=1` after 65 s, `ro.build.version.sdk=36`; emulator shut down cleanly.
+- Cleanup: an earlier extraction had left a stray 148 MB copy of cmdline-tools at `docs/mobile/architecture/adr/$destination/` (unexpanded PowerShell variable). Verified the real copy under `C:\Users\aaron\Android\sdk` works, then deleted the stray folder.
