@@ -1,7 +1,7 @@
 // Implements PRD §F4 (10-level difficulty table, exact owner-approved progression),
 // §F4 AC5 (monotonic escalation), §F12 (v2: boss phase replaces the old embedded-boss
-// column - bossHp is now null except on levels 5/10, where it is 5x that level's
-// toughest regular HP tier), ADR-0003 (data-driven level config, no per-level branching
+// column - bossHp is now null except on levels 5/10, where it is Nx that level's
+// toughest regular HP tier, N being the level number: 5x on level 5, 10x on level 10), ADR-0003 (data-driven level config, no per-level branching
 // in consuming systems).
 //
 // This table is the single source of truth for per-level difficulty. Systems read
@@ -110,8 +110,8 @@ export const LEVEL_CONFIGS: readonly LevelConfig[] = Object.freeze([
     rows: 6,
     cols: 9,
     hpMix: { 3: 0.4, 4: 0.6 },
-    // F12 AC2: 5x the level's toughest regular tier (4-hit) = 20.
-    bossHp: 20,
+    // F12 AC2: 10x the level's toughest regular tier (4-hit) = 40.
+    bossHp: 40,
     formationSpeedMultiplier: 2.5,
     fireRateMultiplier: 5.0,
     guaranteedPowerUpDrops: 1,
@@ -175,26 +175,28 @@ function assertMonotonicEscalation(configs: readonly LevelConfig[]): void {
 
 assertMonotonicEscalation(LEVEL_CONFIGS);
 
+/** Boss levels and how many times tougher each boss is than the level's toughest regular
+ * enemy: 5x on level 5, 10x on level 10. */
+const BOSS_HP_MULTIPLIER_BY_LEVEL: Readonly<Record<number, number>> = { 5: 5, 10: 10 };
+
 /** Highest regular-enemy HP tier present in a level's hpMix (the "toughest regular enemy"
  * the F12 AC2 boss-HP formula is defined against). */
-function toughestRegularTier(config: LevelConfig): number {
+export function toughestRegularTier(config: LevelConfig): number {
   const tiers = Object.keys(config.hpMix).map(Number);
   return Math.max(0, ...tiers);
 }
 
 /**
- * F12 AC1-AC2: only levels 5 and 10 have a boss, and each boss's HP is exactly 5x that
- * level's toughest regular HP tier. Runs once at module load as a fast-fail dev assertion,
+ * F12 AC1-AC2: only levels 5 and 10 have a boss, and each boss's HP is exactly
+ * BOSS_HP_MULTIPLIER_BY_LEVEL (5x / 10x) times that level's toughest regular HP tier. Runs once at module load as a fast-fail dev assertion,
  * mirroring assertMonotonicEscalation (ADR-0003); test-writer additionally covers this with
  * a proper unit test.
  */
 function assertBossHpFormula(configs: readonly LevelConfig[]): void {
-  const BOSS_HP_MULTIPLIER = 5;
-  const BOSS_LEVELS = new Set([5, 10]);
-
   for (const config of configs) {
-    if (BOSS_LEVELS.has(config.level)) {
-      const expected = toughestRegularTier(config) * BOSS_HP_MULTIPLIER;
+    const multiplier = BOSS_HP_MULTIPLIER_BY_LEVEL[config.level];
+    if (multiplier !== undefined) {
+      const expected = toughestRegularTier(config) * multiplier;
       if (config.bossHp !== expected) {
         throw new Error(
           `LEVEL_CONFIGS boss HP violation: level ${config.level} bossHp ${String(config.bossHp)} !== expected ${expected}`,

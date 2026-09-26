@@ -731,7 +731,7 @@ export function getLevelConfig(level: number): LevelConfig {
 }
 ```
 
-**v2 change from v1 (F12):** The `bossHp` field is now **null on levels without a boss (1-4, 6-9)** and **5× the toughest regular tier on boss levels (5, 10):** level 5 = 15 (5 × 3), level 10 = 20 (5 × 4). In v1, `bossHp` was baked on every level 2-10; the new model reflects bosses appearing only after formation clear on levels 5 and 10 per F12.
+**v2 change from v1 (F12):** The `bossHp` field is now **null on levels without a boss (1-4, 6-9)** and **5× / 10× the toughest regular tier on boss levels (5, 10):** level 5 = 15 (5 × 3), level 10 = 40 (10 × 4). Each boss hit deals at most one toughest-regular-kill's worth of damage, so power-ups cannot one-shot the boss. In v1, `bossHp` was baked on every level 2-10; the new model reflects bosses appearing only after formation clear on levels 5 and 10 per F12.
 
 **Monotonicity validation:** The module exports an `assertMonotonicEscalation()` function that runs at module load, ensuring F4 AC5 (no level is easier than the prior) is never violated. Bosses must be accounted for in the monotonicity check: a boss-level difficulty should exceed the prior non-boss level's hardest enemy.
 
