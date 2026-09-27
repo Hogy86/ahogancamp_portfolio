@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Implements docs/mobile/architecture/mobile-architecture.md §7.4 (M9.2/M9.3) and
+  docs/mobile/ux/store-assets-spec.md §1: Vanguard's shield alone (plain avatar-blue
+  #2f6fed circle, F14 AC2 - no concentric rings, no star), centered in the 66x66 dp
+  safe zone and filling ~70% of it (diameter 46.2dp -> radius 23.1dp, centered at
+  54,54 in the 108x108 viewport). Also used, unmodified, as the Android 12+ splash
+  screen's animated icon (styles.xml) - one shield asset, not two.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#2f6fed"
+        android:pathData="M54,30.9 A23.1,23.1 0 1,0 54,77.1 A23.1,23.1 0 1,0 54,30.9 Z" />
+</vector>

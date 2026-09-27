@@ -6,8 +6,9 @@
 // other key press holds the celebration once, a second such press advances to TITLE).
 
 import { describe, expect, it } from 'vitest';
-import { dispatchStateInput, PAUSE_MENU_OPTIONS, startNewRun } from './GameStateMachine';
+import { dispatchStateInput, handleBack, PAUSE_MENU_OPTIONS, pauseForInterruption, startRun } from './GameStateMachine';
 import { createNewRunWorld, resetForLevel } from './world';
+import { bestScore } from '../persistence/bestScore';
 import { makeInput } from '../test-utils/worldFactory';
 import type { World } from './types';
 
@@ -90,14 +91,55 @@ describe('GameStateMachine - Restart Level (F6 AC4, F18 AC9)', () => {
     const world = playingWorld();
     world.state = 'PAUSED';
     world.pauseMenuSelectedIndex = 1; // 'Restart Level'
-    world.score = 999; // score must survive a level restart (only level-scoped state resets)
     world.enemies.forEach((e) => (e.alive = false));
 
     dispatchStateInput(world, makeInput({ menuConfirmPressed: true }));
 
     expect(world.state).toBe('PLAYING');
-    expect(world.score).toBe(999);
     expect(world.enemies.every((e) => e.alive)).toBe(true);
+  });
+
+  it('F21 AC1/AC2 (docs/PRD-addendum-v4.md): Restart Level rolls the score back to the level-start value', () => {
+    const world = playingWorld();
+    world.levelStartScore = 200; // as if this level was entered with a running score of 200
+    world.score = 650; // points earned in the attempt being abandoned
+    world.state = 'PAUSED';
+    world.pauseMenuSelectedIndex = 1; // 'Restart Level'
+
+    dispatchStateInput(world, makeInput({ menuConfirmPressed: true }));
+
+    expect(world.score).toBe(200);
+  });
+
+  it('F21 AC2: Restart Level on level 1 of a fresh run sets the score to 0', () => {
+    const world = playingWorld();
+    world.score = 300;
+    world.state = 'PAUSED';
+    world.pauseMenuSelectedIndex = 1;
+
+    dispatchStateInput(world, makeInput({ menuConfirmPressed: true }));
+
+    expect(world.levelStartScore).toBe(0);
+    expect(world.score).toBe(0);
+  });
+
+  it('F21 AC3: repeating Restart Level always returns to the same level-start score, never re-recording it', () => {
+    const world = playingWorld();
+    world.levelStartScore = 400;
+    world.score = 900;
+    world.state = 'PAUSED';
+    world.pauseMenuSelectedIndex = 1;
+
+    dispatchStateInput(world, makeInput({ menuConfirmPressed: true }));
+    expect(world.score).toBe(400);
+
+    world.score = 777; // earn different points this attempt
+    world.state = 'PAUSED';
+    world.pauseMenuSelectedIndex = 1;
+    dispatchStateInput(world, makeInput({ menuConfirmPressed: true }));
+
+    expect(world.score).toBe(400);
+    expect(world.levelStartScore).toBe(400);
   });
 
   it('F18 AC9 (round-1 B2): Restart Level skips the 3s level-intro countdown entirely - play begins immediately', () => {
@@ -264,11 +306,105 @@ describe('GameStateMachine - VICTORY / "Game Complete" input handling (F19 AC9, 
   });
 });
 
-describe('startNewRun', () => {
+describe('startRun', () => {
   it('produces a PLAYING world starting at level 1 with default lives/score', () => {
-    const world = startNewRun();
+    const world = startRun();
     expect(world.state).toBe('PLAYING');
     expect(world.level).toBe(1);
     expect(world.score).toBe(0);
+  });
+});
+
+// docs/mobile/architecture/mobile-architecture.md §8.3 (H6, M5): the shared
+// `handleBack()` resolution table every Android back-button/gesture press consumes.
+describe('GameStateMachine - handleBack() state table (§8.3, M5, H6)', () => {
+  it('PLAYING -> pause(), handled', () => {
+    const world = playingWorld();
+    expect(handleBack(world)).toBe('handled');
+    expect(world.state).toBe('PAUSED');
+  });
+
+  it('PAUSED with confirm pending -> cancelRestartGame(), handled (stays PAUSED)', () => {
+    const world = playingWorld();
+    world.state = 'PAUSED';
+    world.restartGameConfirmPending = true;
+    expect(handleBack(world)).toBe('handled');
+    expect(world.state).toBe('PAUSED');
+    expect(world.restartGameConfirmPending).toBe(false);
+  });
+
+  it('PAUSED (no confirm pending) -> resume(), handled', () => {
+    const world = playingWorld();
+    world.state = 'PAUSED';
+    expect(handleBack(world)).toBe('handled');
+    expect(world.state).toBe('PLAYING');
+  });
+
+  it('GAMEOVER -> returnToTitle(), handled', () => {
+    const world = playingWorld();
+    world.state = 'GAMEOVER';
+    expect(handleBack(world)).toBe('handled');
+    expect(world.state).toBe('TITLE');
+  });
+
+  it('VICTORY -> silent no-op, handled (F19 AC9 Esc exemption, by continuation)', () => {
+    const world = playingWorld();
+    world.state = 'VICTORY';
+    world.victoryHeld = false;
+    expect(handleBack(world)).toBe('handled');
+    expect(world.state).toBe('VICTORY');
+    expect(world.victoryHeld).toBe(false);
+  });
+
+  it('TITLE -> leaveApp', () => {
+    const world = playingWorld();
+    world.state = 'TITLE';
+    expect(handleBack(world)).toBe('leaveApp');
+    expect(world.state).toBe('TITLE');
+  });
+});
+
+// docs/mobile/architecture/mobile-architecture.md §8.1 (H6, M4.1, M7): the shared
+// "leaving the foreground" interruption command every Android lifecycle/resize pause
+// goes through.
+describe('GameStateMachine - pauseForInterruption() state table (§8.1, H6)', () => {
+  it('PLAYING -> PAUSED, and commits the best score to the persisted store', () => {
+    const world = playingWorld();
+    world.score = 42;
+    pauseForInterruption(world);
+    expect(world.state).toBe('PAUSED');
+    expect(bestScore.get()).toBeGreaterThanOrEqual(42);
+  });
+
+  it('PAUSED stays PAUSED, and still commits the best score (mid-run interruption)', () => {
+    const world = playingWorld();
+    world.state = 'PAUSED';
+    world.score = 7;
+    pauseForInterruption(world);
+    expect(world.state).toBe('PAUSED');
+    expect(bestScore.get()).toBeGreaterThanOrEqual(7);
+  });
+
+  it('VICTORY holds the celebration (victoryHeld = true) and does not change state', () => {
+    const world = playingWorld();
+    world.state = 'VICTORY';
+    world.victoryHeld = false;
+    pauseForInterruption(world);
+    expect(world.state).toBe('VICTORY');
+    expect(world.victoryHeld).toBe(true);
+  });
+
+  it('TITLE is untouched', () => {
+    const world = playingWorld();
+    world.state = 'TITLE';
+    pauseForInterruption(world);
+    expect(world.state).toBe('TITLE');
+  });
+
+  it('GAMEOVER is untouched', () => {
+    const world = playingWorld();
+    world.state = 'GAMEOVER';
+    pauseForInterruption(world);
+    expect(world.state).toBe('GAMEOVER');
   });
 });

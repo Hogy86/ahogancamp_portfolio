@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Implements docs/mobile/architecture/mobile-architecture.md §7.4 (M9.2) and
+  docs/mobile/ux/store-assets-spec.md §1: the same shield silhouette as the
+  foreground, single-color/alpha-masked, so Android 13+ themed icons can tint it to
+  the system accent color.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,30.9 A23.1,23.1 0 1,0 54,77.1 A23.1,23.1 0 1,0 54,30.9 Z" />
+</vector>

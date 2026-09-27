@@ -3,3 +3,33 @@ dist/
 *.log
 .DS_Store
 terraform-deploy_accessKeys.csv
+
+# docs/mobile/architecture/mobile-architecture.md §3 (M-ADR-0001, Amendment A3):
+# extended ignore list, landed before `npx cap add android` (§14 step 3a). Signing
+# material never lives anywhere in this repo (§7.5) - the belt-and-braces guard is
+# this file; android/.gitignore (Capacitor-generated) covers most of the same paths.
+dist-android/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/capacitor-cordova-android-plugins/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/release/
+*.jks
+*.keystore
+*.p12
+*.pepk
+*.pem
+*.idsig
+keystore.properties
+key.properties
+signing.properties
+*.aab
+*.apk
+.env
+.env.*
+playwright-report/
+test-results/

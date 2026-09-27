@@ -20,6 +20,7 @@ import { resetForLevel } from '../core/world';
 import type { World } from '../core/types';
 import { emit } from '../instrumentation/Instrumentation';
 import { resetGuaranteedDrops } from './levelRuntimeState';
+import { bestScore } from '../persistence/bestScore';
 
 /** F3 AC5 / F12 AC8: formation (or a lone boss) reaching the player's row is a loss trigger. */
 function formationReachedPlayerRow(world: World): boolean {
@@ -48,6 +49,10 @@ export function updateWinLoss(world: World): void {
     // instrumentation/debugging, but the game only ever shows one GAMEOVER screen.
     world.state = 'GAMEOVER';
     world.gameOverReason = livesDepleted ? 'LIVES_DEPLETED' : 'FORMATION_REACHED_ROW';
+    // F20 AC4(a): saved when the Game Over screen appears.
+    const result = bestScore.commit(world.score);
+    world.bestScore = result.best;
+    world.newBestThisRun = result.isNewBest;
     emit('gameOver', { reason: world.gameOverReason, level: world.level, score: world.score });
     return;
   }
@@ -86,11 +91,20 @@ export function updateWinLoss(world: World): void {
     world.state = 'VICTORY';
     world.victoryCelebrationRemaining = VICTORY_CELEBRATION_SECONDS;
     world.victoryHeld = false;
+    // F20 AC4(b): saved when the celebration BEGINS, not after the 5s hold, so a tab/app
+    // closed during it still keeps the best.
+    const result = bestScore.commit(world.score);
+    world.bestScore = result.best;
+    world.newBestThisRun = result.isNewBest;
     emit('victory', { score: world.score });
     return;
   }
 
   const nextLevel = world.level + 1;
+  // F21 AC4: the level-start score is recorded at level entry, before resetForLevel/the
+  // F18 intro - this covers the level-5-boss-cleared advance too (F21 AC4's "including a
+  // level-5 boss kill"), since world.score already includes that level's boss points here.
+  world.levelStartScore = world.score;
   resetForLevel(world, nextLevel);
   // F18 AC1/AC9: every fresh level start (including a boss-phase-to-next-level transition)
   // gets the full countdown - resetForLevel itself deliberately does not set this, since

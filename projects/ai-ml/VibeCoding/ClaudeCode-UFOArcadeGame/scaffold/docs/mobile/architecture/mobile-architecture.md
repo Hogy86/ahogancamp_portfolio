@@ -1,12 +1,14 @@
 # Mobile Solution Architecture — Vanguard vs. Sentinels (Android, Capacitor)
 
 **Stage:** Mobile Pipeline Step 4 — mobile-solution-architect
-**Date:** 2026-09-25 (v1); revised 2026-09-25 (v1.1); amended 2026-09-25 (v1.2, Amendment A8)
-**Status:** v1.2. v1.1 was revised after the security pass-1 FAIL (`docs/mobile/security/review-v1.md`)
+**Date:** 2026-09-25 (v1); revised 2026-09-25 (v1.1); amended 2026-09-25 (v1.2, Amendment A8); amended 2026-09-26 (v1.3, Amendment A9)
+**Status:** v1.3. v1.1 was revised after the security pass-1 FAIL (`docs/mobile/security/review-v1.md`)
 and re-reviewed in pass 1b (`docs/mobile/security/review-v1b.md`: PASS, conditional). v1.2
 adds **Amendment A8**, which closes pass-1b findings N1-N4 and the N5 `allowNavigation` note
-(Conditions C2 and C3). All earlier decisions are kept unless an **Amendment** note says
-otherwise. See the §16 amendment log.
+(Conditions C2 and C3). v1.3 adds **Amendment A9**, which records the S1 template carve-out
+and new secret-check rule S6 from review-v1b **Addendum 1** (triggered by code-review-round1
+C3), and the build-outside-OneDrive note from code-review-round1 **I1**. All earlier
+decisions are kept unless an **Amendment** note says otherwise. See the §16 amendment log.
 **Mobile ADRs:** `docs/mobile/architecture/adr/0001..0012-*.md` (0009-0012 are new in
 v1.1). To keep them apart from the website ADRs (`docs/architecture/adr/0001..0005`), this
 document calls mobile ADRs **M-ADR-000N** and website ADRs **W-ADR-000N**.
@@ -18,6 +20,8 @@ document calls mobile ADRs **M-ADR-000N** and website ADRs **W-ADR-000N**.
 - `docs/mobile/ux/store-assets-spec.md` (icon, splash, screenshot constraints)
 - `docs/mobile/security/review-v1.md` (FAIL: H1, M1-M5, L1-L6; answered in v1.1, see §16)
 - **[v1.2]** `docs/mobile/security/review-v1b.md` (PASS, conditional: C1-C3; new findings N1-N5; answered by A8, see §16)
+- **[v1.3]** `docs/mobile/security/review-v1b.md` **Addendum 1** (2026-09-26: S1 template carve-out + S6; answered by A9, see §7.5.3 and §16)
+- **[v1.3]** `docs/mobile/reviews/code-review-round1.md` (C3 triggered Addendum 1; **I1** build location outside OneDrive; answered by A9, see §3 and §14)
 - `docs/architecture/solution-architecture.md` and W-ADR-0001..0005 (the stack, the fixed-timestep loop and state machine, the instrumentation storage pattern)
 - Code read: `src/main.ts`, `src/core/{InputManager,GameLoop,GameStateMachine,world,types}.ts`, `src/systems/WinLossSystem.ts`, `src/ui/{ScreenController,HUDView}.ts`, `src/instrumentation/Instrumentation.ts`, `src/config/constants.ts`, `src/style.css`, `index.html`, `package.json`, `vite.config.ts`, `.gitignore`, and the repo-root `.github/workflows/deploy-pages.yml`
 - `.claude/CLAUDE.md` §Mobile Pipeline / §One codebase (fixed constraints)
@@ -190,6 +194,27 @@ covers most of them already, but the root file is the belt-and-braces guard:
 
 **Rule (C1, M0.1):** only `npx cap sync android` writes web assets into `android/`. It runs
 after `npm run build:android`. Anything under `assets/public` is disposable.
+
+> **Amendment A9 (2026-09-26, v1.3; code-review-round1 I1): where Android builds run on the
+> owner's machine.** Gradle cannot build inside this repo: OneDrive turns fresh build outputs
+> into cloud reparse points (`Cannot snapshot … not a regular file`), and some build paths
+> exceed Windows `MAX_PATH`, which also breaks `aapt2`. Therefore:
+> - **Source edits happen only in the repo** (`scaffold/`). The repo is what is committed,
+>   reviewed and built by CI.
+> - **Android Gradle builds (`assembleDebug`, `assembleRelease`, `bundleRelease`) and
+>   emulator installs run from a mirror outside OneDrive:
+>   `C:\Users\aaron\dev-build\shield-vs-robots`.** The mirror is a disposable copy of
+>   `scaffold/`. Refresh it from the repo before every build; never edit files in it; never
+>   commit from it. Build or emulator evidence counts only if it came from a mirror refreshed
+>   from the tree under review. mobile-it-analyst records the refresh command in
+>   `docs/mobile/tooling-setup-log.md`.
+> - The §3 rule above still holds in the mirror: `assets/public` is written only by
+>   `npx cap sync android`, never by hand.
+> - The §7.5 signing contract is unchanged. Signing material stays in
+>   `C:\Users\aaron\.android-signing\vvs\` and is never copied into the mirror. When Gradle
+>   runs in the mirror, the §7.5.2 project-root guard resolves to the mirror root.
+> - CI (ubuntu) is not affected. The release runbook (step 13) states this build location
+>   for step 15.
 
 ### 3.1 Two build modes, one source
 
@@ -595,7 +620,7 @@ layout (OQ-M7 (a)).
 
 ---
 
-## 7. Android targets and packaging (M-ADR-0007; amended by M-ADR-0010, 0011, 0012 and Amendment A8)
+## 7. Android targets and packaging (M-ADR-0007; amended by M-ADR-0010, 0011, 0012 and Amendments A8, A9)
 
 ### 7.1 Identity and SDK levels
 
@@ -862,14 +887,65 @@ directory) and fails with the file and line if any of these match:
 
 | Rule | Files | Fails on |
 |---|---|---|
-| S1 key/secret files tracked | all tracked | path matches `\.(jks\|keystore\|p12\|pepk\|pem\|aab\|apk)$` or `(^\|/)(keystore\|key\|signing)\.properties$` or `(^\|/)\.env(\.[^/]*)?$` |
+| S1 key/secret files tracked | all tracked | path matches `\.(jks\|keystore\|p12\|pepk\|pem\|aab\|apk)$` or `(^\|/)(keystore\|key\|signing)\.properties$` or `(^\|/)\.env(\.[^/]*)?$`. **[A9]** Carve-out: the path failure is skipped **only** for tracked files whose basename is exactly `.env.example`, `.env.sample` or `.env.template` (case-sensitive); those files go to S6 instead. Every other S1 pattern is unchanged and path-only. |
 | S2 password literal in Gradle | tracked `*.gradle`, `*.gradle.kts` | a line matching `^\s*(storePassword\|keyPassword)\s*=?\s*["']` (the contract's `storePassword signing.getProperty(...)` form does not match) |
 | S3 signing values in properties | tracked `gradle.properties` (any directory) | `(?i)(storePassword\|keyPassword\|storeFile\|keyAlias\|android\.injected\.signing)` |
 | S4 debug key used for release | `android/app/build.gradle` | `signingConfigs\.debug` |
 | S5 Capacitor keystore options | `capacitor.config.*` | `(?i)keystore(Path\|Password\|Alias\|AliasPassword)` |
+| **S6 env-template content [A9]** | every tracked file exempted from S1 by the carve-out | the file is unreadable, or its text matches rule (a), (b) or (c) in the A9 block below. Output: `S6: <path>:<line> (<a\|b\|c>: env template contains secret-shaped content)`, exit 1. |
 
 S4 is safe because the debug build type signs with the debug key implicitly and never
 needs to name it.
+
+> **Amendment A9 (2026-09-26, v1.3; review-v1b Addendum 1; trigger code-review-round1 C3).**
+> The whole-repository S1 scan (A8/N3) fails on
+> `projects/ai-ml/VibeCoding/Cursor-UFOArcadeGame/UFO_Arcade_Game/.env.example`, a committed
+> template in an unrelated sibling project. It holds no secret values and matches on its
+> name only, so it is a false positive. The security reviewer's decision is a narrow
+> exemption for template files **whose contents are still scanned**. Rejected by the
+> reviewer: an exact-path allowlist (it stops checking the file's contents and breaks on the
+> next template elsewhere in the portfolio repo), and renaming or removing the file (outside
+> this app's scope; needs the owner; committed templates are good practice). The A3 ignore
+> list (`.env`, `.env.*`) is unchanged.
+>
+> **Binding rule (verified by mobile-lead-developer at step 8, re-checked in pass 2):**
+> 1. S1 skips the path failure only for tracked files whose basename is exactly
+>    `.env.example`, `.env.sample` or `.env.template` (case-sensitive; a named constant in
+>    the script, e.g. `S1_TEMPLATE_BASENAMES`, checked with `path.posix.basename`). Every
+>    other S1 pattern is unchanged and path-only. No other exemption may be added without
+>    security review.
+> 2. New rule **S6** scans every exempt file. An unreadable file fails (do not reuse the
+>    existing `catch { continue; }`). The file fails on:
+>    - (a) anywhere in the file text, comments included: `-----BEGIN [A-Z ]*(PRIVATE KEY|CERTIFICATE)-----`,
+>      `AKIA[0-9A-Z]{16}`, `\b(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}`, `github_pat_[A-Za-z0-9_]{20,}`,
+>      `\bsk-[A-Za-z0-9_-]{20,}`, `xox[abprs]-[A-Za-z0-9-]{10,}`, `AIza[0-9A-Za-z_-]{35}`;
+>    - (b) a line that, after stripping one leading `#` and whitespace, matches
+>      `^([A-Za-z_][A-Za-z0-9_.]*)\s*=\s*(.*)$` with a key matching
+>      `/(SECRET|PASSWORD|PASSWD|PASSPHRASE|TOKEN|API_?KEY|PRIVATE_?KEY|ACCESS_?KEY|CLIENT_?SECRET|CREDENTIAL|KEYSTORE|STORE_?PASS|KEY_?PASS|SIGNING)/i`
+>      and a value that is non-empty after trimming whitespace and matching surrounding
+>      quotes (`API_KEY=` and `API_KEY=""` pass; `API_KEY=changeme` fails);
+>    - (c) on the same `KEY=VALUE` lines, a trimmed unquoted value containing a run of 32 or
+>      more characters from `[A-Za-z0-9+/=_-]`.
+>
+>    Failures print `S6: <path>:<line> (<a|b|c>: env template contains secret-shaped content)`
+>    and exit 1.
+> 3. Each exempt file that passes is listed in the script output
+>    (`check-no-secrets: S1 template exemption, content scanned clean: <path>`), so the
+>    exemption shows in CI logs.
+> 4. The S6 scanner is exported as a pure function (e.g. `scanEnvTemplate(text) → failures[]`),
+>    `main()` is guarded, and it is unit-tested with inline string fixtures only (no
+>    committed `.env.*` fixtures). Tests: (i) the current Cursor file → pass;
+>    (ii) `DB_PASSWORD=hunter2` → S6b; (iii) `# API_KEY=abc` → S6b; (iv) `API_KEY=` → pass;
+>    (v) a PEM `BEGIN PRIVATE KEY` line → S6a; (vi) `AKIAABCDEFGHIJKLMNOP` → S6a;
+>    (vii) `FOO=` plus a 40-character base64-like string → S6c. Basename boundaries:
+>    `.env.example` exempt; `.env`, `.env.local`, `.env.example.bak`, `foo/.env.production`
+>    and `x.pem` still fail S1. The tests run in CI's `npm run test` (widen the Vitest
+>    `include` as code-review-round1 H5 requires for the other checker tests).
+> 5. The `.github/workflows/deploy-pages.yml` change is **not merged** until items 1-4 are
+>    implemented and `npm run check:secrets` passes on the real tree.
+>
+> Scope stays the whole repository and the check still fails closed on content, so
+> review-v1b N3 stays closed (residual risk LOW per Addendum 1).
 
 ---
 
@@ -1141,7 +1217,7 @@ shared storage the default and a plugin the exception.
 
 ---
 
-## 10. CI: one pipeline guards both versions (M-ADR-0008; amended by M-ADR-0011, 0012 and Amendment A8)
+## 10. CI: one pipeline guards both versions (M-ADR-0008; amended by M-ADR-0011, 0012 and Amendments A8, A9)
 
 Changes to the repo-root `.github/workflows/deploy-pages.yml`. **The existing `build` job's
 steps stay exactly as they are** (Node 20, lint, test, build with `VITE_BASE_PATH`,
@@ -1221,7 +1297,7 @@ Full Android-emulator suites (lifecycle, back with gesture and 3-button navigati
 update/reboot, cutout emulators, 120 Hz) run on the owner's machine in step 10 per
 `device-matrix.md`. They are not in CI.
 
-### 10.3 CI hardening and release-manifest gate [new in v1.1; review-v1 M2, M3, M4, L1, L3, L5; M-ADR-0011, M-ADR-0012; amended by A8]
+### 10.3 CI hardening and release-manifest gate [new in v1.1; review-v1 M2, M3, M4, L1, L3, L5; M-ADR-0011, M-ADR-0012; amended by A8, A9]
 
 **Permissions (M3):**
 
@@ -1247,7 +1323,7 @@ jobs:
 
 **`build` job, final step order:**
 1. checkout
-2. `node scripts/check-no-secrets.mjs` (M2, §7.5.3; **[A8]** whole-repository scope, §14.1 N3)
+2. `node scripts/check-no-secrets.mjs` (M2, §7.5.3; **[A8]** whole-repository scope, §14.1 N3; **[A9]** S1 template carve-out + S6 content scan, §7.5.3)
 3. setup-node 20
 4. `npm ci`
 5. **`npm audit --omit=dev --audit-level=high`** (M3)
@@ -1388,12 +1464,13 @@ CI.
 | MR9 | `minWebViewVersion`/`errorPath` do not behave as expected on the oldest API 24 images | Verify in step 10; otherwise record as a manual-only criterion | lead tester |
 | MR10 | Play target API rises again during the long closed test | Release engineer re-verifies at step 15 (§7.1) | release engineer |
 | **MR11 [v1.1]** | Bundled assets fail to load with INTERNET removed on some WebView versions (blank screen that CI cannot see) | §7.3.1 verification on API 24/36 (+ mid) at step 7; device-matrix row per release candidate; **[A8]** signed-AAB cold-start smoke at step 15 (§10.3 item 5); documented CSP fallback with security re-review | junior dev, lead tester, release engineer, security |
-| **MR12 [v1.1]** | Upload key or password leaks via the repo or OneDrive, or a release is signed with the debug key | §7.5 contract (outside repo and OneDrive, fail-closed), ignore list first, CI secret check S1-S5; **[A8]** path guard and secret check cover the whole git repository (§14.1 N3) | junior dev, release engineer, lead dev |
+| **MR12 [v1.1]** | Upload key or password leaks via the repo or OneDrive, or a release is signed with the debug key | §7.5 contract (outside repo and OneDrive, fail-closed), ignore list first, CI secret check S1-S5; **[A8]** path guard and secret check cover the whole git repository (§14.1 N3); **[A9]** the only S1 exemption (exact `.env` template basenames) is content-scanned by S6 and logged (§7.5.3) | junior dev, release engineer, lead dev |
 | **MR13 [v1.1]** | A compromised CI dependency publishes to Pages | Least-privilege permissions; `persist-credentials: false`; SHA-pinned third-party actions; `npm audit` (§10.3) | junior dev |
 | **MR14 [v1.1]** | In-app privacy text drifts from the hosted text because the Play build lags the website | Single file; a material change requires an Android release (runbook); SHA-256 comparison at pass 2 (§8.7) | technical writer, release engineer, security |
 | **MR15 [v1.1]** | The release manifest differs from debug (debuggable, exported components, cleartext) | Checker R1-R7 on the unsigned release in CI and on the signed AAB at step 15 (§10.3) | junior dev, release engineer |
 | **MR16 [v1.2, A8]** | The manifest gate is wrong for a normal merged manifest, so it gets loosened or worked around without review (reopening L1 or disabling AndroidX Startup) | R5 names the one allowed provider exactly, with FileProvider/grant checks that override the allowlist; fixture tests; "stop and report" on any unexpected provider (§7.3 A8, §10.3 R5) | junior dev, lead dev, security |
 | **MR17 [v1.2, A8]** | Release WebView remote debugging, mixed content, an origin change or `allowNavigation` enters via the runtime config, which the manifest checker cannot see | Config guard extended (§14.1 N2); pass-2 `chrome://inspect` check | junior dev, lead dev, security |
+| **MR18 [v1.3, A9]** | An emulator or build result comes from a stale or hand-edited build mirror, so it does not reflect the tree under review | Mirror refreshed from the repo before every build, never edited, never committed from; evidence counts only from a freshly refreshed mirror (§3 A9) | junior dev, lead dev, lead tester, release engineer |
 
 ---
 
@@ -1446,6 +1523,10 @@ item directly onto the title (1 tap) is allowed without an architecture change.
    concurrency, secret check, audit, config check, manifest checker on debug and unsigned
    release, SHA pins). **[A8]** R5 exactly as amended, with its fixture tests (§10.3 R5
    implementation notes), and the config guard with the N2/N5 rules (§14.1).
+   **[A9, 2026-09-26]** Add the §7.5.3 S1 template carve-out and rule S6 exactly as
+   specified there (items 1-4, with the inline-fixture tests). Do not merge the
+   `deploy-pages.yml` change until those are in place and `npm run check:secrets` passes on
+   the real tree (§7.5.3 A9 item 5).
 6. **[v1.1]** No-INTERNET verification (§7.3.1) on emulator images. Attach the evidence to
    the step-8 review. If any row fails, **stop**: do not apply the fallback yourself. Report
    it so the main session routes it to a security re-review (pass 1c).
@@ -1453,7 +1534,13 @@ item directly onto the title (1 tap) is allowed without an architecture change.
 Every new file carries a traceability header (`// Implements PRD-mobile M…, M-ADR-000N`).
 Any need for a tool install goes to `docs/mobile/tooling-requests.md`.
 
-### 14.1 Binding step-7 constraints from security review-v1 (L2-L5) and review-v1b (N2, N3, N5) [new in v1.1; extended by A8]
+**[A9, 2026-09-26; code-review-round1 I1] Build location.** Edit source only in the repo.
+Run Android Gradle builds and emulator installs from the mirror outside OneDrive,
+`C:\Users\aaron\dev-build\shield-vs-robots`, refreshed from the repo before every build and
+never edited (§3 A9). This applies to every Android build and install on the owner's
+machine, including the step-8 review, steps 10 and 14, and the step-15 release build.
+
+### 14.1 Binding step-7 constraints from security review-v1 (L2-L5) and review-v1b (N2, N3, N5) [new in v1.1; extended by A8 and A9]
 
 mobile-lead-developer checks each one at step 8. Pass 2 re-checks them.
 
@@ -1466,7 +1553,7 @@ mobile-lead-developer checks each one at step 8. Pass 2 re-checks them.
 | L4c | `vvs:settings` validation reads known fields by name into a fresh literal. It never spreads, merges or uses `Object.assign` on the parsed object. The `__proto__` test input is included. | §9.2 |
 | L5 | `jsdom` is pinned exactly in `package.json`. `gradle/actions/setup-gradle` and `actions/setup-java` are pinned to full commit SHAs. Gradle wrapper validation stays on. | §3.2, §10.3 |
 | **N2 [A8]** (+ **N5**) | `scripts/check-capacitor-config.mjs` checks **both** `capacitor.config.ts` and the generated `android/app/src/main/assets/capacitor.config.json` (the file that ships), and fails on any of: (1) `server.url` present; (2) `server.cleartext: true`; (3) `android.webContentsDebuggingEnabled: true` (or a top-level `webContentsDebuggingEnabled: true`); (4) `android.allowMixedContent: true`; (5) `server.androidScheme` other than `'https'`; (6) `server.hostname` other than `'localhost'`; (7) **[N5]** any `server.allowNavigation` key, whatever its value (even an empty array). Rules 5-6 fail on a missing value in the generated JSON too, since it is the shipped origin (M7.4). Read the `.json` with `JSON.parse`; for the `.ts`, import it with the project's TypeScript toolchain or a strict text match, and document which in the script header. Unit-test each rule with a failing fixture. **Pass-2 check:** on the release build, `chrome://inspect` does not list the app's WebView. | §7.2 A8, §10.3 step 8 |
-| **N3 [A8]** | (1) **Signing path guard** (§7.5.2 rule 2): in addition to the scaffold-root and OneDrive rules, reject any properties path or `storeFile` that is inside the **git top-level**. In `app/build.gradle`, find it by walking up from `rootProject.projectDir` to the first ancestor that contains a `.git` entry (directory **or** file, so worktrees and submodules count); if none is found, the other rules still apply. Do not depend on a `git` executable being on the Gradle PATH. Compare canonical paths, case-insensitively on Windows. (2) **Secret check scope** (§7.5.3): `check-no-secrets.mjs` lists files over the **whole repository**: `git ls-files -z --full-name -- ":/"` (or run from `git rev-parse --show-toplevel`). Paths are repo-relative; rule S4's file match becomes a suffix match on `android/app/build.gradle`, and S5 matches `capacitor.config.*` in any directory. If an existing, unrelated tracked file elsewhere in the repo trips a rule, stop and report it; do not add an ad hoc exclusion (any exclusion needs a security review). The check still needs no credentials (`persist-credentials: false`). (3) **Runbook line** (mobile-technical-writer, step 13): "Build `bundleRelease` from the command line only. Do not use Android Studio's *Generate Signed Bundle/APK* wizard." The fail-closed rule already blocks the wizard's `android.injected.signing.*` path; the runbook line says why. | §7.5.2, §7.5.3, §10.3 step 15 |
+| **N3 [A8]** | (1) **Signing path guard** (§7.5.2 rule 2): in addition to the scaffold-root and OneDrive rules, reject any properties path or `storeFile` that is inside the **git top-level**. In `app/build.gradle`, find it by walking up from `rootProject.projectDir` to the first ancestor that contains a `.git` entry (directory **or** file, so worktrees and submodules count); if none is found, the other rules still apply. Do not depend on a `git` executable being on the Gradle PATH. Compare canonical paths, case-insensitively on Windows. (2) **Secret check scope** (§7.5.3): `check-no-secrets.mjs` lists files over the **whole repository**: `git ls-files -z --full-name -- ":/"` (or run from `git rev-parse --show-toplevel`). Paths are repo-relative; rule S4's file match becomes a suffix match on `android/app/build.gradle`, and S5 matches `capacitor.config.*` in any directory. If an existing, unrelated tracked file elsewhere in the repo trips a rule, stop and report it; do not add an ad hoc exclusion (any exclusion needs a security review). **[A9, 2026-09-26]** The one reviewed exclusion is the §7.5.3 A9 S1 template carve-out (tracked files whose basename is exactly `.env.example`, `.env.sample` or `.env.template`, via the `S1_TEMPLATE_BASENAMES` constant). Those files are not skipped: rule S6 scans their contents and fails closed, including when a file is unreadable. No other exemption may be added without security review. The check still needs no credentials (`persist-credentials: false`). (3) **Runbook line** (mobile-technical-writer, step 13): "Build `bundleRelease` from the command line only. Do not use Android Studio's *Generate Signed Bundle/APK* wizard." The fail-closed rule already blocks the wizard's `android.injected.signing.*` path; the runbook line says why. | §7.5.2, §7.5.3 (incl. A9), §10.3 step 15 |
 
 L6 (targetSdk live check) needs no step-7 action. The release engineer re-verifies at
 step 15 (§7.1). **[A8]** N1 is implemented through §10.3 R5 (step 5 of the build order) and
@@ -1505,6 +1592,16 @@ full there.
   fail) and §7.3 A6/A8. N2 + N5 (`allowNavigation`) → §14.1 row N2. N3 → §14.1 row N3.
   N4 → §10.3 step-15 item 5. Pass 2 can check "the R5 allowlist matches N1 exactly"
   against the named constants in `check-android-manifest.mjs`.
+- **[v1.3, A9, 2026-09-26] review-v1b Addendum 1:** recorded verbatim in §7.5.3 (S1
+  template carve-out + S6 table row and binding items 1-5) and referenced from §14.1 N3 and
+  M-ADR-0011. Pass 2 can check that `S1_TEMPLATE_BASENAMES` holds exactly `.env.example`,
+  `.env.sample` and `.env.template`, that S6 fails on unreadable files, that each exempt
+  file is logged, and that tests (i)-(vii) and the basename boundaries exist with inline
+  fixtures only.
+- **[v1.3, A9] Build mirror (code-review-round1 I1):** Android builds and emulator installs
+  on the owner's machine run from `C:\Users\aaron\dev-build\shield-vs-robots` (outside
+  OneDrive); source edits stay in the repo. The mirror never holds signing material; the
+  §7.5 contract is unchanged (§3 A9).
 - Data safety answer expected: "No data collected, no data shared" (M11.3).
 - **[v1.1] M5 / OQ-S1** (the "Sentinels" name) is with the owner and not decided here. See
   the §7.1 note on applicationId coupling. (review-v1b Condition C1 is the owner's
@@ -1534,6 +1631,8 @@ full there.
 | **[v1.2]** A8: config guard extension (§14.1 N2, §7.2 A8) | review-v1b **N2**, **N5**; review-v1 L3; M7.4, M11.1 |
 | **[v1.2]** A8: repo-wide path guard and secret check, CLI-only release build (§14.1 N3, §7.5.2, §7.5.3) | review-v1b **N3** / Condition C3; review-v1 M2; OQ-M12 (a) |
 | **[v1.2]** A8: signed-AAB cold-start smoke (§10.3 step 15 item 5) | review-v1b **N4**; review-v1 M1, M4; M11.1, M11.2, M10.5 |
+| **[v1.3]** A9: S1 `.env` template carve-out + S6 content scan (§7.5.3, §14.1 N3, §14 item 5; M-ADR-0011 note) | review-v1b **Addendum 1**; code-review-round1 **C3**; review-v1b N3; review-v1 M2; C4 (a false positive must not block the website deploy) |
+| **[v1.3]** A9: Android builds and emulator installs from a mirror outside OneDrive (§3 A9, §14; M-ADR-0011 note) | code-review-round1 **I1**; M-ADR-0011 context (OneDrive sync); CLAUDE.md §Where it runs |
 
 ---
 
@@ -1551,13 +1650,15 @@ full there.
 | — | 2026-09-25 | review-v1 **M5** (owner question OQ-S1) | §7.1 note, §14 | **Not decided here.** Noted the label/applicationId coupling for the owner's decision. | App label and ID unchanged pending the owner. |
 | — | 2026-09-25 | review-v1 **L6** | none | Accepted as-is; re-verified at step 15. | Unchanged. |
 | **A8** | 2026-09-25 (v1.2) | review-v1b **N1** (MEDIUM; Condition C2), **N2**, **N3** (LOW; Condition C3), **N4** (LOW), **N5** (INFO: `allowNavigation` only) | Header, Sources, §7 heading, §7.2 (A8 note), §7.3 A6 (provider clause replaced + A8 block), §7.3.1 (A8 note), §7.5.2 rule 2, §7.5.3 (scope note), §9.2, §10 heading, §10.3 (`build` step 2, `android-build` step 8, **R5 row replaced**, R5 implementation notes, **step-15 list: item 5 added, items renumbered 5→6, 6→7**), §11, §12 MR11/MR12 + **MR16, MR17 (new)**, §14 items 3a-3c and 5, **§14.1 rows N2 and N3 (new)**, §14 security handoff, §15, §16; dated amendment notes added to **M-ADR-0007** and **M-ADR-0012** (M-ADR-0008: see ADR note below) | **N1:** R5's provider clause becomes "every `<provider>` fails except `androidx.startup.InitializationProvider` with `exported="false"` and no `grantUriPermissions="true"`; any exported provider, any FileProvider or subclass, any `<grant-uri-permission>`, any `FILE_PROVIDER_PATHS` meta-data fails"; allowlist named in the checker source; never `tools:node="remove"` the Startup provider; any other provider needs a security review. **N2 (+N5):** config guard also rejects `webContentsDebuggingEnabled: true`, `allowMixedContent: true`, non-`https` scheme, non-`localhost` hostname, and any `server.allowNavigation`, on both config files. **N3:** signing path guard rejects anything inside the git top-level; secret check scans the whole repo; runbook says CLI-only release builds. **N4:** step 15 cold-starts the signed AAB (bundletool `build-apks --connected-device` + `install-apks`) on API 36 and a WebView ≥ 80 image, checks title + privacy overlay, and records the result in `submission-checklist.md`. | v1.1 R5 "no `<provider>` of any kind" **replaced** (it would fail every Capacitor build). L1 closure, the FileProvider removal and the other R5 clauses **kept**. L3 guard, §7.5 contract and the step-15 manifest check **kept** and extended. No PRD requirement changed. |
+| **A9** | 2026-09-26 (v1.3) | review-v1b **Addendum 1** (security decision on code-review-round1 **C3**: S1 false positive on a sibling project's committed `.env.example`); code-review-round1 **I1** (INFO: Gradle cannot build inside OneDrive) | Header, Sources, §3 (**A9 build-location note**), §7 heading, **§7.5.3 (S1 row carve-out, new S6 row, A9 binding block)**, §10 heading, §10.3 heading + `build` step 2, §12 MR12 + **MR18 (new)**, §14 item 5 + **build-location note**, §14.1 heading + **row N3**, §14 security handoff, §15, §16; dated amendment note appended to **M-ADR-0011** | **Secret check:** S1 skips the path failure only for tracked files whose basename is exactly `.env.example`, `.env.sample` or `.env.template` (`S1_TEMPLATE_BASENAMES`, `path.posix.basename`, case-sensitive). New rule **S6** content-scans those files and fails on unreadable files, on key/token signatures anywhere (a), on secret-named `KEY=VALUE` lines with a non-empty value, commented lines included (b), and on 32+ character token-like values (c). Passing exempt files are logged. `scanEnvTemplate` is a pure exported function with inline-fixture tests (i)-(vii) and basename-boundary tests. The workflow change is not merged until this passes on the real tree. No other exemption without security review. **Build location:** Android Gradle builds and emulator installs on the owner's machine run from `C:\Users\aaron\dev-build\shield-vs-robots` (outside OneDrive), a disposable mirror refreshed from the repo before every build; source edits stay in the repo; signing material never enters the mirror. | S1-S5 patterns, the whole-repository scope (A8/N3), the "stop and report; no ad hoc exclusion" rule and the A3 ignore list **kept**. The only change to S1 is the reviewed carve-out, and it adds a content scan. §7.5 signing contract and CI **unchanged**. No PRD requirement changed. |
 
 **ADR note:** M-ADR-0009..0012 each state which earlier ADR they amend (0001, 0002, 0005,
 0007, 0008). In v1.1 the text of M-ADR-0001..0008 was not edited. **[A8, 2026-09-25]** A
 short dated "Amendment note" section is now appended to M-ADR-0007, M-ADR-0008 and
 M-ADR-0012 pointing at what later ADRs and amendments changed in them; their original
-Decision text is left as the historical record. Where a new ADR and an old one differ, the
-newer ADR and this amendment log win.
+Decision text is left as the historical record. **[A9, 2026-09-26]** The same kind of dated
+note is appended to M-ADR-0011 (decision 8 secret-check carve-out + S6; build mirror
+context). Where a new ADR and an old one differ, the newer ADR and this amendment log win.
 
 ---
 

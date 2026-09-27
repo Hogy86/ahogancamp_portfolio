@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Implements docs/mobile/architecture/mobile-architecture.md §7.3 (M7.6/M11.3): with
+  Auto Backup on, Android would otherwise copy the saved best score/settings
+  (WebView localStorage, under sharedpref/webview data) to the player's Google Drive
+  cloud backup - a cloud save the addendum-v3 architect note rules out. Both rules
+  exclude everything from cloud backup and device-to-device transfer.
+-->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapability="false">
+        <!-- L5: explicit per-domain excludes alongside "root" - "root" alone is meant
+             to cover everything, but naming file/database/sharedpref/external
+             explicitly (review-v1b OQ-A1 note) means a future domain-scoped include
+             rule added by mistake can never re-admit WebView localStorage data. -->
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

@@ -37,10 +37,38 @@ function blinkOn(remainingSeconds: number): boolean {
 export class CanvasRenderer {
   private readonly ctx: CanvasRenderingContext2D;
 
-  constructor(canvas: HTMLCanvasElement) {
+  /**
+   * `renderScale` is the canvas backing-store scale (mobile-architecture.md §6.5, M2.8):
+   * the Android platform computes k = min(s * devicePixelRatio, 3.2) in screenFit.ts and
+   * passes it via `Platform.renderScale()`. Web always passes the default (1), so this
+   * constructor's behavior - and every existing pixel value drawn by this class - is
+   * byte-identical to before Android support existed (C3).
+   *
+   * Android's real scale is only known once GameShell reports the device's live edge
+   * insets (an async call), so `applyScale()` is called again after `Platform.init()`
+   * resolves (src/main.ts) - this constructor's value is just the pre-init placeholder.
+   */
+  constructor(
+    private readonly canvas: HTMLCanvasElement,
+    renderScale = 1,
+  ) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('CanvasRenderer: 2D context unavailable');
     this.ctx = ctx;
+    this.applyScale(renderScale);
+  }
+
+  /** Resizes the backing store and re-applies the draw transform. Called once at boot
+   * and again on every Android re-layout (fold/resize/insets change, M2.9) via
+   * `PlatformContext.setRenderScale` (code-review-round1.md M3) - a re-layout that
+   * lands back on k = 1 (e.g. folding to a size where the cap no longer binds) must
+   * still reset the backing store, so this no longer short-circuits at exactly 1. Web
+   * only ever calls this with 1 (at boot), so its canvas size/transform are unchanged
+   * from before Android support existed. */
+  applyScale(renderScale: number): void {
+    this.canvas.width = Math.round(PLAYFIELD_WIDTH * renderScale);
+    this.canvas.height = Math.round(PLAYFIELD_HEIGHT * renderScale);
+    this.ctx.setTransform(renderScale, 0, 0, renderScale, 0, 0);
   }
 
   render(world: World): void {
@@ -77,7 +105,10 @@ export class CanvasRenderer {
     ctx.fillStyle = '#ff5a5a';
     ctx.font = 'bold 16px system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('WARNING: SENTINELS APPROACHING', PLAYFIELD_WIDTH / 2, 24);
+    // F22 AC4 (docs/PRD-addendum-v4.md): "Sentinel(s)" renamed to "robots" everywhere
+    // player-facing; the internal drawSentinel/VANGUARD_* identifiers are unchanged
+    // (F22 AC12 - internal names are explicitly optional to rename).
+    ctx.fillText('WARNING: ROBOTS APPROACHING', PLAYFIELD_WIDTH / 2, 24);
     ctx.restore();
   }
 

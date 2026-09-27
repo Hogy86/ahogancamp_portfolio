@@ -2,7 +2,15 @@
 // text), §F6 AC10 (keyboard-navigable menu, visible non-color-only selection),
 // §F6 AC11 (Restart Game confirmation guard), §F8 AC4 (Game Over screen), §F19
 // (v2: "Game Complete" celebration screen replaces the v1 static Victory screen),
-// §F9 AC1 (Vanguard vs Sentinels premise readable with no narrative).
+// §F9 AC1 (Shield vs Robots premise readable with no narrative, F22 rename).
+// docs/PRD-addendum-v3.md F20 AC1-AC3/AC13-AC14: "Best: N" / "New best!" on the
+// title and end screens, from PlatformCopy-independent shared World fields.
+// docs/mobile/architecture/mobile-architecture.md §5.4: title/menu action text and
+// items come from PlatformCopy on Android; on the web PlatformCopy is undefined and
+// today's exact copy/behavior is unchanged (M3.12, OQ-M10 (a)). Renders only when its
+// view key changes (state, selected index, confirm flag, score, best, new-best,
+// quit-fallback) - required so a tap that starts on one element and ends on its
+// per-frame replacement still produces a click (§5.4), and a minor perf win on web too.
 // All text is written via textContent only (security binding constraint #2 -
 // see ui/dom.ts). ADR-0002: this module only ever renders what GameStateMachine's
 // dispatch table already decided - it has no independent state-transition logic.
@@ -18,12 +26,24 @@
 
 import { clearChildren, createElement } from './dom';
 import { PAUSE_MENU_OPTIONS } from '../core/GameStateMachine';
+import type { PlatformCopy } from '../platform/Platform';
 import type { World } from '../core/types';
 
 export class ScreenController {
-  constructor(private readonly root: HTMLElement) {}
+  private lastViewKey: string | null = null;
+
+  constructor(
+    private readonly root: HTMLElement,
+    /** Undefined on the web build (today's exact copy/behavior, M3.12). Android
+     * supplies its touch wording (mobile-architecture.md §5.4/§4). */
+    private readonly copy?: PlatformCopy,
+  ) {}
 
   render(world: World): void {
+    const key = this.computeViewKey(world);
+    if (key === this.lastViewKey) return;
+    this.lastViewKey = key;
+
     clearChildren(this.root);
 
     switch (world.state) {
@@ -44,14 +64,37 @@ export class ScreenController {
     }
   }
 
+  /** Only these fields ever change what this class draws (mobile-architecture.md §5.4). */
+  private computeViewKey(world: World): string {
+    return [
+      world.state,
+      world.pauseMenuSelectedIndex,
+      world.restartGameConfirmPending,
+      world.score,
+      world.bestScore,
+      world.newBestThisRun,
+      world.quitBlockedMessageActive,
+      world.level,
+    ].join('|');
+  }
+
+  private appendBestLine(overlay: HTMLElement, world: World): void {
+    // F20 AC1/AC2: "Best: N" on the title screen and both end screens.
+    overlay.append(createElement('p', 'best-score', `Best: ${world.bestScore}`));
+    if (world.newBestThisRun) {
+      // F20 AC3/AC13: shown as text, not by color alone.
+      overlay.append(createElement('p', 'new-best', 'New best!'));
+    }
+  }
+
   private renderTitle(world: World): void {
     const overlay = createElement('div', 'screen-overlay');
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-label', 'Title screen');
-    overlay.append(
-      createElement('h1', undefined, 'VANGUARD vs. SENTINELS'),
-      createElement('p', undefined, 'Shield Invaders'),
-    );
+    // F22 AC1/AC3 (docs/PRD-addendum-v4.md): renamed product, "Shield Invaders"
+    // subtitle dropped (Q-v4-2 default).
+    overlay.append(createElement('h1', undefined, 'Shield vs Robots'));
+    this.appendBestLine(overlay, world);
 
     if (world.quitBlockedMessageActive) {
       // F6 AC9: explicit visible text so Quit doesn't read as broken.
@@ -60,14 +103,32 @@ export class ScreenController {
       overlay.append(message);
     }
 
-    overlay.append(createElement('p', undefined, 'Press Enter to start'));
-    overlay.append(
-      createElement(
-        'p',
-        undefined,
-        '← → move · Space throw · Esc pause · Up/Down + Enter to navigate menus',
-      ),
-    );
+    if (this.copy) {
+      // Android: a real tappable Start button plus title's extra actions (M8.2, M6.2).
+      const start = createElement('button', 'menu-item', this.copy.titleStartLabel);
+      start.dataset.action = 'start';
+      overlay.append(start);
+      const list = createElement('ul', 'menu-list');
+      this.copy.titleExtraActions.forEach((action) => {
+        const label = action === 'help' ? 'How to play' : action === 'settings' ? 'Settings' : 'Quit';
+        // L4: a real, focusable `<button>` (not `<li>`) for accessibility.
+        const item = createElement('button', 'menu-item', label);
+        item.dataset.action = action;
+        list.append(item);
+      });
+      overlay.append(list);
+    } else {
+      overlay.append(createElement('p', undefined, 'Press Enter to start'));
+    }
+    if (this.copy?.menuHint || !this.copy) {
+      overlay.append(
+        createElement(
+          'p',
+          undefined,
+          this.copy?.menuHint ?? '← → move · Space throw · Esc pause · Up/Down + Enter to navigate menus',
+        ),
+      );
+    }
     this.root.append(overlay);
   }
 
@@ -86,8 +147,22 @@ export class ScreenController {
           undefined,
           'Restart Game will discard all progress, score, and your permanent power multiplier.',
         ),
-        createElement('p', undefined, 'Press Enter to confirm, or Esc to cancel.'),
       );
+      // L4: the keyboard hint comes from PlatformCopy (web: the literal Enter/Esc
+      // text; Android: null, since Android has real Confirm/Cancel buttons and no
+      // keyboard-hint concept - same `this.copy?.x || !this.copy` pattern as menuHint.
+      if (this.copy?.confirmHint || !this.copy) {
+        confirmBox.append(
+          createElement('p', undefined, this.copy?.confirmHint ?? 'Press Enter to confirm, or Esc to cancel.'),
+        );
+      }
+      if (this.copy) {
+        const confirmBtn = createElement('button', 'menu-item', 'Confirm');
+        confirmBtn.dataset.action = 'confirm';
+        const cancelBtn = createElement('button', 'menu-item', 'Cancel');
+        cancelBtn.dataset.action = 'cancel';
+        confirmBox.append(confirmBtn, cancelBtn);
+      }
       overlay.append(confirmBox);
       this.root.append(overlay);
       return;
@@ -95,7 +170,13 @@ export class ScreenController {
 
     const list = createElement('ul', 'menu-list');
     PAUSE_MENU_OPTIONS.forEach((option, index) => {
-      const item = createElement('li', 'menu-item', option);
+      // L4: Android menu rows are real, focusable `<button>`s (matching Title/Game
+      // Over's own menu-item buttons), not `<li>` - the web build has no PlatformCopy
+      // and keeps its existing `<li>` rendering byte-identical (M3.12).
+      const item = this.copy
+        ? (createElement('button', 'menu-item', option) as HTMLButtonElement)
+        : createElement('li', 'menu-item', option);
+      item.dataset.action = `pause-option:${index}`;
       if (index === world.pauseMenuSelectedIndex) item.classList.add('selected');
       list.append(item);
     });
@@ -111,9 +192,16 @@ export class ScreenController {
     overlay.append(
       createElement('h1', undefined, 'GAME OVER'),
       createElement('p', undefined, `Final Score: ${world.score}`),
-      createElement('p', undefined, `Reached Level ${world.level}`),
-      createElement('p', undefined, 'Press Enter to start a new run'),
     );
+    this.appendBestLine(overlay, world);
+    overlay.append(createElement('p', undefined, `Reached Level ${world.level}`));
+    if (this.copy) {
+      const playAgain = createElement('button', 'menu-item', this.copy.gameOverActionLabel);
+      playAgain.dataset.action = 'play-again';
+      overlay.append(playAgain);
+    } else {
+      overlay.append(createElement('p', undefined, 'Press Enter to start a new run'));
+    }
     this.root.append(overlay);
   }
 
@@ -135,9 +223,11 @@ export class ScreenController {
     overlay.setAttribute('aria-live', 'assertive');
     overlay.append(
       createElement('h1', undefined, 'GAME COMPLETE'),
-      createElement('p', undefined, 'The Sentinel forces have been defeated.'),
+      // F22 AC4 (docs/PRD-addendum-v4.md): "Sentinel" -> "robot" in all in-play/end-screen text.
+      createElement('p', undefined, 'The robot forces have been defeated.'),
       createElement('p', undefined, `Final Score: ${world.score}`),
     );
+    this.appendBestLine(overlay, world);
     this.root.append(overlay);
   }
 }

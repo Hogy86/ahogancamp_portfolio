@@ -174,6 +174,12 @@ export function createNewRunWorld(): World {
     pauseMenuSelectedIndex: 0,
     restartGameConfirmPending: false,
     quitBlockedMessageActive: false,
+    // F20 AC1: title screen shows "Best: 0" until the first commit() reads the real
+    // saved value; bestScore.get() is applied by the caller (GameStateMachine/main).
+    bestScore: 0,
+    newBestThisRun: false,
+    // F21 AC2/AC4: a brand-new run's level 1 has a level-start score of 0.
+    levelStartScore: 0,
   };
 }
 

@@ -295,3 +295,57 @@ These are not needed now. They are recorded so a pass 1c review can be quick:
   listing or screenshots; mobile-marketing-analyst has run the Marvel-catalog scan.
 - **OQ-M13 and Play Console answers.** OQ-M13 is decided. The Data safety, content rating
   and target-audience drafts in `submission-checklist.md` match the code.
+
+---
+
+## Addendum 1 (2026-09-26): S1 false positive on `.env.example` templates (code-review-round1 C3)
+
+> Transcription note: written verbatim by the main session from the reviewer's returned text.
+
+**Trigger:** `docs/mobile/reviews/code-review-round1.md` C3. The whole-repository secret
+check required by N3 (`scripts/check-no-secrets.mjs`, S1) fails on
+`projects/ai-ml/VibeCoding/Cursor-UFOArcadeGame/UFO_Arcade_Game/.env.example`, a committed
+template in an unrelated sibling project. Reviewed contents: TLS mode, ports, cert and key
+*paths*, `ENV`, `LOG_LEVEL`, commented-out Vite flags. It contains no secret values. It
+matches on its name only, so this is a false positive.
+
+**Decision:** a narrow exemption for template files whose contents are still scanned.
+Rejected: an exact-path allowlist (it stops checking the file's contents and breaks on the
+next template elsewhere in the portfolio repo), and renaming or removing the file (outside
+this app's scope; needs the owner; committed templates are good practice).
+
+**Binding rule (verified by mobile-lead-developer at step 8, re-checked in pass 2):**
+1. S1 skips the path failure only for tracked files whose basename is exactly
+   `.env.example`, `.env.sample` or `.env.template` (case-sensitive; a named constant in the
+   script, e.g. `S1_TEMPLATE_BASENAMES`, checked with `path.posix.basename`). Every other S1
+   pattern is unchanged and path-only. No other exemption may be added without security review.
+2. New rule **S6** scans every exempt file. An unreadable file fails (do not reuse the
+   existing `catch { continue; }`). The file fails on:
+   - (a) anywhere in the file text, comments included: `-----BEGIN [A-Z ]*(PRIVATE KEY|CERTIFICATE)-----`,
+     `AKIA[0-9A-Z]{16}`, `\b(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}`, `github_pat_[A-Za-z0-9_]{20,}`,
+     `\bsk-[A-Za-z0-9_-]{20,}`, `xox[abprs]-[A-Za-z0-9-]{10,}`, `AIza[0-9A-Za-z_-]{35}`;
+   - (b) a line that, after stripping one leading `#` and whitespace, matches
+     `^([A-Za-z_][A-Za-z0-9_.]*)\s*=\s*(.*)$` with a key matching
+     `/(SECRET|PASSWORD|PASSWD|PASSPHRASE|TOKEN|API_?KEY|PRIVATE_?KEY|ACCESS_?KEY|CLIENT_?SECRET|CREDENTIAL|KEYSTORE|STORE_?PASS|KEY_?PASS|SIGNING)/i`
+     and a value that is non-empty after trimming whitespace and matching surrounding quotes
+     (`API_KEY=` and `API_KEY=""` pass; `API_KEY=changeme` fails);
+   - (c) on the same `KEY=VALUE` lines, a trimmed unquoted value containing a run of 32 or more
+     characters from `[A-Za-z0-9+/=_-]`.
+   Failures print `S6: <path>:<line> (<a|b|c>: env template contains secret-shaped content)` and
+   exit 1.
+3. Each exempt file that passes is listed in the script output
+   (`check-no-secrets: S1 template exemption, content scanned clean: <path>`), so the exemption
+   shows in CI logs.
+4. The S6 scanner is exported as a pure function (e.g. `scanEnvTemplate(text) → failures[]`),
+   `main()` is guarded, and it is unit-tested with inline string fixtures only (no committed
+   `.env.*` fixtures). Tests: (i) the current Cursor file → pass; (ii) `DB_PASSWORD=hunter2` →
+   S6b; (iii) `# API_KEY=abc` → S6b; (iv) `API_KEY=` → pass; (v) a PEM `BEGIN PRIVATE KEY` line →
+   S6a; (vi) `AKIAABCDEFGHIJKLMNOP` → S6a; (vii) `FOO=` plus a 40-character base64-like string →
+   S6c. Basename boundaries: `.env.example` exempt; `.env`, `.env.local`, `.env.example.bak`,
+   `foo/.env.production` and `x.pem` still fail S1.
+5. §7.5.3 gains an S6 row (architect amendment). The deploy-pages workflow change is not
+   merged until items 1-4 are implemented and `npm run check:secrets` passes on the real tree.
+
+**Effect on this review:** the verdict and conditions are unchanged. N3 stays closed: the
+scope is still the whole repository, and the check still fails closed on content. Residual
+risk: LOW.

@@ -92,3 +92,38 @@ finding **M2** in `docs/mobile/security/review-v1.md`.
 
 PRD-mobile OQ-M12 (a), M1.2; review-v1 M2; M-ADR-0001; M-ADR-0008; `.claude/CLAUDE.md`
 §Where it runs; mobile-architecture.md §3 and §7.5.
+
+## Amendment note (2026-09-26, architecture v1.3, Amendment A9)
+
+The Decision text above is kept as the historical record. Where it differs from this note,
+this note and mobile-architecture.md §16 (A9) win.
+
+- **Decision 8 (CI tracked-secret check) is amended** by `docs/mobile/security/review-v1b.md`
+  **Addendum 1**. The trigger was `docs/mobile/reviews/code-review-round1.md` **C3**: the
+  whole-repository S1 scan (A8, review-v1b N3) failed on a committed `.env.example`
+  template in an unrelated sibling project. That file holds no secret values.
+  - S1 no longer fails on tracked files whose basename is exactly `.env.example`,
+    `.env.sample` or `.env.template` (named constant `S1_TEMPLATE_BASENAMES`,
+    case-sensitive).
+  - A new rule **S6** content-scans those files instead. S6 fails on secret-shaped content
+    and on an unreadable file. Each exempt file that passes is logged in the output.
+  - The exact patterns, tests and merge condition are in mobile-architecture.md §7.5.3 (A9
+    block and S6 row). §14.1 row N3 references them.
+  - Everything else is unchanged: every other S1 pattern, rules S2-S5, the
+    whole-repository scope, decision 6 ("never in `.env*`") and the ignore list (decision
+    7). No other exemption may be added without a security review.
+  - Alternatives the security reviewer rejected:
+    - an exact-path allowlist: it stops checking the file's contents and breaks on the
+      next template in the portfolio repo
+    - renaming or removing the sibling file: outside this app's scope, it needs the owner,
+      and committed templates are good practice
+- **Context addition** (`docs/mobile/reviews/code-review-round1.md` **I1**): Gradle cannot
+  build inside the OneDrive-synced repo. OneDrive turns build outputs into reparse points,
+  and some paths exceed `MAX_PATH`. So Android Gradle builds and emulator installs on the
+  owner's machine run from a mirror outside OneDrive,
+  `C:\Users\aaron\dev-build\shield-vs-robots`. Source edits stay in the repo
+  (mobile-architecture.md §3 A9, §14).
+  - Decisions 1-5 are unchanged. Signing material stays in
+    `C:\Users\aaron\.android-signing\vvs\` and is never copied into the mirror.
+  - When Gradle runs in the mirror, the decision-3 project-root guard applies to the mirror
+    root.

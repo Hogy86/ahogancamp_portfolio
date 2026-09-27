@@ -7,6 +7,12 @@
 // v2 additions: §F18 (level-intro freeze gates the rest of stepSimulation), §F12
 // AC10-11 (boss-incoming warning ticks alongside gameplay, never gates it), §F19
 // AC6 (the VICTORY celebration ticks on its own dedicated path, not stepSimulation).
+//
+// docs/mobile/architecture/mobile-architecture.md M-ADR-0005 (§8.2): takes an injected
+// `InputManager` (so a platform's composition root can register touch sources on it
+// before the loop starts) and adds `suspend()`/`resume()` - cancelling rAF and holding no
+// timer while backgrounded (M10.6), and resetting `lastTimestamp`/`accumulator` on resume
+// so the first frame back never "catches up" the elapsed background time (M4.2).
 
 import { FIXED_DT } from '../config/constants';
 import { InputManager } from './InputManager';
@@ -30,17 +36,21 @@ const MAX_FRAME_TIME_SECONDS = 0.25;
 export type RenderCallback = (world: World, alpha: number) => void;
 
 export class GameLoop {
-  private readonly input: InputManager;
+  /** Exposed so a platform's composition root can register extra InputSources
+   * (Android's touch move-zone/throw button) before calling start() (§5.1). */
+  readonly input: InputManager;
   private accumulator = 0;
   private lastTimestamp: number | null = null;
   private rafHandle = 0;
   private running = false;
+  private suspended = false;
 
   constructor(
     private world: World,
     private readonly render: RenderCallback,
+    input: InputManager = new InputManager(),
   ) {
-    this.input = new InputManager();
+    this.input = input;
   }
 
   start(): void {
@@ -51,14 +61,35 @@ export class GameLoop {
 
   stop(): void {
     this.running = false;
+    this.suspended = false;
     cancelAnimationFrame(this.rafHandle);
     this.input.dispose();
+  }
+
+  /** M4.1/M10.6: cancels the scheduled frame and holds no timer while the app is in
+   * the background. Only ever called by Android's lifecycle handler - the web build
+   * never backgrounds the loop (M3.12/OQ-M10 (a)). */
+  suspend(): void {
+    if (!this.running || this.suspended) return;
+    this.suspended = true;
+    cancelAnimationFrame(this.rafHandle);
+  }
+
+  /** M4.2: no time is "caught up" for the duration spent suspended - resetting
+   * `lastTimestamp` to null makes the next tick treat its first frame as a zero-elapsed
+   * frame, exactly like the very first tick after `start()`. */
+  resume(): void {
+    if (!this.running || !this.suspended) return;
+    this.suspended = false;
+    this.lastTimestamp = null;
+    this.accumulator = 0;
+    this.rafHandle = requestAnimationFrame(this.tick);
   }
 
   /** Fixed-timestep accumulator: the RAF-supplied timestamp drives frame pacing
    * only, never gameplay timers (ADR-0002 decision 1/5). */
   private tick = (timestamp: number): void => {
-    if (!this.running) return;
+    if (!this.running || this.suspended) return;
 
     if (this.lastTimestamp === null) this.lastTimestamp = timestamp;
     const frameSeconds = Math.min(MAX_FRAME_TIME_SECONDS, (timestamp - this.lastTimestamp) / 1000);
@@ -71,6 +102,7 @@ export class GameLoop {
     // (ADR-0002 decision 2) - this is what makes Esc/menu semantics per-screen.
     dispatchStateInput(this.world, snapshot);
 
+    let stepsRun = 0;
     while (this.accumulator >= FIXED_DT) {
       if (this.world.state === 'PLAYING') {
         this.stepSimulation(snapshot, FIXED_DT);
@@ -80,9 +112,12 @@ export class GameLoop {
         updateVictoryCelebration(this.world, FIXED_DT);
       }
       this.accumulator -= FIXED_DT;
+      stepsRun += 1;
     }
 
-    this.input.consumeEdges();
+    // §5.3: touch sources (e.g. Android's THROW latch) only clear once at least one
+    // fixed step has actually run this frame - keyboard ignores the argument.
+    this.input.consumeEdges(stepsRun);
 
     const alpha = this.accumulator / FIXED_DT;
     this.render(this.world, alpha);

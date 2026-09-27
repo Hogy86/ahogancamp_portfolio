@@ -179,3 +179,11 @@ export const INSTRUMENTATION_STORAGE_KEY = 'vvs:metrics';
 
 /** Max levels (F5 AC4). */
 export const MAX_LEVEL = 10;
+
+/** F21 (docs/PRD-addendum-v4.md, owner decision Q-v3-1 (b)): Restart Level rolls the
+ * run's score back to its level-start value ('rollback'), removing points earned in
+ * the abandoned attempt. This game-rule constant is shared and has the same value on
+ * every platform (M0.3) - only Restart Level reads it (GameStateMachine.ts); it does
+ * not affect level advance, pause/Resume, or Restart Game, which already reset/keep
+ * the score by their own existing rules. */
+export const RESTART_LEVEL_SCORE_POLICY: 'keep' | 'rollback' = 'rollback';

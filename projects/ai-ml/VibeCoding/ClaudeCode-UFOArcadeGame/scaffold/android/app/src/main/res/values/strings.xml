@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Shield vs Robots</string>
+    <string name="title_activity_main">Shield vs Robots</string>
+    <string name="package_name">io.github.hogy86.shieldvsrobots</string>
+    <string name="custom_url_scheme">io.github.hogy86.shieldvsrobots</string>
+</resources>

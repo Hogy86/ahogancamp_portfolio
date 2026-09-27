@@ -1,0 +1,270 @@
+/* Implements docs/mobile/architecture/mobile-architecture.md §6.5/§5.3 (M2.6, M2.11,
+   M3.1-M3.9). Scoped entirely under html.platform-android - src/style.css is never
+   edited (UX N1 / carry-forward 4). Imported only by the Android platform module, so
+   it never ships in the web bundle. */
+
+html.platform-android,
+html.platform-android body {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
+html.platform-android #app-root {
+  /* screenFit.ts sets left/top/transform inline per computeLayout(); margin is
+     overridden here so the web-only `margin: 24px auto` never applies. */
+  margin: 0;
+}
+
+/* M2.11: HUD/control-text floor so text stays legible at the real playfield scale. */
+html.platform-android .hud-panel,
+html.platform-android #control-text {
+  font-size: max(15px, calc(12px / var(--pf-scale, 1)));
+}
+
+/* C1: every menu/shell-overlay button gets a real ≥48dp touch target, regardless of
+   playfield scale - `src/style.css`'s `.menu-item` is unscoped px sizing meant for the
+   (also unscaled, on web) desktop-mouse case. */
+html.platform-android .menu-item {
+  min-height: 48px;
+}
+
+/* code-review-round3 M1 (real-device evidence, svr_api36_pixel7): `.menu-item` is a
+   `<button>` on Android (web renders the same class on an `<li>`, which never has
+   native control chrome), so without an explicit appearance/background/color it falls
+   back to the platform's native button chrome (confirmed via CDP: computed
+   `background-color: rgb(239,239,239)`, `color: rgb(0,0,0)`, `appearance: auto`) - a
+   light, unreadable button on the dark game background. This rule belongs here, not in
+   the shared `src/style.css` (§6.5), since only the Android `<button>` markup has the
+   native-chrome problem. */
+html.platform-android .menu-item {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #0b0b14;
+  color: #e8e8f0;
+  font-family: inherit;
+}
+
+/* Opaque equivalent of the shared `.menu-item.selected` gold wash
+   (`rgba(255, 216, 115, 0.12)` over `src/style.css`'s transparent default), so the
+   selected pause/menu item doesn't let the title text underneath show through either. */
+html.platform-android .menu-item.selected {
+  background: #2a2515;
+}
+
+/* M1: with `.menu-item` opaque above, the Help/Settings panels (`.screen-overlay`,
+   shared with web) must also be fully opaque on Android so no title text shows through
+   around the buttons - web keeps the shared translucent wash (`rgba(2, 2, 8, 0.86)`),
+   which is fine there because web never stacks a `<button>` menu over another visible
+   screen. */
+#shell-overlay-root > .screen-overlay {
+  background: #05050a;
+}
+
+#safe-layer {
+  position: fixed;
+  z-index: 30;
+}
+
+/* Both are absolutely-positioned children of #safe-layer (§6.5). Explicit stacking
+   (rather than relying on DOM order alone) guarantees shell overlays (Help/Settings/
+   Privacy/RotatePrompt) always paint above the game-screen overlay when both happen
+   to be present in the DOM at once. */
+#overlay-root {
+  z-index: 21;
+  /* code-review-round2 C1: #overlay-root is a full-size sibling that stays in the DOM
+     (empty) during PLAYING. Without this, it sits above the touch layer and swallows
+     every tap meant for the move zone / THROW / PAUSE, even though it draws nothing. */
+  pointer-events: none;
+}
+
+/* Title/pause/end-screen menus (ScreenController's `.screen-overlay` children of
+   #overlay-root) still need to be tappable - only the always-present, otherwise-empty
+   parent is inert. */
+#overlay-root > .screen-overlay {
+  pointer-events: auto;
+}
+
+#shell-overlay-root {
+  position: absolute;
+  /* code-review-round4 (found gathering §7.3.1 mid-image evidence, svr_api30_mid,
+     real WebView 83.0.4103.106): the `inset` CSS shorthand was not supported until
+     Chromium 87 (Nov 2020) - WebView 83 silently ignores it, leaving this element
+     with NO top/right/bottom/left at all, so it collapses to a zero-size box. Every
+     shell overlay (`.screen-overlay`, `width: 100%`/`height: 100%` in the shared
+     `src/style.css`) then resolves its own 100% against that zero-size containing
+     block, rendering Settings/Help/Privacy centered on a 0-width box - only the
+     right half of each button's content (from x=0 outward) ends up on screen, the
+     rest goes negative/off-screen. `top`/`left` plus explicit `width`/`height`
+     (rather than the `right`/`bottom` longhand, which Vite's production CSS
+     minifier re-collapses right back into the unsupported `inset` shorthand at
+     build time - confirmed in the actual `dist-android` bundle, not just source)
+     fills the same `#safe-layer` containing block without ever spelling out
+     `right`/`bottom`, so nothing here can be re-merged into `inset`. */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 22;
+  /* Each child overlay (Help/Settings/Privacy/RotatePrompt) toggles its own `.hidden`
+     class (AndroidOverlays); this container itself has no visible box of its own when
+     every child is hidden, so it never blocks clicks meant for #overlay-root/canvas. */
+  pointer-events: none;
+}
+
+#shell-overlay-root > *:not(.hidden) {
+  pointer-events: auto;
+}
+
+.touch-layer {
+  position: absolute;
+  /* code-review-round4: same `inset` shorthand compat/minifier issue as
+     #shell-overlay-root above - `top`/`left`/`width`/`height` instead, which the
+     minifier cannot re-collapse into `inset` (unsupported on WebView < Chromium 87). */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Explicit z-index (rather than the implicit 0 an unset z-index resolves to among
+     positioned siblings) so this layer stacks above #overlay-root (21). Only the
+     individual controls are `pointer-events: auto` (the layer itself is `none`), so a
+     higher z-index here never blocks #shell-overlay-root (22, above this) or the
+     playfield underneath. */
+  z-index: 21;
+  pointer-events: none;
+}
+
+.touch-layer--hidden {
+  display: none;
+}
+
+/* C1/C2: `left`/`top` for `.move-zone`, `.touch-button--throw` and `.touch-button--pause`
+   are set inline by `TouchControls.applyLayout()` from `computeLayout()`'s already
+   safe-layer-relative, already swap-mirrored absolute positions - never from a
+   side-dependent (`left:`/`right:`) static rule, which is what let "Swap controls"
+   silently do nothing (C2). */
+.touch-button {
+  position: absolute;
+  width: var(--vvs-button-size, 64px);
+  height: var(--vvs-button-size, 64px);
+  pointer-events: auto;
+  border-radius: 8px;
+  border: 2px solid #4a4a66;
+  background: rgba(20, 20, 34, 0.55);
+  color: #e8e8f0;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* M3: the visible glyph inside each touch button; `aria-hidden` (set in TouchControls)
+   keeps it out of the accessible name, which stays the button's `aria-label`. */
+.touch-glyph {
+  font-size: 24px;
+  line-height: 1;
+}
+
+/* The THROW glyph is the word "THROW" (ASCII, round 3 - see TouchControls.ts), which
+   needs to fit inside a ~56-64dp square rather than a single symbol's width. */
+.touch-button--throw .touch-glyph {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.move-zone {
+  position: absolute;
+  pointer-events: auto;
+}
+
+/* ◀/▶ positions are relative to `.move-zone` itself (which JS repositions as a
+   whole) - the buttons' left-to-right order within it never mirrors, only the
+   move-zone's own placement does (§6.3: "Swap controls mirrors x ... the sums are
+   the same"). */
+.touch-button--left {
+  left: 0;
+  top: 0;
+}
+
+.touch-button--right {
+  left: calc(var(--vvs-button-size, 64px) + 8px);
+  top: 0;
+}
+
+.touch-button--pause {
+  width: 48px;
+  height: 48px;
+}
+
+.touch-button--throw.not-ready {
+  opacity: 0.45;
+  border-style: dashed; /* shape change, not color alone (NFR-9) */
+}
+
+.rotate-prompt.hidden,
+.hidden {
+  display: none;
+}
+
+/* §8.7: a full panel, not the shared centered `.screen-overlay` layout - the Close
+   button sits in a header row with the heading, at the top on the THROW-side edge
+   (mirrored by `.shell-overlays--swapped`, C2), and the iframe fills the rest.
+   code-review-round2 C2: `.privacy-overlay` and `.hidden` have equal specificity
+   (both single-class selectors), so source order alone decided the winner and
+   `.privacy-overlay` (declared later) always beat `.hidden`, leaving the panel
+   visible (display: flex) from cold launch on every screen. `.privacy-overlay.hidden`
+   below has higher specificity than either alone, so hidden always wins regardless of
+   declaration order. */
+.privacy-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 12px 16px;
+  touch-action: pan-y;
+  /* M1: §8.7 requires an opaque panel, not the shared translucent `.screen-overlay`
+     wash (which lets the dimmed game show through underneath). */
+  background: #05050a;
+}
+
+.privacy-overlay.hidden {
+  display: none;
+}
+
+.privacy-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* THROW is on the left when controls are swapped; row-reverse mirrors the header so
+   Close (last in DOM order, see overlays.ts) lands on that same left edge. */
+.shell-overlays--swapped .privacy-header {
+  flex-direction: row-reverse;
+}
+
+.privacy-header h1 {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+}
+
+/* M1: Close is a real action button, not a full-width `.menu-item` (220px) - a
+   compact control that still clears the 48dp touch-target floor. */
+.privacy-close {
+  min-width: 48px;
+  width: auto;
+  padding: 0 16px;
+}
+
+.privacy-overlay .privacy-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #05050a;
+  touch-action: pan-y;
+}

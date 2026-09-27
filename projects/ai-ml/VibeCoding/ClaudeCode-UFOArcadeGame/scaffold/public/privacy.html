@@ -1,0 +1,57 @@
+<!doctype html>
+<!--
+  Implements docs/mobile/architecture/mobile-architecture.md §8.7 (M11.4, M11.4a;
+  M-ADR-0009). Single shared policy file: the website serves it at the hosted URL,
+  and the Android app bundles the SAME file and shows it in-app (PrivacyOverlay).
+  Step-7 PLACEHOLDER content that meets §8.7's content rules; mobile-technical-writer
+  finalizes the text at step 13 - the rules below (no script, no external resources,
+  no outbound links) must still hold after that edit.
+
+  Content rules (§8.7): static HTML, lang="en", no script elements, no
+  event-handler attributes, no external resources (inline style element only),
+  no outbound anchor-href links (the hosted URL and contact email are plain
+  text so nothing in the sandboxed frame can try to navigate), readable both
+  standalone and inside the overlay (dark background, light text, >= 16px
+  body).
+-->
+<!--
+  code-review-round4 L1: the §10.1 static check greps for the opening script
+  tag text anywhere in this file, including comments, so this comment
+  describes the rule without spelling out the tag itself.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Privacy policy - Shield vs Robots</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #05050a;
+        color: #e8e8f0;
+        font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      body {
+        padding: 16px 20px 32px;
+      }
+      h1 {
+        font-size: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Privacy policy</h1>
+    <p>
+      Shield vs Robots collects and shares no data. The app and website store three
+      values only on your own device: your best score, your control settings, and
+      anonymous gameplay counters kept only on this device. None of this is ever
+      sent anywhere.
+    </p>
+    <p>The app works fully offline and needs no account, sign-in, or permission.</p>
+    <p>Hosted copy: hogy86.github.io/ahogancamp_portfolio/privacy.html</p>
+    <p>Contact: TBD (pending owner decision, PRD-mobile OQ-M11)</p>
+  </body>
+</html>

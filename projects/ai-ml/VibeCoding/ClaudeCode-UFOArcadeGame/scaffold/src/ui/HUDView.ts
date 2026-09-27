@@ -6,6 +6,7 @@
 // ui/dom.ts).
 
 import { clearChildren, createElement, setText } from './dom';
+import type { PlatformCopy } from '../platform/Platform';
 import type { TemporaryEffectType, World } from '../core/types';
 
 /** F11 AC6: human-readable label per temporary effect type for the single-slot readout. */
@@ -36,7 +37,7 @@ export class HUDView {
   private lastMultiplierText = '';
   private lastEffectsText = '';
 
-  constructor(root: HTMLElement, controlTextRoot: HTMLElement) {
+  constructor(root: HTMLElement, controlTextRoot: HTMLElement, copy?: PlatformCopy) {
     clearChildren(root);
 
     this.scoreEl = createElement('div', 'hud-panel');
@@ -53,7 +54,9 @@ export class HUDView {
     root.append(leftGroup, rightGroup);
 
     this.controlTextEl = controlTextRoot;
-    setText(this.controlTextEl, '← → move · Space throw · Esc pause');
+    // F9 AC2 / M8.3: Android supplies its own touch wording via PlatformCopy; the web
+    // build never passes `copy`, so this text is unchanged (M3.12).
+    setText(this.controlTextEl, copy?.controlHint ?? '← → move · Space throw · Esc pause');
   }
 
   /**
