@@ -9,6 +9,7 @@
 **Status:** **Draft v1 — OQ-M1..OQ-M10 DECIDED by owner 2026-09-25 (all recommendations accepted); OQ-M11..OQ-M14 PENDING**
 *(Status updated 2026-09-25, v1.3: OQ-S1, OQ-A1 and Q-v3-1 also DECIDED by the owner; OQ-M11..OQ-M14 still PENDING.)*
 *(Status updated 2026-09-25, v1.4: OQ-S1a (hero name "ShieldMan") DECIDED by the owner; a name/trademark check on "ShieldMan" is recommended before step 15; OQ-M11..OQ-M14 still PENDING.)*
+*(Status updated 2026-09-27, v1.5: PM clarification M2.10a (too-small window, any shape) added; no owner decision reopened or needed; OQ-M11..OQ-M14 still PENDING.)*
 (see §Pending Owner Decisions, OQ-M1..OQ-M14). Every pending decision has a
 default already written into the acceptance criteria below so downstream
 steps (ui-ux-designer round 1, solution-architect) can start. Any owner answer
@@ -68,6 +69,24 @@ America (the shield-throwing hero this game was re-themed away from); a
 name and trademark check on "ShieldMan" is recommended before step 15
 (mobile-marketing-analyst is running it). See §7 OQ-S1a and §9.
 
+**Amendment 2026-09-27 (Draft v1.5) — too-small window (spec gap, PM
+decision).** Step 7/8 and step 10 found a case this document did not cover
+(`docs/mobile/tooling-setup-log.md` 2026-09-27 fold-AVD entry;
+`docs/mobile/tests/validation-report-round2.md` svr_api36_fold row;
+`docs/mobile/reviews/code-review-round7.md` I6): a **landscape-shaped**
+window smaller than the layout needs (e.g. the 412 × 309 dp window on the
+fold emulator, or a small split-screen/free-form window). M2.10 covers only
+portrait-shaped windows, and M2.12 + M2.13 need about **624 dp** of width
+(224 dp of control columns + a 400 dp playfield), so no layout can meet the
+spec below that. Added **M2.10a**: any window, of any shape, that cannot
+fit the M2.12 columns plus a ≥ 0.5× playfield keeps the game paused and
+shows "Make the window larger to play." M2.13 and the M5 back table get
+dated clarifying notes. **Not owner-level:** it adds no feature, cost or
+risk, changes no game rule, and follows owner decision OQ-M7 (a) ("scale
+cleanly, no tablet-specific layout") and the existing M2.10 pattern rather
+than adding a small-window layout. It is Android screen-fitting only (§0
+rule 2), not a shared game change. Original text is kept; see §9.
+
 **What this document is — and is not.** The game itself (levels, enemies,
 shield bounce, power-ups, lives, score, pause options, bosses, countdown,
 Game Complete) is already fully defined by `docs/PRD.md` (F1-F10, NFR-1..10)
@@ -97,6 +116,7 @@ performance on low-end devices, and Google Play store/policy requirements.
 - `docs/PRD-addendum-v4.md` — shared game changes from the 2026-09-25 owner decisions: rename to "Shield vs Robots" / enemies "robots" (OQ-S1 (b)) and Restart Level score reset (Q-v3-1 (b)); owned and being written by the website product-manager in parallel *(added 2026-09-25, v1.3)*
 - Owner instruction 2026-09-25, relayed verbatim by the main session: *'change Vanguard name to "ShieldMan"'* (2026-09-25, given right after the "Shield vs Robots" decision) → §7 OQ-S1a *(added 2026-09-25, v1.4)*
 - `docs/mobile/market/play-store-research.md` §3-§4 — name/trademark check on "ShieldMan" being run by mobile-marketing-analyst (result pending; → OQ-S1a) *(added 2026-09-25, v1.4)*
+- `docs/mobile/tooling-setup-log.md` (2026-09-27 step-7 entry, "Fold-AVD window-size question"), `docs/mobile/tests/validation-report-round2.md` (svr_api36_fold row, known gaps), `docs/mobile/reviews/code-review-round7.md` I6 — too-small landscape window has no defined behavior (→ M2.10a) *(added 2026-09-27, v1.5)*
 
 ---
 
@@ -372,6 +392,63 @@ them.
   enlarge the window to play." It never renders a squashed or cut-off
   playfield. (Architect note: declare the app as a game category so Android
   16 large-screen orientation overrides are handled as intended — verify.)
+
+  **Amended 2026-09-27 (v1.5, spec gap) — M2.10a Too-small window, any
+  shape.** M2.10 is extended to windows that are landscape-shaped but too
+  small to play.
+  - *Definition.* A window is **too small to play** when the layout cannot
+    satisfy all of these at once, using the edge insets Android reports at
+    run time (M2.3a): both M2.12 side columns at their minimum widths, every
+    control at its M3.1 size with its M3.2 spacing, **and** a playfield of
+    ≥ 0.5× (≥ 400 × 300 dp, M2.13). With the nominal 24 dp side insets and no
+    top/bottom inset this means a window **narrower than 624 dp or shorter
+    than 300 dp**. The check depends only on the window's size, not its
+    shape. It runs whenever the layout is recalculated: launch, resize,
+    fold/unfold, entering or leaving split-screen or a free-form window, and
+    rotation. `docs/mobile/architecture/mobile-architecture.md` states the
+    exact formula, as M2.12 (a) requires for the column arithmetic.
+  - *Precedence.* A portrait-shaped window keeps M2.10's behavior and text
+    ("Rotate your device or enlarge the window to play."). M2.10a applies to
+    every other window that is too small to play.
+  - *Behavior.* (1) If a run is active (play, level intro, boss warning), it
+    is paused exactly as in M4.1, and no game time passes while the prompt
+    shows (M4.2). (2) The whole window shows only the game background and
+    the centered message **"Make the window larger to play."** It meets M2.6
+    (≥ 12 sp) and M2.11 (largest system font: wraps, never clips) and sits
+    inside the edge insets. (3) While the prompt shows, no playfield, HUD,
+    menu or touch control is drawn or responds to taps. The app never draws
+    a playfield below 0.5×, never squashes or crops it, and never lets
+    controls overlap it. (4) When the window becomes large enough, the
+    layout is redone within 1 s (M2.9) and the screen that was underneath
+    returns. A run comes back on the **pause menu** and never resumes by
+    itself (M4.3). The title, Settings, Help, Game Over and Game Complete
+    screens come back as they were (M4.4). (5) Back while the prompt shows
+    works like the M5 "Rotate your device" row: it leaves the app, and the
+    run stays paused in the background (M4.1, M4.6).
+  - *Acceptance tests (emulator).*
+    (a) `svr_api36_fold` (412 × 309 dp window): cold launch → within 5 s the
+    screen shows only "Make the window larger to play." with no part of the
+    title menu, HUD or controls visible. Take a screenshot. Tap anywhere 5
+    times → nothing changes. Press Back → the app goes to the background,
+    with no crash in `adb logcat`.
+    (b) On a profile at or above the floor (e.g. `svr_api36_pixel7`), during
+    active play, shrink the app window below the floor (split-screen or
+    free-form resize; or `adb shell wm size` / `wm density` to give a
+    landscape window under 624 dp wide) → within 1 s the prompt shows and
+    the run is paused. Wait 10 s, then restore the window → within 1 s the
+    pause menu shows; after Resume, score, lives, level, remaining enemies,
+    enemy positions and power-up timers match the pre-shrink values
+    (as in the M4.2 check).
+    (c) Boundary: a 640 × 360 dp landscape window plays normally with no
+    prompt (M2.12 layout). A 600 × 360 dp landscape window shows the prompt.
+    (d) The same as (a) on the title screen with the largest system font
+    (M2.11): the message wraps and is not clipped.
+  - *Not changed.* 640 × 360 dp stays the smallest profile the game is
+    designed and tuned for (M2.6, M2.12). M2.10a defines only what happens
+    below the floor. No small-window or band layout is added (OQ-M7 (a)).
+    Web behavior does not change. M2.9 fold/unfold still needs a device or
+    emulator whose window actually resizes. The fixed-size fold AVD can
+    only exercise M2.10a (see the validation report's known gaps).
 - **M2.11 System font size.** With the Android system font size set to its
   largest value, HUD, menus and help text do not overflow, clip, or overlap
   controls.
@@ -413,6 +490,12 @@ them.
   layout is a candidate for a later version if closed-test tablet feedback
   asks for it. The architecture doc states the resulting playfield scale
   for each device-matrix profile.
+
+  **Amended 2026-09-27 (v1.5).** "On every device in the matrix" means
+  every window **at or above** the M2.10a floor. A window below it (e.g. the
+  `svr_api36_fold` AVD's 412 × 309 dp window) is not an M2.13 failure. Its
+  expected result is the M2.10a prompt, and the device matrix records it
+  that way.
 
 ### M3 — Touch controls
 Traces to: F1, F2, F6, F16 AC3, NFR-3, NFR-5 mapping; `play-store-research.md`
@@ -569,6 +652,10 @@ or the on-screen/hardware back button — both behave identically.
 *Amended 2026-09-25 (security review v1, H1):* the "Privacy policy overlay"
 row above was added for M11.4a. M5.1 (both navigation modes) and M5.2 apply
 to it like every other row.
+
+*Amended 2026-09-27 (v1.5):* the "Rotate your device" pause row also covers
+the M2.10a "Make the window larger to play" prompt. Back leaves the app,
+and a paused run stays paused in the background.
 
 - **M5.1** Each row above is verified on the emulator using both
   gesture navigation and 3-button navigation.
@@ -985,6 +1072,13 @@ listed here only for traceability.)
 > decision the owner instructed: *'change Vanguard name to "ShieldMan"'* (2026-09-25, given right after the "Shield vs Robots" decision).
 > Recorded as **OQ-S1a = rename the hero to "ShieldMan"** (see entry after
 > OQ-S1). OQ-M11..OQ-M14 remain pending.
+>
+> **Note — 2026-09-27 (v1.5).** M2.10a (too-small window, any shape) was
+> decided by the PM as a clarification within OQ-M7 (a) and the existing
+> M2.10 pattern. It is **not** an owner question: it adds no scope, cost or
+> risk and changes no game rule. It would become an owner question only if
+> someone proposed a new small-window or band layout instead. OQ-M11..OQ-M14
+> remain pending.
 
 Each item: the issue, which doc/subagent it affects, options with
 consequences, the PM recommendation, and the **default already applied** in
@@ -1416,6 +1510,12 @@ block. Both platforms' gates re-run per §0 rule 3.
   (OQ-S1a, owner instruction) is a shared game change routed to the shared
   PRD (website product-manager); this document mirrors its Android-visible
   effects (M2.4, M3.3/M3.3a, M9.1, M9.6, M12.1, M12.3, M12.6).
+- *(Added 2026-09-27, v1.5.)* M2.10a traces to the step-7/8/10 evidence
+  (`docs/mobile/tooling-setup-log.md` 2026-09-27 fold-AVD entry,
+  `docs/mobile/tests/validation-report-round2.md`,
+  `docs/mobile/reviews/code-review-round7.md` I6) and to OQ-M7 (a). It is
+  Android screen fitting (§0 rule 2), not a shared game change, so the
+  shared PRD is not amended.
 - Market complaint patterns → requirements: ads → M11.5/OQ-M1; touch targets
   and cut-off HUD → M2.3-M2.7, M3.1-M3.2/OQ-M2; fire-button lag → M3.6,
   M10.1; crashes → M10.4, M10.7, MG1.
@@ -1440,6 +1540,7 @@ block. Both platforms' gates re-run per §0 rule 3.
 | 2026-09-25 (v1.3) | Owner decision OQ-A1 = (a) | §7 OQ-A1; M7.4 (+v1.3 block) | Android-only `@capacitor/preferences` adapter pre-approved, used only if an M-ADR-0006 Part 2 emulator check fails; conditions (a)-(f); security pass 2 re-checks. |
 | 2026-09-25 (v1.3) | Owner decision OQ-S1 = (b), rename (owner overrode PM recommendation (a)) | header; Sources; §7 OQ-S1, OQ-M3 note, OQ-M11 option (a)/placeholder; M9.1 (+v1.3 block); new M9.6; M12.1, M12.3 (+v1.3 blocks); new M12.6; §8 | Product name "Shield vs Robots" (store title + launcher label); hero stays "Vanguard"; enemies "robots"; app ID placeholder `io.github.hogy86.shieldvsrobots`; OQ-S1 (a) Marvel-avoidance constraints kept as M9.6 plus no S.H.I.E.L.D.-style "Shield". Shared rename ACs in `docs/PRD-addendum-v4.md`. OQ-M11 still pending. |
 | 2026-09-25 (v1.4) | Owner decision OQ-S1a: *'change Vanguard name to "ShieldMan"'* (2026-09-25, given right after the "Shield vs Robots" decision) | header (+hero line, status, v1.4 block); Sources; §7 log, OQ-M3 note, new OQ-S1a; M2.4, M3.3/M3.3a, M9.1, M12.1, M12.3, M12.6 (+v1.4 blocks); M9.6 (+items 5-8); §8 | Hero renamed "Vanguard" → "ShieldMan" in all player-visible text; product name, "robots" and app ID placeholder unchanged. Risk note: close to Archie Comics' "The Shield" and Captain America — name/trademark check on "ShieldMan" recommended and made a precondition for step 15 (M9.6 item 8; mobile-marketing-analyst running it). Shared hero-name AC to be added to the shared PRD by the website product-manager; both pipelines' gates re-run. |
+| 2026-09-27 (v1.5) | Spec gap: `docs/mobile/tooling-setup-log.md` 2026-09-27 fold-AVD entry; `docs/mobile/tests/validation-report-round2.md` svr_api36_fold row; `docs/mobile/reviews/code-review-round7.md` I6 | header (status, v1.5 block); Sources; new M2.10a (under M2.10); M2.13 (+v1.5 note); M5 back table (+v1.5 note); §7 note; §8 | Any window that can't fit the M2.12 columns + a ≥ 0.5× playfield (≈ < 624 × 300 dp at nominal insets), of any shape, pauses the game and shows only "Make the window larger to play." Portrait-shaped windows keep M2.10's text. Enlarging it re-lays out within 1 s to the prior screen (a run returns on the pause menu, never auto-resumes). Back leaves the app. Emulator tests (a)-(d), including the fold AVD at 412 × 309 dp and the 640/600 dp boundary. PM decision within OQ-M7 (a), not owner-level. Android-only, no shared PRD change. |
 
 Not changed (v1.3): OQ-M11..OQ-M14 remain pending (only OQ-M11's option (a)
 app ID text was updated); no original AC text was deleted — every v1.3
@@ -1449,6 +1550,15 @@ Not changed (v1.4): no original or v1.1-v1.3 text was deleted; "Vanguard"
 in earlier lines (header, OQ-M5 option (b), OQ-M11 example ID, OQ-S1 record)
 is kept as the historical record and read as "ShieldMan" per the v1.4 header
 reading rule. OQ-M11..OQ-M14 remain pending.
+
+Not changed (v1.5): no original or v1.1-v1.4 text was deleted, and no owner
+decision was reopened or needed. M2.10's own text and trigger are unchanged.
+Follow-ups (each by the agent that owns the doc): mobile-solution-architect adds the M2.10a floor formula
+to `docs/mobile/architecture/mobile-architecture.md`. mobile-junior-developer
+implements it (step 7 → 8). mobile-lead-tester adds tests (a)-(d) and
+changes the `svr_api36_fold` expected result in
+`docs/mobile/tests/device-matrix.md` (step 10). mobile-ui-ux-designer checks
+the prompt screen in round 2 (step 11).
 
 Not changed: owner decisions OQ-M1..OQ-M10 (final). v1.2 changes no
 existing AC text and decides no owner question; the architecture docs are

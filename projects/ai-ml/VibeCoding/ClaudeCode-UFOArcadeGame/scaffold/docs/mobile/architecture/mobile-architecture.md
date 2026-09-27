@@ -1,17 +1,33 @@
-# Mobile Solution Architecture — Vanguard vs. Sentinels (Android, Capacitor)
+# Mobile Solution Architecture — Shield vs Robots (Android, Capacitor)
 
 **Stage:** Mobile Pipeline Step 4 — mobile-solution-architect
-**Date:** 2026-09-25 (v1); revised 2026-09-25 (v1.1); amended 2026-09-25 (v1.2, Amendment A8); amended 2026-09-26 (v1.3, Amendment A9)
-**Status:** v1.3. v1.1 was revised after the security pass-1 FAIL (`docs/mobile/security/review-v1.md`)
+**Date:** 2026-09-25 (v1); revised 2026-09-25 (v1.1); amended 2026-09-25 (v1.2, Amendment A8); amended 2026-09-26 (v1.3, Amendment A9); amended 2026-09-27 (v1.4, Amendment A10); amended 2026-09-27 (v1.5, Amendment A11)
+**Status:** v1.5. v1.1 was revised after the security pass-1 FAIL (`docs/mobile/security/review-v1.md`)
 and re-reviewed in pass 1b (`docs/mobile/security/review-v1b.md`: PASS, conditional). v1.2
 adds **Amendment A8**, which closes pass-1b findings N1-N4 and the N5 `allowNavigation` note
 (Conditions C2 and C3). v1.3 adds **Amendment A9**, which records the S1 template carve-out
 and new secret-check rule S6 from review-v1b **Addendum 1** (triggered by code-review-round1
-C3), and the build-outside-OneDrive note from code-review-round1 **I1**. All earlier
+C3), and the build-outside-OneDrive note from code-review-round1 **I1**. v1.4 adds
+**Amendment A10**, which records the API-level split of the theme's cutout mode (triggered by
+validation-report-round2 **F1**, an API 28 launch crash; closes code-review-round7 **M1**),
+the three-folder `styles.xml` parity rule (code-review-round7 **L3**), the
+`scripts/check-android-styles.mjs` guard, and the owner's rename to "Shield vs Robots" /
+`io.github.hogy86.shieldvsrobots`. v1.5 adds **Amendment A11**, which answers PRD-mobile
+v1.5 **M2.10a** (too-small window, any shape) with the exact size-floor formula, its
+precedence against M2.10's portrait rule, and the prompt behavior (§6.2.1). All earlier
 decisions are kept unless an **Amendment** note says otherwise. See the §16 amendment log.
 **Mobile ADRs:** `docs/mobile/architecture/adr/0001..0012-*.md` (0009-0012 are new in
 v1.1). To keep them apart from the website ADRs (`docs/architecture/adr/0001..0005`), this
 document calls mobile ADRs **M-ADR-000N** and website ADRs **W-ADR-000N**.
+
+**Naming [A10, 2026-09-27].** The product was renamed "Shield vs Robots" (hero "ShieldMan",
+enemies "robots") by owner decisions OQ-S1 (b) and OQ-S1a (`docs/mobile/PRD-mobile.md`
+v1.3/v1.4 §7; `docs/PRD-addendum-v4.md` F22). The product name, app label and
+applicationId in this document are updated (title, §1, §7.1, §7.2). Where the text below
+names the hero "Vanguard" (e.g. §5.2, §6.3), read "ShieldMan". Internal identifiers stay as
+they are, per F22 AC12-AC13: the `vvs:*` storage keys, `VVS_SIGNING_PROPERTIES`,
+`vvsSigningProperties`, `vvsCiUnsignedRelease`, the `...\.android-signing\vvs\` folder and
+`window.__vvsTest`.
 
 **Sources (upstream):**
 - `docs/mobile/PRD-mobile.md` (Draft v1.1: M0-M12, owner decisions OQ-M1..OQ-M10 in §7, amendment log §9). v1.1 of this doc also relies on criterion **M11.4a**, which mobile-product-manager is adding in parallel.
@@ -22,8 +38,11 @@ document calls mobile ADRs **M-ADR-000N** and website ADRs **W-ADR-000N**.
 - **[v1.2]** `docs/mobile/security/review-v1b.md` (PASS, conditional: C1-C3; new findings N1-N5; answered by A8, see §16)
 - **[v1.3]** `docs/mobile/security/review-v1b.md` **Addendum 1** (2026-09-26: S1 template carve-out + S6; answered by A9, see §7.5.3 and §16)
 - **[v1.3]** `docs/mobile/reviews/code-review-round1.md` (C3 triggered Addendum 1; **I1** build location outside OneDrive; answered by A9, see §3 and §14)
+- **[v1.4]** `docs/mobile/tests/validation-report-round2.md` **F1** (API 28 crash on launch: `UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3`) and `docs/mobile/reviews/code-review-round7.md` **M1** (§6.6 edited in place without an amendment), **L1-L3** (guard gaps and three-folder parity) and **I1-I3** (evidence notes); answered by A10, see §6.6 and §16
+- **[v1.4]** `docs/PRD-addendum-v4.md` **F22** (rename; AC12-AC13 internal identifiers and storage keys unchanged) and `docs/mobile/PRD-mobile.md` v1.3/v1.4 (OQ-S1 (b), OQ-S1a; app ID placeholder `io.github.hogy86.shieldvsrobots`; M9.1 as amended); applied by A10, see §7.1 and §16
+- **[v1.5]** `docs/mobile/PRD-mobile.md` v1.5: **M2.10a** (too-small window, any shape; asks this document for the exact formula), the dated M2.13 note (windows below the floor are not M2.13 failures) and the dated M5 note (back on the M2.10a prompt leaves the app). Its triggers: `docs/mobile/tooling-setup-log.md` 2026-09-27 fold-AVD entry, `docs/mobile/tests/validation-report-round2.md` svr_api36_fold row, `docs/mobile/reviews/code-review-round7.md` **I6**. Answered by A11, see §6.2.1 and §16
 - `docs/architecture/solution-architecture.md` and W-ADR-0001..0005 (the stack, the fixed-timestep loop and state machine, the instrumentation storage pattern)
-- Code read: `src/main.ts`, `src/core/{InputManager,GameLoop,GameStateMachine,world,types}.ts`, `src/systems/WinLossSystem.ts`, `src/ui/{ScreenController,HUDView}.ts`, `src/instrumentation/Instrumentation.ts`, `src/config/constants.ts`, `src/style.css`, `index.html`, `package.json`, `vite.config.ts`, `.gitignore`, and the repo-root `.github/workflows/deploy-pages.yml`
+- Code read: `src/main.ts`, `src/core/{InputManager,GameLoop,GameStateMachine,world,types}.ts`, `src/systems/WinLossSystem.ts`, `src/ui/{ScreenController,HUDView}.ts`, `src/instrumentation/Instrumentation.ts`, `src/config/constants.ts`, `src/style.css`, `index.html`, `package.json`, `vite.config.ts`, `.gitignore`, and the repo-root `.github/workflows/deploy-pages.yml`. **[v1.4]** Also `android/app/src/main/res/values{,-v28,-v30}/styles.xml`, `scripts/check-android-styles.mjs`, `capacitor.config.ts`, `android/app/build.gradle` (namespace/applicationId) and `res/values/strings.xml`. **[v1.5]** Also `src/platform/android/layout.ts` (`computeLayout`, `needsRotatePrompt`).
 - `.claude/CLAUDE.md` §Mobile Pipeline / §One codebase (fixed constraints)
 
 **Fixed constraints I design within (not reopened here):** (C1) one `src/` for web and Android; game rules exist once. (C2) Android is a Capacitor wrapper with no rewrite. (C3) the website build and GitHub Pages deploy keep working unchanged for web players. (C4) `.github/workflows/deploy-pages.yml` is the single CI check for both versions.
@@ -86,7 +105,7 @@ Everything Android-specific sits behind one interface (`Platform`), under
 | `ScreenController` (changed) | `src/ui/ScreenController.ts` | Text and title actions come from `PlatformCopy`. Items carry `data-action`. Re-renders only when its view key changes (required for taps, §5.4). | M3.8, M6.1, M8.3 |
 | `bestScore` | `src/persistence/bestScore.ts` | The single F20 implementation: validate, load, commit max, "New best!". | F20 AC1-AC15; M7.1, M7.2, M7.5 |
 | `safeStorage` | `src/persistence/safeStorage.ts` | Fail-closed `localStorage` get/set with in-memory fallback. | F20 AC9-AC10; M7.5 |
-| `GameShell` native plugin (ours) | `android/app/src/main/java/io/github/hogy86/vanguardvssentinels/GameShellPlugin.java` | Live edge insets (cutout + system gestures), immersive mode, keep-screen-on, window-focus events. | M2.3a, M2.5, M4.1, M4.5; M-ADR-0004 |
+| `GameShell` native plugin (ours) | `android/app/src/main/java/io/github/hogy86/shieldvsrobots/GameShellPlugin.java` **[A10]** (v1.3 path segment was `vanguardvssentinels`; the Java package follows the renamed namespace) | Live edge insets (cutout + system gestures), immersive mode, keep-screen-on, window-focus events. | M2.3a, M2.5, M4.1, M4.5; M-ADR-0004 |
 
 ---
 
@@ -151,6 +170,8 @@ scaffold/
 │                                          widened to check-android-manifest.mjs (§10.3)
 ├─ scripts/check-no-secrets.mjs            COMMITTED  [v1.1] (CI gate, §7.5.3)
 ├─ scripts/check-capacitor-config.mjs      COMMITTED  [v1.1] (CI gate, §14.1 L3)
+├─ scripts/check-android-styles.mjs        COMMITTED  [v1.4, A10] (+ .test.mjs; CI via
+│                                          `npm run test`, §6.6 A10)
 ├─ dist/                        IGNORED    web build (existing)
 ├─ dist-android/                IGNORED    Android-mode web build = Capacitor webDir
 └─ android/                     native project, created ONCE by `npx cap add android`
@@ -166,6 +187,10 @@ scaffold/
    ├─ app/src/main/java/.../GameShellPlugin.java COMMITTED hand-written
    ├─ app/src/main/res/**       COMMITTED  icons (adaptive + monochrome), splash, styles
    │                                       [v1.1] res/xml/file_paths.xml DELETED (§7.3, L1)
+   │                                       [v1.4, A10] styles.xml exists in values/,
+   │                                       values-v28/ and values-v30/, kept in parity
+   │                                       (§6.6 A10). Template-owned source, not
+   │                                       generated: `cap sync` does not touch it.
    ├─ app/src/main/assets/public/              GENERATED by cap sync — IGNORED, NEVER hand-edit
    ├─ app/src/main/assets/capacitor.config.json GENERATED — IGNORED
    ├─ app/src/main/assets/capacitor.plugins.json GENERATED — IGNORED
@@ -480,12 +505,116 @@ Buttons bottom-aligned: bottom edge at H − max(b, 16);  ◀ at x = moveOuter, 
 THROW at x = throwOuter side, same bottom row
 PAUSE: 48×48 touch rect, top edge at t + 16, centred horizontally in THROW's B-wide lane
 Portrait/too-small rule (M2.10): if W ≤ H or W < 640 or H < 360 → RotatePrompt (see §8.1)
+                                 [A11: superseded by the §6.2.1 window classification]
 ```
 
 If insets are so large that `s < 0.5` even at B = 56, the controls keep their minimum
 sizes and stay outside the insets. The playfield shrinks below 0.5×, as M2.3a requires
 ("playfield shrinks further; controls never shrink"). `layout.ts` sets
 `layout.belowFloor = true` so the debug build logs it and the device matrix can flag it.
+
+> **Amendment A11 (2026-09-27, v1.5; PRD-mobile v1.5 M2.10a):** the paragraph above is
+> superseded. A playfield below 0.5× is **never drawn**. `belowFloor = true` now means
+> "this window is too small to play", and the app shows the M2.10a prompt instead
+> (§6.2.1). M2.3a's "playfield shrinks further" still holds down to 0.5×; below that,
+> M2.10a applies. The fixed `W < 640 or H < 360` thresholds in the last line of the block
+> above are also replaced by §6.2.1, because they ignored the run-time insets that M2.10a
+> requires.
+
+#### 6.2.1 Window classification: portrait, too small, or playable [new in v1.5; A11; PRD-mobile M2.10, M2.10a, M2.12, M2.13, M3.1, M3.2]
+
+**Inputs.** The viewport `W × H` (dp) and the **run-time** edge insets `l, r, t, b` from
+GameShell (§6.1; the same values `computeLayout` receives). The first classification at
+launch waits for `getEdgeInsets()`. In the Playwright web fallback, insets come from
+`?insets=` (§10 item 3).
+
+**Constants** (named in `layout.ts`, derived from the existing ones, never duplicated as
+literals):
+
+| Name | Value | From |
+|---|---|---|
+| `B_MIN` | 56 | M3.1: smallest allowed size for ◀, ▶, THROW |
+| `g` (`CONTROL_GAP_DP`) | 8 | M3.1: adjacent targets ≥ 8 dp apart |
+| `CONTROL_COLUMNS_MIN` | `3·B_MIN + g` = **176** | M2.12: movement column ◀ + gap + ▶ (120) + THROW column (56), without insets |
+| `PF_MIN_W`, `PF_MIN_H` | `800·0.5` = **400**, `600·0.5` = **300** | M2.13: playfield ≥ 0.5× |
+| `PAUSE_STACK_MIN` | `16 + 48 + 24 + 56` = **144**, plus `max(0, 16 − b)` | §6.2 PAUSE top margin + PAUSE (M3.2) + PAUSE-THROW gap (M3.2) + THROW; bottom margin tops up to 16 |
+
+**Formula (binding).** Evaluate in this order:
+
+```
+1. if W ≤ H                                   → 'portrait'  (M2.10)
+2. minW = l + r + CONTROL_COLUMNS_MIN + PF_MIN_W        = l + r + 576
+   minH = t + b + max(PF_MIN_H, PAUSE_STACK_MIN + max(0, 16 − b))
+        = t + b + 300                          (the PAUSE stack is ≤ 160, so it never binds)
+   if W < minW or H < minH                     → 'tooSmall' (M2.10a)
+3. otherwise                                   → 'playable' (computeLayout as in §6.2)
+```
+
+- **Same test as the layout.** Step 2 is exactly "`computeLayout` at B = 56 gives
+  `s < 0.5`": with B = 56, `availW = W − l − r − 176` and `availH = H − t − b`, and
+  `s = min(availW/800, availH/600) ≥ 0.5` holds exactly when `availW ≥ 400` and
+  `availH ≥ 300`. The implementation must derive `tooSmall` from the same constants as
+  `computeLayout` (preferably `tooSmall = computeLayout(...).belowFloor`), so the two can
+  never disagree.
+- **Swap does not change the floor.** `l + r` is the same whichever side holds each
+  column (M3.13).
+- **Shape does not matter, size does** (M2.10a). A landscape window can still be too small.
+- **Nominal values.** With the planning insets (24 dp per side, 0 top, 0 bottom),
+  `minW = 624` and `minH = 300`, which match the PRD's "narrower than 624 dp or shorter
+  than 300 dp". With the §6.3 planning insets (bottom 24), `minH = 324`.
+- **Worked checks** (M2.10a tests; they become `layout.test.ts` rows):
+
+| Window (dp) | Insets l, r, t, b | minW / minH | Result |
+|---|---|---|---|
+| 640 × 360 | 24, 24, 0, 24 | 624 / 324 | playable, s = 0.52 (§6.3); M2.10a (c) |
+| 600 × 360 | 24, 24, 0, 24 | 624 / 324 | **tooSmall** (600 < 624); M2.10a (c) |
+| 624 × 300 | 24, 24, 0, 0 | 624 / 300 | playable, s = 0.5 exactly (boundary) |
+| 623 × 300 | 24, 24, 0, 0 | 624 / 300 | **tooSmall** |
+| 624 × 299 | 24, 24, 0, 0 | 624 / 300 | **tooSmall** |
+| 412 × 309 (`svr_api36_fold`) | any | ≥ 576 / ≥ 300 | **tooSmall**; M2.10a (a) |
+| 640 × 360 | 40, 40, 0, 24 | 656 / 324 | **tooSmall** (real insets above the 32 dp headroom, §6.3) |
+| 360 × 640 | any | — | **portrait**; M2.10 |
+
+**Precedence (M2.10a "Precedence").** Portrait is tested first, so a portrait-shaped window
+always gets M2.10's text, "Rotate your device or enlarge the window to play.", even when it
+is also too small. Every other window below the floor gets **"Make the window larger to
+play."** Square windows (`W = H`) stay on the portrait path, as in v1.
+
+**Where it runs.** The classification runs on every re-layout trigger in §6.5 (launch,
+`resize`, `edgeInsetsChanged`, fold/unfold, split-screen or free-form changes, rotation)
+and on app `resume`. It is synchronous, well under M2.9's 1 s. A Settings "Swap controls"
+change cannot change the result.
+
+**Behavior while `'portrait'` or `'tooSmall'`** (one prompt component,
+`src/platform/android/RotatePrompt.ts`, showing one of the two messages; Android-only shell
+text, not `PlatformCopy`, built with `textContent` per §14.1 L4b):
+1. **Pause.** On entering either prompt, call `commands.pauseForInterruption()` (§8.1). A
+   run goes to PAUSED; VICTORY holds; TITLE, PAUSED and GAMEOVER are unchanged (M4.1, M4.4).
+   No game time passes (M4.2).
+2. **Nothing else drawn.** A full-viewport layer on the game background `#05050a` covers
+   the window. The message is centred inside the edge insets, meets the ≥ 12 dp floor
+   (M2.6), and wraps without clipping at the largest system font (M2.11). While it shows,
+   `#app-root` (canvas + HUD), `#touch-layer` and the contents of `#safe-layer` (menus and
+   shell overlays) are hidden (`visibility: hidden`), **not destroyed**, so they can return
+   as they were. `computeLayout` is not applied, so no playfield below 0.5× is ever drawn.
+3. **No taps.** The prompt layer takes every pointer event and does nothing with it
+   (M2.10a (a): 5 taps change nothing). Hidden controls receive no events.
+4. **No hidden resume.** A hardware keyboard could still send Enter/Esc to the hidden
+   pause menu. So while a prompt shows, `onFrame` calls `commands.pauseForInterruption()`
+   whenever the state is `PLAYING`. This uses the existing shared command; no shared code
+   changes.
+5. **Restore.** When the classification returns `'playable'`, the prompt is removed,
+   `computeLayout` is applied, and the hidden layers are shown again in the same re-layout
+   (≤ 1 s, M2.9). The state is not changed: a run shows the **pause menu** and never
+   resumes by itself (M4.3); title, Settings, Help, Privacy, Game Over and Game Complete
+   return as they were (M4.4).
+6. **Back** leaves the app (`App.minimizeApp()`), and a paused run stays paused in the
+   background (M5 "Rotate your device" row as amended in PRD-mobile v1.5; M4.1, M4.6). See
+   §8.3 A11 for the rule order.
+
+**Not changed.** 640 × 360 dp stays the smallest designed profile (§6.3, §6.4). No
+small-window or band layout is added (OQ-M7 (a)). Web behavior is unchanged: the web
+platform does not classify windows (C3, M3.12). No game logic is involved (C1).
 
 ### 6.3 The 640 × 360 dp profile, worked (M2.12 (a); UX carry-forward 1 and 5)
 
@@ -532,7 +661,9 @@ sums are the same.
 **Inset headroom (UX carry-forward 2):** on 640 × 360 with B = 56 the floor holds while
 `l + r ≤ 640 − 400 − (56+8+56) − 56 = 64`, so up to **32 dp per side edge**. Any larger
 value takes the documented `belowFloor` path above. The device-matrix check records the
-emulator's actual reported insets next to the screenshot.
+emulator's actual reported insets next to the screenshot. **[A11]** The `belowFloor` path
+is now the M2.10a "Make the window larger to play." prompt (§6.2.1), not a sub-0.5×
+playfield.
 
 ### 6.4 Resulting scale per device-matrix profile (M2.13; UX carry-forward 1)
 
@@ -551,6 +682,11 @@ estimated.
 
 Every profile is ≥ 0.5× and uses the same side-column layout. There is no tablet-specific
 layout (OQ-M7 (a)).
+
+> **Amendment A11 (2026-09-27, v1.5; PRD-mobile v1.5 M2.13 note):** these rows are the
+> profiles at or above the §6.2.1 floor. A matrix window below the floor, such as the
+> `svr_api36_fold` AVD's 412 × 309 dp window, is expected to show the M2.10a prompt. The
+> device matrix records it that way; it is not an M2.13 failure.
 
 ### 6.5 Applying the layout (`screenFit.ts`)
 
@@ -584,7 +720,9 @@ layout (OQ-M7 (a)).
 - **Re-layout triggers:** `resize` (viewport change, fold, split-screen, freeform window),
   `edgeInsetsChanged`, and a Settings "Swap controls" change. Re-layout is synchronous and
   well under M2.9's 1 s. A viewport **size** change also pauses (§8.1). An insets-only
-  change (e.g. a 180° flip moving the cutout) re-lays-out without pausing.
+  change (e.g. a 180° flip moving the cutout) re-lays-out without pausing. **[A11]** Every
+  re-layout first runs the §6.2.1 classification; an insets-only change that drops the
+  window below the floor shows the prompt, which pauses (§6.2.1 behavior 1).
 - **Small-scale art (M2.7, UX carry-forward 6):** the canvas renders at device density, so
   shapes stay crisp. If the round-2 UX screenshot check finds power-up shapes, enemy tiers
   or the shield trail hard to tell apart at 0.52×, the allowed fix is **render-only** (for
@@ -602,23 +740,116 @@ layout (OQ-M7 (a)).
 - `<application android:appCategory="game">` so that Android 16 large-screen
   orientation/resizability overrides treat the app as a game (M2.10 architect note). If a
   device still forces a portrait or too-small window, the layout's rotate rule shows
-  RotatePrompt and keeps the game paused.
-- Edge-to-edge: target API 36 enforces it. The theme sets
-  `android:windowLayoutInDisplayCutoutMode="always"` **on API 30+ only**
-  (`values-v30/styles.xml`); API 28-29 uses `shortEdges` (`values-v28/styles.xml`, the same
-  safe value androidx.core:core-splashscreen's own version-qualified overrides use for that
-  range), and the unqualified base `values/styles.xml` (API < 28) omits the attribute
-  entirely since it does not exist before API 28. A real API 28 `google_apis` system image
-  throws `UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3` if
-  `always` is applied unconditionally (mobile validation-report-round2 F1) - the three
-  values folders and `scripts/check-android-styles.mjs` (a regression guard asserting no
-  values/ folder below v30 sets this attribute to `always`) exist to prevent that. **
-  Capacitor's own edge-to-edge margin/inset handling must be disabled**, so the WebView
+  RotatePrompt and keeps the game paused. **[A11]** The rule is now the §6.2.1
+  classification (portrait → rotate text; too small → "Make the window larger to play.").
+- Edge-to-edge: target API 36 enforces it. **[A10]** The theme's
+  `android:windowLayoutInDisplayCutoutMode` is set **per API level**, as specified in
+  Amendment A10 directly below (v1.3 set `always` unconditionally; that is replaced for
+  API < 30).
+  **Capacitor's own edge-to-edge margin/inset handling must be disabled**, so the WebView
   covers the whole window and our layout alone handles insets. In Capacitor 7 this was
   `android.adjustMarginsForEdgeToEdge: 'disable'`; Capacitor 8 moved it to the core
   SystemBars configuration. The junior developer uses the option name for the installed
   version, and the lead developer checks that the WebView fills the screen on a cutout
   emulator.
+
+> **Amendment A10 (2026-09-27, v1.4; trigger validation-report-round2 F1; closes
+> code-review-round7 M1; parity rule from code-review-round7 L3). Cutout mode by API
+> level.**
+>
+> *Origin of this text.* The first paragraph below was written in place into §6.6 by
+> mobile-junior-developer as part of the F1 fix, without an amendment ID, a version bump or
+> a §16 row (code-review-round7 M1). I agree with it technically, and it matches the code
+> and the device evidence, so it is adopted here as A10 text. The rest of this block is
+> added by the architect. Spec changes proposed by the implementer go into
+> `docs/mobile/tooling-setup-log.md` or a handoff note for mobile-solution-architect; the
+> implementer does not edit this document or the ADRs.
+>
+> **A10 text (adopted).** The theme sets `android:windowLayoutInDisplayCutoutMode="always"`
+> **on API 30+ only** (`values-v30/styles.xml`); API 28-29 uses `shortEdges`
+> (`values-v28/styles.xml`, the same safe value androidx.core:core-splashscreen's own
+> version-qualified overrides use for that range), and the unqualified base
+> `values/styles.xml` (API < 28) omits the attribute entirely since it does not exist before
+> API 28. A real API 28 `google_apis` system image throws
+> `UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3` if `always` is
+> applied unconditionally (mobile validation-report-round2 F1). The three values folders and
+> `scripts/check-android-styles.mjs` (a regression guard asserting that no values folder
+> below v30 sets this attribute to `always`) exist to prevent that.
+>
+> **1. Resolved values (binding; all three app styles: `AppTheme`, `AppTheme.NoActionBar`,
+> `AppTheme.NoActionBarLaunch`).**
+>
+> | Folder | Devices it applies to | `android:windowLayoutInDisplayCutoutMode` |
+> |---|---|---|
+> | `res/values/styles.xml` (base) | API 24-27 | **absent** (the attribute does not exist before API 28) |
+> | `res/values-v28/styles.xml` | API 28-29 | `shortEdges` (value 1) |
+> | `res/values-v30/styles.xml` | API 30-36 and later | `always` (value 3) |
+>
+> Why: `LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS` (3) was added in API 30. API 28-29 know only
+> 0, 1 and 2, and `PhoneWindow.generateLayout` throws on any other value. Android picks the
+> highest `vNN` folder that is ≤ the device API, so 24-27 use base, 28-29 use v28 and 30+
+> use v30, with no gaps. The edge-to-edge intent is unchanged: full-bleed under the cutout
+> on API 30+; `shortEdges` gives the same full-bleed result on API 28-29 phones in
+> landscape, where the cutout sits on a short edge. Controls never depend on the cutout
+> mode: GameShell's live `max(cutout, gestures)` insets (§6.1) still keep them clear
+> (M2.3, M2.3a).
+>
+> **2. Three-folder parity rule (binding; from code-review-round7 L3).** Android resolves a
+> whole style per qualifier bucket; it does not merge items across buckets. Because the
+> base folder now applies only to API 24-27, an edit made only to `values/styles.xml`
+> would have no effect on almost every real device. Therefore:
+> - The three `styles.xml` files declare the **same style names with the same parents and
+>   the same items**. The only difference allowed is the
+>   `android:windowLayoutInDisplayCutoutMode` item: absent in base, `shortEdges` on every
+>   style in v28, `always` on every style in v30.
+> - Any change to one of the three files is made to all three **in the same commit**.
+> - `values-v28/` and `values-v30/` must both exist. Deleting `values-v28/` would silently
+>   send API 28-29 back to the default letterboxed cutout mode.
+> - No other theme attribute may be API-gated through these folders without a new
+>   amendment.
+> - Either of the two L3 implementations satisfies this rule: **(a)** keep three full
+>   copies and have the guard assert parity, or **(b)** move the shared items once into
+>   base-only parent styles in `values/` and keep only the one cutout item on the leaf
+>   styles in v28/v30. With (b), "parity" means the leaf styles in all three folders have
+>   the same names and parents.
+>
+> **3. Guard: `scripts/check-android-styles.mjs` (+ `scripts/check-android-styles.test.mjs`).**
+> It runs in CI through the `build` job's `npm run test -- --run` (the Vitest `include`
+> covers `scripts/**/*.{test,spec}.mjs`), so a regression blocks the website deploy (C4).
+> The guard is complete only when it checks all of these:
+> 1. No `values`/`values-vNN` folder with NN < 30 sets the attribute to `always`. *(In
+>    place.)*
+> 2. Positive values: `values-v28` exists and sets `shortEdges`, and `values-v30` exists and
+>    sets `always`, on every app style. *(Round-7 L3.)*
+> 3. Parity across the three files, per rule 2. *(Round-7 L3.)*
+> 4. Fails closed: a missing res dir, or no `values` folder found, exits non-zero with an
+>    actionable message; the default res dir resolves from the script's own location, not
+>    the cwd. *(Round-7 L1.)*
+> 5. The item match tolerates extra attributes (e.g. `tools:targetApi="o_mr1"`, which does
+>    not stop the value compiling in for API 28-29), single quotes, and whitespace around
+>    `=`. *(Round-7 L2.)*
+>
+> Items 2-5 are the round-7 LOW findings. They are owned by mobile-junior-developer and land
+> on the timing the review set (the next time these files are touched). Security pass 2
+> can check their status. Making the guard a visible CI step (`npm run
+> check:android-styles` in `android-build` after `npx cap sync android`) is optional
+> (round-7 S1) and comes only after item 4, so it cannot pass vacuously.
+>
+> **4. Evidence and known gaps.** Verified in code-review-round7: compiled-APK values via
+> `aapt2 dump resources` (no `=3` below v30), two clean API 28 cold launches (0 `FATAL
+> EXCEPTION`; the M1.4 fallback page renders), and two API 36 launches with
+> `layoutInDisplayCutoutMode=always`. Carried as known gaps, not defects: API 29 itself was
+> not launched (round-7 I2; the Play pre-launch report or the closed test should cover a
+> real API 29 device); cutout behavior on API 28-29 with WebView ≥ 80 is unverified
+> (round-7 I3, device-matrix round-2 gap 3). The API 28 `dumpsys` label `always` is the
+> framework's old name for value 1 and is not a regression (round-7 I1).
+>
+> **5. Prior decision.** v1.3's unconditional `always` is **replaced** for API < 30 and
+> **kept** for API 30+. The `styles.xml` files are template-owned sources that `cap sync`
+> does not rewrite (confirmed in round 7), so the §3 "never hand-edit generated files" rule
+> is not affected. No PRD requirement changed; M1.1 (minSdk 24) and M2 edge-to-edge intent
+> are kept. No game logic is involved (C1).
+
 - Immersive: GameShell calls `WindowCompat.getInsetsController(window, decorView)
   .hide(WindowInsetsCompat.Type.systemBars())` with
   `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` on `load()` and on every window-focus gain. It
@@ -629,14 +860,14 @@ layout (OQ-M7 (a)).
 
 ---
 
-## 7. Android targets and packaging (M-ADR-0007; amended by M-ADR-0010, 0011, 0012 and Amendments A8, A9)
+## 7. Android targets and packaging (M-ADR-0007; amended by M-ADR-0010, 0011, 0012 and Amendments A8, A9, A10)
 
 ### 7.1 Identity and SDK levels
 
 | Setting | Value | Source |
 |---|---|---|
-| applicationId / namespace | `io.github.hogy86.vanguardvssentinels`. **Placeholder until OQ-M11 is confirmed. It is permanent after the first Play upload.** Before step 15, changing it means editing `capacitor.config.ts` `appId` and `android/app/build.gradle` `applicationId` only. The namespace/Java package may stay. | OQ-M11 default |
-| App label | "Vanguard vs. Sentinels" (never "Vanguard") | M9.1 |
+| applicationId / namespace | `io.github.hogy86.shieldvsrobots` **[A10]** (v1.3 read `io.github.hogy86.vanguardvssentinels`; changed by owner decision OQ-S1 (b), PRD-mobile v1.3 §7). As built, the namespace and Java package are the same value. **Placeholder until OQ-M11 is confirmed. It is permanent after the first Play upload.** Before step 15, changing it means editing `capacitor.config.ts` `appId` and `android/app/build.gradle` `applicationId` only. The namespace/Java package may stay. | OQ-M11 default; OQ-S1 (b) |
+| App label | "Shield vs Robots" **[A10]** (v1.3 read "Vanguard vs. Sentinels"). Exact form per F22 AC1: "vs" with no period, no subtitle. | M9.1 (as amended v1.3); PRD-addendum-v4 F22 |
 | minSdk | **24** (Android 7.0), the Capacitor 8 template default | M1.1, OQ-M6 (a) |
 | compileSdk / targetSdk | **36** (Android 16) | M1.2 |
 | minWebViewVersion | **80** (the build target `es2020` needs Chrome 80 for `?.`/`??`) | M1.4 |
@@ -647,6 +878,16 @@ layout (OQ-M7 (a)).
 > note the coupling: the label can change after launch, but the **applicationId cannot**
 > after the first upload. If OQ-S1 leads to a rename, OQ-M11 should be re-confirmed before
 > step 15. Either way the change is the two-line edit described in the row above.
+
+> **Amendment A10 (2026-09-27, v1.4; PRD-mobile v1.3/v1.4 OQ-S1 (b), OQ-S1a;
+> PRD-addendum-v4 F22):** the owner decided OQ-S1 on 2026-09-25 as option (b), rename. The
+> label and applicationId in the table above and in §7.2 are updated to "Shield vs Robots"
+> and `io.github.hogy86.shieldvsrobots`, matching the built `capacitor.config.ts`,
+> `android/app/build.gradle` and `res/values/strings.xml`. The coupling note above still
+> applies to **OQ-M11**: the new ID is a placeholder until the owner confirms it before
+> step 15, and it becomes permanent at the first upload. Nothing has been published, so
+> the change loses no player data. Storage keys and the WebView origin are unchanged
+> (F22 AC13, §9.2).
 
 **targetSdk verification note:** this session had no web access, so I did not re-check the
 Play requirement live. The value follows Google Play's published annual rule: from
@@ -662,8 +903,8 @@ change in v1.1.)
 ```ts
 import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
-  appId: 'io.github.hogy86.vanguardvssentinels',   // OQ-M11 placeholder
-  appName: 'Vanguard vs. Sentinels',
+  appId: 'io.github.hogy86.shieldvsrobots',   // OQ-M11 placeholder [A10: renamed, OQ-S1 (b)]
+  appName: 'Shield vs Robots',                // [A10] F22 AC1, M9.1
   webDir: 'dist-android',
   backgroundColor: '#05050a',          // no white flash (M9.4)
   loggingBehavior: 'debug',            // console → logcat only in debug builds (M11.3)
@@ -968,7 +1209,7 @@ needs to name it.
 | Notification shade, system dialog (the window loses focus but the app is not paused by Android) | GameShell `windowFocusChanged {hasFocus:false}` | `commands.pauseForInterruption()` (the loop keeps rendering; no time passes because state is PAUSED) |
 | App to foreground | `@capacitor/app` `resume` | `loop.resume()`. The state is **not** changed: the player sees the pause menu and must tap Resume (M4.3). |
 | Viewport size change (fold, split-screen, freeform) | `resize` | `commands.pauseForInterruption()` then re-layout (M2.9) |
-| Portrait / too-small window | layout rule | pause + RotatePrompt. It clears automatically when the window is valid again; the game stays PAUSED (M2.10). |
+| Portrait / too-small window | layout rule | pause + RotatePrompt. It clears automatically when the window is valid again; the game stays PAUSED (M2.10). **[A11]** The rule is the §6.2.1 classification; the prompt shows the portrait text or "Make the window larger to play." (M2.10a), with the behavior in §6.2.1. |
 | Process death | Android | Nothing to do. The next launch loads a fresh WebView → TITLE; best/settings are read from storage (M4.6, OQ-M9 (a)). **[v1.1]** Any open shell overlay (Help, Settings, Privacy) is gone, and that is correct. |
 
 `pauseForInterruption()` is **shared** and pure (`GameStateMachine.ts`, Vitest-tested):
@@ -1022,6 +1263,13 @@ predictive back (M5.3) and never uses the deprecated `onBackPressed`. Resolution
    > second back closes Settings to the title.
 2. If RotatePrompt is showing → `App.minimizeApp()` (leave the app).
 3. Otherwise → shared `commands.handleBack()`:
+
+> **Amendment A11 (2026-09-27, v1.5; PRD-mobile v1.5 M2.10a behavior 5 and the dated M5
+> note):** rule 2 now covers both prompt messages (portrait and "Make the window larger to
+> play.") and is evaluated **first**, before rule 1. While a prompt shows, any shell
+> overlay underneath is hidden (§6.2.1 behavior 2), so back must leave the app as the M5
+> "Rotate your device" row says, not close an overlay the player cannot see. The hidden
+> overlay stays open and returns when the window is large enough again.
 
 | State | handleBack result | PRD M5 row |
 |---|---|---|
@@ -1226,7 +1474,7 @@ shared storage the default and a plugin the exception.
 
 ---
 
-## 10. CI: one pipeline guards both versions (M-ADR-0008; amended by M-ADR-0011, 0012 and Amendments A8, A9)
+## 10. CI: one pipeline guards both versions (M-ADR-0008; amended by M-ADR-0011, 0012 and Amendments A8, A9, A10, A11)
 
 Changes to the repo-root `.github/workflows/deploy-pages.yml`. **The existing `build` job's
 steps stay exactly as they are** (Node 20, lint, test, build with `VITE_BASE_PATH`,
@@ -1287,6 +1535,24 @@ handler each return to Settings with the game state still `TITLE`. The overlay c
 reached from PLAYING or PAUSED. Static check: `dist-android/privacy.html` contains no
 `<script` and no `href="http`.
 
+**[v1.5, A11 / M2.10a] Added:**
+- **Unit (`layout.test.ts`):** every row of the §6.2.1 worked-check table, including the
+  exact boundary (624 × 300 playable; 623 × 300 and 624 × 299 too small), plus a check
+  that the classification and `computeLayout(...).belowFloor` agree over a grid of sizes
+  and insets, in both swap settings.
+- **Playwright:**
+  - a **600 × 360** viewport with `?insets=24,24,0,24` shows only "Make the window larger
+    to play."; 5 taps change nothing.
+  - During play at 640 × 360, `page.setViewportSize` to 600 × 360 → the prompt shows and
+    the state is PAUSED. Restoring 640 × 360 → the pause menu shows, and the
+    `__vvsTest` snapshot (score, lives, level, enemies, timers) matches the pre-shrink
+    values.
+  - A portrait viewport (360 × 640) shows the rotate text, not the too-small text.
+  - The back handler (test-only call) on the prompt takes the leave-app path even with
+    Settings open underneath.
+- M2.10a (a)-(d) on real AVDs (`svr_api36_fold`, `svr_api36_pixel7` with a window shrink,
+  the largest-font check) run in step 10 per `device-matrix.md`.
+
 ### 10.2 The 40/40 slide test (M3.3a, UX carry-forward 3)
 
 Uses a CDP session `Input.dispatchTouchEvent` to run 20 continuous ◀→▶ and 20 ▶→◀
@@ -1306,7 +1572,7 @@ Full Android-emulator suites (lifecycle, back with gesture and 3-button navigati
 update/reboot, cutout emulators, 120 Hz) run on the owner's machine in step 10 per
 `device-matrix.md`. They are not in CI.
 
-### 10.3 CI hardening and release-manifest gate [new in v1.1; review-v1 M2, M3, M4, L1, L3, L5; M-ADR-0011, M-ADR-0012; amended by A8, A9]
+### 10.3 CI hardening and release-manifest gate [new in v1.1; review-v1 M2, M3, M4, L1, L3, L5; M-ADR-0011, M-ADR-0012; amended by A8, A9, A10]
 
 **Permissions (M3):**
 
@@ -1337,12 +1603,18 @@ jobs:
 4. `npm ci`
 5. **`npm audit --omit=dev --audit-level=high`** (M3)
 6. lint
-7. test
+7. test (**[A10]** includes the `check-android-styles` real-tree tests, §6.6 A10 item 3)
 8. build (`VITE_BASE_PATH`)
 9. web-bundle purity check
 10. upload-pages-artifact
 
 Steps 2, 5 and 9 are the only additions.
+
+> **Amendment A10 (2026-09-27, v1.4):** no workflow step is added by A10. The
+> `styles.xml` guard runs inside step 7 because the Vitest `include` covers
+> `scripts/**/*.{test,spec}.mjs`. A separate visible step in `android-build` is optional
+> (code-review-round7 S1) and, if added, goes after `npx cap sync android` and only once
+> the guard fails closed (§6.6 A10 item 3.4).
 
 **`android-build` job, final step order** (supersedes the step list in item 2 above):
 1. checkout
@@ -1455,6 +1727,7 @@ CI.
 | M3.6 ≤ 100 ms touch latency | Event → state; sampled next rAF; ≈ ≤ 50 ms |
 | M11.1-M11.3 offline, no permissions, no data | No INTERNET permission (verified per §7.3.1 on debug and, **[A8]**, on the signed AAB at step 15; fallback documented), no network code, no SDKs, backup disabled, logcat console only in debug |
 | **M11.4a in-app privacy policy [v1.1]** | Bundled `privacy.html` in a sandboxed same-origin iframe overlay, reached Title → Settings (2 taps), offline, back returns to Settings (§8.7) |
+| **M2.10a too-small window [v1.5, A11]** | §6.2.1 classification on every re-layout (synchronous, ≤ 1 s); prompt pauses, hides everything else and blocks taps; restore returns to the pause menu or the prior screen |
 
 ---
 
@@ -1465,7 +1738,7 @@ CI.
 | MR1 | WebView `localStorage` loses a just-written best on process kill (Chromium batches disk commits) | Save at every F20 event, not only on exit; M7.4 kill test; contingency §9.4 (owner exception) | junior dev, lead tester, PM |
 | MR2 | Capacitor's edge-to-edge handling fights our inset layout | Disable it (§6.6); lead dev verifies full-bleed WebView on a cutout AVD | junior dev, lead dev |
 | MR3 | Notification shade / system dialog is not detected by `pause` | GameShell `windowFocusChanged` (§8.1); emulator test in step 10 | junior dev, lead tester |
-| MR4 | Real gesture insets > 32 dp on a 640×360 device push the playfield below 0.5× | Documented `belowFloor` path (§6.2); device matrix records actual insets | lead tester, UX |
+| MR4 | Real gesture insets > 32 dp on a 640×360 device push the playfield below 0.5× | Documented `belowFloor` path (§6.2); device matrix records actual insets. **[A11]** Such a device now shows the M2.10a prompt instead of a sub-0.5× playfield (§6.2.1). If real devices hit this, the fix goes through mobile-product-manager (e.g. a smaller-control or band layout under OQ-M7), not an ad hoc floor change. | lead tester, UX, PM |
 | MR5 | HUD at the 12 dp floor is ~1.5× larger relative to the playfield at 0.52× and covers more of the formation area | UX round-2 screenshot check (carry-forward 6); the HUD band is DOM, so it can be reflowed in `android.css` without touching game rules | UX, junior dev |
 | MR6 | GameShell inset listener clobbers Capacitor's | Own child view or chained listener, insets not consumed (§6.6) | lead dev |
 | MR7 | Accidental web behavior change | Web bundle purity check; `WebPlatform` = today's behavior; shared tests; web UX/test gates | lead dev, web pipeline |
@@ -1477,9 +1750,11 @@ CI.
 | **MR13 [v1.1]** | A compromised CI dependency publishes to Pages | Least-privilege permissions; `persist-credentials: false`; SHA-pinned third-party actions; `npm audit` (§10.3) | junior dev |
 | **MR14 [v1.1]** | In-app privacy text drifts from the hosted text because the Play build lags the website | Single file; a material change requires an Android release (runbook); SHA-256 comparison at pass 2 (§8.7) | technical writer, release engineer, security |
 | **MR15 [v1.1]** | The release manifest differs from debug (debuggable, exported components, cleartext) | Checker R1-R7 on the unsigned release in CI and on the signed AAB at step 15 (§10.3) | junior dev, release engineer |
-| **MR16 [v1.2, A8]** | The manifest gate is wrong for a normal merged manifest, so it gets loosened or worked around without review (reopening L1 or disabling AndroidX Startup) | R5 names the one allowed provider exactly, with FileProvider/grant checks that override the allowlist; fixture tests; "stop and report" on any unexpected provider (§7.3 A8, §10.3 R5) | junior dev, lead dev, security |
+| **MR16 [v1.2, A8]** | The manifest gate is wrong for a normal merged manifest, so it gets loosened or worked around without review (reopening L1 or disabling AndroidX Startup) | R5 names the one allowed provider exactly, with FileProvider/grant checks that override the allowlist; fixture tests; "stop and report" on any unexpected provider (§7.3 A6/A8, §10.3 R5) | junior dev, lead dev, security |
 | **MR17 [v1.2, A8]** | Release WebView remote debugging, mixed content, an origin change or `allowNavigation` enters via the runtime config, which the manifest checker cannot see | Config guard extended (§14.1 N2); pass-2 `chrome://inspect` check | junior dev, lead dev, security |
 | **MR18 [v1.3, A9]** | An emulator or build result comes from a stale or hand-edited build mirror, so it does not reflect the tree under review | Mirror refreshed from the repo before every build, never edited, never committed from; evidence counts only from a freshly refreshed mirror (§3 A9) | junior dev, lead dev, lead tester, release engineer |
+| **MR19 [v1.4, A10]** | A theme value that is valid only on newer Android crashes older devices at launch (as `always` did on API 28, validation-report-round2 F1), or the three `styles.xml` copies drift so an edit affects only API 24-27 | Cutout mode split per API level; three-folder parity rule; `check-android-styles` guard in CI with the round-7 L1-L3 completions; API 28 image in the device matrix; Play pre-launch / closed test for API 29 (§6.6 A10) | junior dev, lead dev, lead tester |
+| **MR20 [v1.5, A11]** | While a size or rotate prompt hides the pause menu, a hardware keyboard resumes the run unseen, or back closes an overlay the player cannot see | `onFrame` re-pauses any `PLAYING` state while a prompt shows; back checks the prompt before overlays (§6.2.1 behaviors 4 and 6, §8.3 A11); Playwright checks (§10.1) | junior dev, lead dev |
 
 ---
 
@@ -1488,7 +1763,7 @@ CI.
 | # | Check | Answer in this document |
 |---|---|---|
 | 1 | Exact 640×360 column widths, insets, scale, position; sums close; scale per tablet/foldable profile | §6.3 (144 / 416 / 80 = 640; playfield x 144-560, y 12-324, s = 0.52) and §6.4 table. The rows are asserted by `layout.test.ts`. |
-| 2 | Named runtime inset API, queried live; budget still closes with larger insets | §6.1: GameShell → `WindowInsetsCompat.Type.displayCutout()` + `Type.systemGestures()`, live via `edgeInsetsChanged`. §6.3: closes up to 32 dp per side edge on 640×360; beyond that the documented `belowFloor` path applies. |
+| 2 | Named runtime inset API, queried live; budget still closes with larger insets | §6.1: GameShell → `WindowInsetsCompat.Type.displayCutout()` + `Type.systemGestures()`, live via `edgeInsetsChanged`. §6.3: closes up to 32 dp per side edge on 640×360; beyond that the documented `belowFloor` path applies (**[A11]** now the M2.10a prompt, §6.2.1). |
 | 3 | Input model chosen + all six M3.3a rules; 40/40 result in the validation report | §5.2 (continuous per-pointer tracking with pointer capture over one movement zone; rule table); §10.2 (the test, whose results go to the validation report) |
 | 4 | Safe-area padding additive to `#hud-root`/`#control-text` constants | §6.5: none added at all. The insets are handled by positioning the scaled `#app-root`. `src/style.css` is untouched, and Android CSS is scoped under `html.platform-android`. The lead developer confirms by diff. |
 | 5 | PAUSE vertical placement/height vs THROW | §6.3 vertical table: PAUSE y 16-64 (48), gap 216, THROW y 280-336 (56), bottom inset 24. The sum is 360. |
@@ -1548,6 +1823,23 @@ Run Android Gradle builds and emulator installs from the mirror outside OneDrive
 `C:\Users\aaron\dev-build\shield-vs-robots`, refreshed from the repo before every build and
 never edited (§3 A9). This applies to every Android build and install on the owner's
 machine, including the step-8 review, steps 10 and 14, and the step-15 release build.
+
+**[A10, 2026-09-27; validation-report-round2 F1, code-review-round7 M1/L1-L3/S2] Theme
+styles.** Keep `values/`, `values-v28/` and `values-v30/` `styles.xml` in parity, with the
+cutout item absent / `shortEdges` / `always` respectively (§6.6 A10 items 1-2). Any edit
+to one file goes into all three in the same commit. Complete the guard (§6.6 A10 item 3,
+items 2-5 = round-7 L3, L1, L2) the next time these files are touched, and fix the
+round-7 S2 citation in the XML comments (`validation-report-round2 F1`, not
+code-review-round2). Do not edit this document or the ADRs: put proposed spec changes in
+`docs/mobile/tooling-setup-log.md` or a handoff note for mobile-solution-architect.
+
+**[A11, 2026-09-27; PRD-mobile v1.5 M2.10a] Too-small window.** In `layout.ts`, replace
+`needsRotatePrompt(viewport)` with a classification that also takes the run-time insets
+and returns `'portrait' | 'tooSmall' | 'playable'` exactly per §6.2.1, derived from the
+same constants as `computeLayout` (no new literals). Extend RotatePrompt to show either
+message with the §6.2.1 behaviors 1-6, move the prompt check to the front of the back
+order (§8.3 A11), add the `onFrame` re-pause guard, and add the §10.1 A11 tests. All of
+this stays in `src/platform/android/`; no shared file changes.
 
 ### 14.1 Binding step-7 constraints from security review-v1 (L2-L5) and review-v1b (N2, N3, N5) [new in v1.1; extended by A8 and A9]
 
@@ -1611,10 +1903,24 @@ full there.
   on the owner's machine run from `C:\Users\aaron\dev-build\shield-vs-robots` (outside
   OneDrive); source edits stay in the repo. The mirror never holds signing material; the
   §7.5 contract is unchanged (§3 A9).
+- **[v1.4, A10, 2026-09-27] Cutout-mode split and identity.** The theme's cutout mode is
+  set per API level (§6.6 A10). It has no permission, data or network effect; it is a
+  launch-stability fix (validation-report-round2 F1). The identity is now
+  `io.github.hogy86.shieldvsrobots` / "Shield vs Robots" (§7.1 A10). The manifest
+  checker's R1 allowlist entry is `<applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`,
+  so it follows the new ID. Internal `vvs` identifiers (storage keys, signing env var and
+  folder, test hook) are unchanged by design (F22 AC12-AC13). For pass 2: M1 of
+  code-review-round7 is closed by this amendment; round-7 L1-L3 (guard completeness) are
+  open LOWs owned by mobile-junior-developer.
+- **[v1.5, A11, 2026-09-27] Too-small window (M2.10a).** Screen-fitting behavior only
+  (§6.2.1, §8.3 A11). It adds no permission, storage, network, plugin or native code; the
+  new prompt text is built with `textContent` (§14.1 L4b).
 - Data safety answer expected: "No data collected, no data shared" (M11.3).
 - **[v1.1] M5 / OQ-S1** (the "Sentinels" name) is with the owner and not decided here. See
   the §7.1 note on applicationId coupling. (review-v1b Condition C1 is the owner's
-  decision record in PRD-mobile §7; A8 does not touch it.)
+  decision record in PRD-mobile §7; A8 does not touch it.) **[A10]** The owner decided
+  OQ-S1 (b) on 2026-09-25 (rename; PRD-mobile v1.3 §7). OQ-M11 (confirming the app ID)
+  is still pending before step 15.
 
 ---
 
@@ -1642,6 +1948,9 @@ full there.
 | **[v1.2]** A8: signed-AAB cold-start smoke (§10.3 step 15 item 5) | review-v1b **N4**; review-v1 M1, M4; M11.1, M11.2, M10.5 |
 | **[v1.3]** A9: S1 `.env` template carve-out + S6 content scan (§7.5.3, §14.1 N3, §14 item 5; M-ADR-0011 note) | review-v1b **Addendum 1**; code-review-round1 **C3**; review-v1b N3; review-v1 M2; C4 (a false positive must not block the website deploy) |
 | **[v1.3]** A9: Android builds and emulator installs from a mirror outside OneDrive (§3 A9, §14; M-ADR-0011 note) | code-review-round1 **I1**; M-ADR-0011 context (OneDrive sync); CLAUDE.md §Where it runs |
+| **[v1.4]** A10: cutout mode per API level (base absent, v28 `shortEdges`, v30 `always`), three-folder parity, `check-android-styles` guard (§6.6 A10, §3, §10.3, §12 MR19, §14; M-ADR-0007 note) | validation-report-round2 **F1**; code-review-round7 **M1**, **L1-L3**, S1, S2, I1-I3; M1.1 (minSdk 24), M1.4, M2 (edge-to-edge and cutouts), M2.3/M2.3a; C4 |
+| **[v1.4]** A10: identity "Shield vs Robots" / `io.github.hogy86.shieldvsrobots` (§7.1 A10, §7.2, §1, title; M-ADR-0007 note) | PRD-mobile v1.3 **OQ-S1 (b)**, v1.4 OQ-S1a, M9.1 (as amended); PRD-addendum-v4 **F22** (AC1, AC12, AC13); OQ-M11 (still pending) |
+| **[v1.5]** A11: window classification (portrait → too small → playable), size-floor formula `W ≥ l + r + 576`, `H ≥ t + b + 300`, prompt behavior, back order, re-pause guard (§6.2 A11, **§6.2.1**, §6.3, §6.4, §6.5, §6.6, §8.1, §8.3 A11, §10.1, §11, §12 MR4/MR20, §13, §14) | PRD-mobile v1.5 **M2.10a**, M2.10, M2.12, M2.13 (v1.5 note), M3.1, M3.2, M2.3a, M2.6, M2.9, M2.11, M4.1-M4.4, M4.6, M5 (v1.5 note); code-review-round7 **I6**; validation-report-round2 svr_api36_fold row; OQ-M7 (a); C1, C3 |
 
 ---
 
@@ -1660,6 +1969,8 @@ full there.
 | — | 2026-09-25 | review-v1 **L6** | none | Accepted as-is; re-verified at step 15. | Unchanged. |
 | **A8** | 2026-09-25 (v1.2) | review-v1b **N1** (MEDIUM; Condition C2), **N2**, **N3** (LOW; Condition C3), **N4** (LOW), **N5** (INFO: `allowNavigation` only) | Header, Sources, §7 heading, §7.2 (A8 note), §7.3 A6 (provider clause replaced + A8 block), §7.3.1 (A8 note), §7.5.2 rule 2, §7.5.3 (scope note), §9.2, §10 heading, §10.3 (`build` step 2, `android-build` step 8, **R5 row replaced**, R5 implementation notes, **step-15 list: item 5 added, items renumbered 5→6, 6→7**), §11, §12 MR11/MR12 + **MR16, MR17 (new)**, §14 items 3a-3c and 5, **§14.1 rows N2 and N3 (new)**, §14 security handoff, §15, §16; dated amendment notes added to **M-ADR-0007** and **M-ADR-0012** (M-ADR-0008: see ADR note below) | **N1:** R5's provider clause becomes "every `<provider>` fails except `androidx.startup.InitializationProvider` with `exported="false"` and no `grantUriPermissions="true"`; any exported provider, any FileProvider or subclass, any `<grant-uri-permission>`, any `FILE_PROVIDER_PATHS` meta-data fails"; allowlist named in the checker source; never `tools:node="remove"` the Startup provider; any other provider needs a security review. **N2 (+N5):** config guard also rejects `webContentsDebuggingEnabled: true`, `allowMixedContent: true`, non-`https` scheme, non-`localhost` hostname, and any `server.allowNavigation`, on both config files. **N3:** signing path guard rejects anything inside the git top-level; secret check scans the whole repo; runbook says CLI-only release builds. **N4:** step 15 cold-starts the signed AAB (bundletool `build-apks --connected-device` + `install-apks`) on API 36 and a WebView ≥ 80 image, checks title + privacy overlay, and records the result in `submission-checklist.md`. | v1.1 R5 "no `<provider>` of any kind" **replaced** (it would fail every Capacitor build). L1 closure, the FileProvider removal and the other R5 clauses **kept**. L3 guard, §7.5 contract and the step-15 manifest check **kept** and extended. No PRD requirement changed. |
 | **A9** | 2026-09-26 (v1.3) | review-v1b **Addendum 1** (security decision on code-review-round1 **C3**: S1 false positive on a sibling project's committed `.env.example`); code-review-round1 **I1** (INFO: Gradle cannot build inside OneDrive) | Header, Sources, §3 (**A9 build-location note**), §7 heading, **§7.5.3 (S1 row carve-out, new S6 row, A9 binding block)**, §10 heading, §10.3 heading + `build` step 2, §12 MR12 + **MR18 (new)**, §14 item 5 + **build-location note**, §14.1 heading + **row N3**, §14 security handoff, §15, §16; dated amendment note appended to **M-ADR-0011** | **Secret check:** S1 skips the path failure only for tracked files whose basename is exactly `.env.example`, `.env.sample` or `.env.template` (`S1_TEMPLATE_BASENAMES`, `path.posix.basename`, case-sensitive). New rule **S6** content-scans those files and fails on unreadable files, on key/token signatures anywhere (a), on secret-named `KEY=VALUE` lines with a non-empty value, commented lines included (b), and on 32+ character token-like values (c). Passing exempt files are logged. `scanEnvTemplate` is a pure exported function with inline-fixture tests (i)-(vii) and basename-boundary tests. The workflow change is not merged until this passes on the real tree. No other exemption without security review. **Build location:** Android Gradle builds and emulator installs on the owner's machine run from `C:\Users\aaron\dev-build\shield-vs-robots` (outside OneDrive), a disposable mirror refreshed from the repo before every build; source edits stay in the repo; signing material never enters the mirror. | S1-S5 patterns, the whole-repository scope (A8/N3), the "stop and report; no ad hoc exclusion" rule and the A3 ignore list **kept**. The only change to S1 is the reviewed carve-out, and it adds a content scan. §7.5 signing contract and CI **unchanged**. No PRD requirement changed. |
+| **A10** | 2026-09-27 (v1.4) | validation-report-round2 **F1** (API 28 launch crash: `Unknown windowLayoutInDisplayCutoutMode: 3`); code-review-round7 **M1** (§6.6 rewritten in place by the implementer with no amendment, version bump or log row; broken bold markup), **L3** (three-folder parity), L1/L2 (guard completeness), S1/S2; owner rename per PRD-mobile v1.3 **OQ-S1 (b)** / v1.4 OQ-S1a and PRD-addendum-v4 **F22** | Title, header, Status, **Naming note (new)**, Sources, §1 (GameShell path), §3 (layout: `check-android-styles.mjs`, three `styles.xml` folders), **§6.6 (edge-to-edge bullet rewritten, bold markup repaired, A10 block)**, §7 heading, **§7.1 (applicationId and label rows, A10 note)**, **§7.2 (`appId`, `appName`)**, §10 heading, §10.3 heading + `build` step 7 + A10 note, §12 **MR19 (new)**, §14 **theme-styles note** + security handoff, §15, §16, Owner questions (OQ-S1 note); dated amendment note appended to **M-ADR-0007** | **Cutout mode:** `android:windowLayoutInDisplayCutoutMode` is absent in base `values/` (API 24-27), `shortEdges` in `values-v28/` (API 28-29) and `always` in `values-v30/` (API 30+), on all three app styles. The implementer's in-place wording is adopted as the A10 text and marked as such. **Parity rule:** the three `styles.xml` files hold the same styles, parents and items apart from the cutout item; edits land in all three in one commit; v28 and v30 must exist; either L3 option (a) or (b) conforms. **Guard:** `scripts/check-android-styles.mjs` + tests, run by the `build` job's `npm run test`; complete when it also asserts positive v28/v30 values and parity (L3), fails closed (L1) and tolerates attribute variants (L2). **Identity:** applicationId/namespace `io.github.hogy86.shieldvsrobots`, label "Shield vs Robots"; still an OQ-M11 placeholder until confirmed before step 15; `vvs` internal identifiers and storage keys unchanged (F22 AC12-AC13). | v1.3's unconditional `always` **replaced** for API < 30, **kept** for API 30+. v1.3's app ID `io.github.hogy86.vanguardvssentinels` and label "Vanguard vs. Sentinels" **replaced** by the owner's OQ-S1 (b) decision. Edge-to-edge intent, GameShell insets, Capacitor inset handling disabled, minSdk 24 / targetSdk 36 and the OQ-M11 immutability rule **kept**. No PRD requirement changed by this amendment. |
+| **A11** | 2026-09-27 (v1.5) | PRD-mobile v1.5 **M2.10a** (too-small window, any shape; asks this document for the exact formula and its interaction with M2.10), with the v1.5 M2.13 and M5 notes; underlying reports: code-review-round7 **I6**, validation-report-round2 svr_api36_fold row, tooling-setup-log 2026-09-27 fold-AVD entry | Header, Status, Sources, §6.2 (code-block annotation + A11 note superseding the sub-0.5× `belowFloor` paragraph), **§6.2.1 (new)**, §6.3 (headroom note), §6.4 (A11 note), §6.5 (re-layout triggers), §6.6 (rotate bullet), §8.1 (portrait/too-small row), **§8.3 (A11 note: prompt rule first)**, §10 heading, **§10.1 (A11 tests)**, §11, §12 MR4 + **MR20 (new)**, §13 row 2, §14 **too-small note** + security handoff, §15, §16 | **Classification**, in order: `W ≤ H` → portrait (M2.10 text); else too small when `W < l + r + 576` or `H < t + b + 300` (M2.12 columns at B = 56 + M3.1 gap + ≥ 0.5× playfield; the M3.2 PAUSE stack, ≤ 160 dp, never binds) → "Make the window larger to play."; else playable. It uses the run-time insets and is identical to `computeLayout(...).belowFloor` at B = 56. Nominal floor 624 × 300 dp. **Behavior:** pause via `pauseForInterruption`; only the prompt is drawn (other layers hidden, not destroyed); taps ignored; `onFrame` re-pauses a hidden `PLAYING` state; restore returns to the pause menu or the prior screen within one re-layout; back leaves the app and is checked before shell overlays. | v1's fixed `W < 640 or H < 360` rotate thresholds and the "playfield shrinks below 0.5×" `belowFloor` path are **replaced**. The portrait rule (`W ≤ H`), the §6.2 layout algorithm for playable windows, the 640 × 360 design profile, the OQ-M7 (a) no-band-layout decision and web behavior are **kept**. No shared game code changes. |
 
 **ADR note:** M-ADR-0009..0012 each state which earlier ADR they amend (0001, 0002, 0005,
 0007, 0008). In v1.1 the text of M-ADR-0001..0008 was not edited. **[A8, 2026-09-25]** A
@@ -1667,7 +1978,12 @@ short dated "Amendment note" section is now appended to M-ADR-0007, M-ADR-0008 a
 M-ADR-0012 pointing at what later ADRs and amendments changed in them; their original
 Decision text is left as the historical record. **[A9, 2026-09-26]** The same kind of dated
 note is appended to M-ADR-0011 (decision 8 secret-check carve-out + S6; build mirror
-context). Where a new ADR and an old one differ, the newer ADR and this amendment log win.
+context). **[A10, 2026-09-27]** A second dated note is appended to M-ADR-0007 (cutout mode
+per API level, parity rule and guard; identity rename). **[A11, 2026-09-27]** A11 changes
+decisions recorded in M-ADR-0004 (the sub-0.5× `belowFloor` path) and M-ADR-0005 (the back
+resolution order). This log entry and §6.2.1 / §8.3 A11 are the record; a dated pointer
+note on those two ADRs is still to be added. Where a new ADR and an old one differ, the
+newer ADR and this amendment log win.
 
 ---
 
@@ -1693,3 +2009,9 @@ architecture does not decide it. Input for the decision: the applicationId
 `io.github.hogy86.vanguardvssentinels` becomes permanent at the first Play upload, while
 the label can change later. If the enemies are renamed, confirm OQ-M11's app ID at the same
 time.
+
+> **Amendment A10 (2026-09-27, v1.4):** OQ-S1 is **decided**: the owner chose (b), rename,
+> on 2026-09-25 (PRD-mobile v1.3 §7; PRD-addendum-v4 F22). The applicationId is now
+> `io.github.hogy86.shieldvsrobots` (§7.1). What remains open is **OQ-M11**, the owner's
+> confirmation of that ID, which must happen before step 15 because the ID is permanent
+> after the first upload.

@@ -259,3 +259,141 @@ foldable device.)*
     stretched, squashed, or cut off? If you have a foldable phone, did folding or unfolding
     it while playing keep your progress (score, lives, level) without the game
     freezing or losing your place?
+
+---
+
+# Round 3 — 2026-09-27 (mobile-lead-tester, after code-review-round7 PASS: fix for validation-report-round2 F1)
+
+**Build tested:** debug APK built from the mirror `C:\Users\aaron\dev-build\shield-vs-robots`
+at the same working tree reviewed by `code-review-round7` (HEAD `0ae4130` plus the
+uncommitted step-7 F1 fix and step-6 architecture-doc edit; `git status` confirmed clean
+apart from those pre-existing uncommitted doc changes, which this step did not touch).
+**Environment:** JAVA_HOME/ANDROID_HOME/AAPT2_PATH per the tooling log, matching rounds 1-2.
+**AVDs used this round (all six from the prior tooling request, no new request needed):**
+`svr_api29_webview` (API 28, `-gpu swiftshader_indirect -no-window`), `svr_api24_small`
+(API 24, `-gpu swiftshader_indirect -no-window`), `svr_api30_mid` (API 30,
+`-gpu swiftshader_indirect -no-window`), `svr_api36_pixel7` (API 36, `-gpu host -no-window`,
+per this round's instructions), `svr_api36_tablet` (API 36, `-gpu host -no-window`),
+`svr_api36_fold` (API 36, `-gpu host -no-window`).
+**Screenshots:** `docs/mobile/tests/screenshots/`, filenames suffixed `_round3_*`.
+
+## Coverage vs. the required matrix — round 3
+
+| Required row | Status | Notes |
+|---|---|---|
+| Small, low-end phone | **DONE (unchanged)** | `svr_api24_small` re-verified: cold launch, process alive, 0 FATAL EXCEPTION. Still only reachable up to the M1.4 fallback screen on this AVD's real WebView 53 — same known gap as rounds 1-2, not reopened or worsened by this round's fix. |
+| Tall phone with a camera cutout | **DONE** | `svr_api36_pixel7` full functional pass, see detail table below. |
+| Tablet | **DONE** | `svr_api36_tablet` full functional pass, see detail table below. |
+| Foldable (folded and unfolded) | **PARTIAL — same AVD fidelity gap as round 2, reproduced identically, not worsened** | See detail table below. |
+| Both landscape orientations | **DONE** | 180° flip re-verified on `svr_api36_pixel7` via `adb emu rotate`: `ROTATION_90` → `ROTATION_270`, clean re-render, no reflow glitch, no clipping. |
+| Gesture navigation | **DONE (same proxy as rounds 1-2)** | All back-mapping checks driven via `adb shell input keyevent KEYCODE_BACK`, which dispatches identically regardless of navigation mode. |
+| 3-button navigation | **NOT INDEPENDENTLY DRILLED, per this round's own instructions** ("if you can't drill them") | Same limitation as rounds 1-2: a real edge-swipe drill (`adb shell input swipe` from the literal edge pixel, `navigation_mode 0`) was not attempted this round. Recommend UAT (step 14). |
+| Play a full round | **PARTIAL (unchanged scope for this round — F1 re-verification was the priority)** | Movement, THROW, PAUSE, Resume, Restart-Game-confirm/Cancel all exercised on `svr_api36_pixel7`; Home/Restart Level tested on `svr_api36_tablet`. A full 10-level round remains UAT/closed-test territory, unchanged from rounds 1-2. |
+| Background and resume | **DONE** | `svr_api36_pixel7` (Home during PAUSED → still PAUSED, score/lives/formation unchanged) and `svr_api36_tablet` (Home during PLAYING → resumed on PAUSED, score preserved). |
+| Press back | **DONE** | Back-mapping table below (pixel7): PAUSED→Resume, PLAYING→pause, Restart-Game-confirm→Cancel (no reset). Tablet: PAUSED→Resume, PLAYING→pause. |
+| Nothing clipped | **DONE** | No clipped HUD, controls, or menu text observed on `svr_api36_pixel7`, `svr_api30_mid`, or `svr_api36_tablet` at any screen captured this round (title, help, settings, playing, pause, privacy, restart-confirm, post-relaunch). |
+| Smoothness | **NOT MEASURED (unchanged — real frame-rate/timing needs UAT/closed-test tooling)** | Same disposition as rounds 1-2; play felt smooth on `-gpu host` (pixel7, tablet, fold) and adequate on `-gpu swiftshader_indirect` (api24/api28/api30). |
+
+## Functional pass detail (svr_api29_webview, API 28, real WebView 69.0.3497.100) — F1 re-verification
+
+| Check | Result | Evidence |
+|---|---|---|
+| Cold launch x2, clean state (`am force-stop` + `logcat -c` between) | **Both: `Status: ok`, pid alive, 0 FATAL EXCEPTION** (previously: crash both times, round 2) | raw-output-round3.log |
+| M1.4 fallback text renders | PASS | `screenshots/api28_webview69_round3_fixed.png` — "Please update Android System WebView from the Play Store." |
+| `dumpsys window` cutout-mode label | Shows `always` (code-review-round7 I1's known false-positive label; effective compiled value is 1/`shortEdges`, confirmed via `aapt2 dump resources`) | Not a regression — see validation-report-round3.md Part 3 |
+| `mCurrentFocus` | `io.github.hogy86.shieldvsrobots/.MainActivity` | raw-output-round3.log |
+
+## Functional pass detail (svr_api24_small, API 24, real WebView 53.0.2785.124) — regression spot-check
+
+| Check | Result | Evidence |
+|---|---|---|
+| Cold launch, clean state | `Status: ok`, pid alive, 0 FATAL EXCEPTION | `screenshots/api24_small_round3_regression_check.png` |
+
+## Functional pass detail (svr_api30_mid, API 30, real WebView 83.0.4103.106) — regression spot-check + L3 closure
+
+| Check | Result | Evidence |
+|---|---|---|
+| Cold start → title | PASS, unclipped | `screenshots/api30_mid_round3_title.png` |
+| Settings screen | PASS, clear spacing on every button | `screenshots/api30_mid_round3_settings.png` |
+| **Privacy policy overlay header (L3, open since round 2)** | **PASS — CLOSED.** Clear, unambiguous spacing between the "Privacy policy" title and the Close button on this real WebView-83 device | `screenshots/api30_mid_round3_privacy.png` |
+| `adb logcat` throughout | 0 FATAL EXCEPTION, 0 `net::ERR_*` | raw-output-round3.log |
+
+**L3 disposition: CLOSED.** The flex-`gap` regression `code-review-round4` predicted for
+Chromium < 84 does not reproduce anywhere on this real WebView-83 device, including the
+Privacy overlay header sub-case round 2 could not get a clean screenshot of.
+
+## Functional pass detail (svr_api36_pixel7, API 36, real WebView 133.0.6943.137, `-gpu host`)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Cold start → title, unclipped | PASS | `screenshots/api36_pixel7_round3_title.png` |
+| **I5 (code-review-round7): faint outlined box below Quit** | **Reproduces identically this round** — passed to mobile-ui-ux-designer round 2 | Same screenshot; also visible in `_after_relaunch.png` |
+| M8.1/M8.2 Help overlay | PASS, correct control text, "Got it" → TITLE | `screenshots/api36_pixel7_round3_help.png` |
+| M7.3/M8.2 Settings screen | PASS, "Swap controls: Off"/"Privacy policy"/"Close" | `screenshots/api36_pixel7_round3_settings.png` |
+| Start → gameplay (HUD, controls, formation) | PASS, nothing clipped | `screenshots/api36_pixel7_round3_playing.png` |
+| THROW (spawns a shield, score updates) | PASS, Score: 100 | `screenshots/api36_pixel7_round3_throw.png`, `_pause.png` |
+| PAUSE → pause menu | PASS, Resume/Restart Level/Restart Game/Quit all present | `screenshots/api36_pixel7_round3_pause.png` |
+| M4.1/M4.2/M4.3: Home during PAUSED, relaunch | PASS, still PAUSED, formation/score/lives unchanged | `screenshots/api36_pixel7_round3_resume_after_home.png` |
+| M5: Back from PAUSED → Resume | PASS | `screenshots/api36_pixel7_round3_back_from_pause.png` |
+| M5: Back from active PLAYING → pause | PASS | `screenshots/api36_pixel7_round3_back_from_play.png` |
+| M5: Back from "Restart Game" confirmation → Cancel, no reset | PASS (reached via a testing-harness mis-tap on Restart Game, same class of miss round 2 had on the tablet — not an app defect) | `screenshots/api36_pixel7_round3_quit_check.png`, `_back_from_confirm.png` |
+| M2.1/M2.1a: 180° landscape flip | PASS, `ROTATION_90`->`ROTATION_270` via `adb emu rotate`, clean re-render | `screenshots/api36_pixel7_round3_rotated_check1.png` |
+| M6.1: Quit | PASS, `topResumedActivity` returned to the Nexus launcher | raw-output-round3.log |
+| M6.1/M6.2/M6.3: Relaunch after Quit | PASS, fresh title, Best: 100 persisted (score saved before quit) | `screenshots/api36_pixel7_round3_after_relaunch.png` |
+| `adb logcat` for the entire session | 0 FATAL EXCEPTION, 0 `net::ERR_*` | raw-output-round3.log |
+
+## Functional pass detail (svr_api36_tablet, API 36, real WebView 133.0.6943.137)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Cold start → title, centered at its own aspect (not stretched) | PASS | `screenshots/api36_tablet_round3_title.png` |
+| M8.1/M8.2 first-launch Help overlay | PASS | `screenshots/api36_tablet_round3_playing.png` |
+| Gameplay HUD/controls | PASS, nothing clipped, generous unused side margins | `screenshots/api36_tablet_round3_playing2.png` |
+| M4.1/M4.2/M4.3: Home during PLAYING, relaunch | PASS — resumed on PAUSED, score (100) preserved | `screenshots/api36_tablet_round3_resume.png` |
+| M5: Back from PAUSED → Resume | PASS | `screenshots/api36_tablet_round3_back_from_pause.png` |
+| M5: Back from active PLAYING → pause | PASS | `screenshots/api36_tablet_round3_back_from_play.png` |
+| `adb logcat` throughout | 0 FATAL EXCEPTION, 0 `net::ERR_*` | raw-output-round3.log |
+| I5 faint box | **Not observed on this form factor** — consistent with round 2, where it was also API-36-phone-specific | — |
+
+## Functional pass detail (svr_api36_fold, API 36, resizable/foldable device-state profile)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Boot + install | PASS | — |
+| `cmd device_state print-states` | Same 3 states as round 2: CLOSED(1), HALF_OPENED(2), OPENED(3), all `app_accessible=true` | raw-output-round3.log |
+| Cold start in OPENED (default) | App runs, no crash; window frame `Rect(0, 765 - 1080, 1575)` — **identical to round 2's own reading** | `screenshots/api36_fold_round3_opened.png` |
+| Switch to CLOSED via `cmd device_state state 1` | App stays alive (same pid, 2273), window frame **unchanged**, identical to OPENED | `screenshots/api36_fold_round3_closed.png` |
+| `adb logcat` throughout both states | 0 FATAL EXCEPTION | raw-output-round3.log |
+
+**Disposition: unchanged from round 2.** This AVD reproducibly does not simulate a real
+foldable's window-resize-on-fold behavior — confirming round 2's finding was a stable AVD
+fidelity limit, not a one-off flake. M2.9 still cannot be meaningfully exercised on this
+specific AVD. Not a code-review finding; the app's normal resize handling is unit/e2e
+tested at multiple viewport sizes independent of this AVD's limitation.
+
+## Known gaps (round 3, not silently dropped)
+
+1. **`svr_api36_fold` still does not resize the app's window between fold states** — same
+   gap as round 2, reproduced identically this round, confirming it is a stable AVD
+   limitation rather than a flake. Per this round's own instructions, this is being
+   decided by the product manager/architect and does not block this gate.
+2. **`svr_api29_webview`'s real WebView (69) is still below `minWebViewVersion` (80)** —
+   F1 is fixed, but this AVD still can only confirm the M1.4 fallback path, not the
+   "pre-API-30 insets with a modern WebView" scenario. Per this round's own instructions,
+   this remains blocked on the owner's Google/Play Store sign-in and is covered instead by
+   the Play pre-launch report and the closed test — not a blocker for this gate.
+3. **3-button navigation / real edge-swipe drill still not independently exercised** —
+   same carry-forward as rounds 1-2; recommend UAT (step 14) perform the drill with a real
+   `adb shell input swipe` from the literal edge pixel in `navigation_mode 0`.
+4. **Closed this round:** the Privacy overlay header spacing check on real WebView 80-83
+   (L3, open since round 1/round 2) — see the `svr_api30_mid` section above.
+
+---
+
+## Plain-language checklist addendum for closed-test testers (round 3)
+
+*(No new tester-facing behavior changed this round — the fix is a launch-crash repair on
+an old Android version, invisible to a tester whose phone never showed the crash. No new
+checklist item is needed. If any closed-test tester reports the app failing to open at
+all on an older Android phone, that would be the one signal to watch for — everything
+tested this round says it should not happen anymore.)*

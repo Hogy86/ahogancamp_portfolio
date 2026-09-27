@@ -74,3 +74,8 @@
   permissions and no I/O.
 - Traces to: M2.1-M2.13, M2.3a, M3.1, M3.2, UX F1-F3, N1, N2, carry-forward 1/2/4/5/6;
   `mobile-architecture.md` §6.
+
+## Amendment note (2026-09-27, architecture v1.5, Amendment A11)
+Recorded by the main session because the architect could not list this directory. The Decision text above is kept as the historical record; where later text differs, it wins.
+- PRD-mobile v1.5 M2.10a (too-small window, any shape) is specified in mobile-architecture.md §6.2.1 (A11): portrait windows keep M2.10's prompt; a landscape window with `W < l + r + 576` or `H < t + b + 300` (run-time insets) pauses and shows "Make the window larger to play." The playfield never renders below 0.5×; the old fixed `W < 640 || H < 360` rule is replaced.
+- Back order (§8.3, A11): the too-small/rotate prompt is checked before any open overlay, so Back leaves the app while the prompt shows.

@@ -88,3 +88,42 @@ extended it as follows; where they differ, the later text wins.
 - **Signing:** no signing values in `capacitor.config.ts` (`buildOptions`): **M-ADR-0011**.
 - **Identity:** the label and applicationId are subject to owner question OQ-S1
   (review-v1 M5); see mobile-architecture.md §7.1 note. Not decided in any ADR.
+
+## Amendment note (2026-09-27, Amendment A10)
+The Decision text above is still kept as the historical record. mobile-architecture.md
+v1.4, Amendment A10, changes two of its bullets; where they differ, A10 wins.
+
+- **Theme cutout mode (replaces "Theme `windowLayoutInDisplayCutoutMode="always"`").**
+  Trigger: `docs/mobile/tests/validation-report-round2.md` F1. On a real API 28 image the
+  app crashed at launch with `UnsupportedOperationException: Unknown
+  windowLayoutInDisplayCutoutMode: 3`, because `always` (value 3) exists only from API 30.
+  The value is now set per API level, on all three app styles (`AppTheme`,
+  `AppTheme.NoActionBar`, `AppTheme.NoActionBarLaunch`):
+  - `res/values/styles.xml` (API 24-27): attribute **absent**
+  - `res/values-v28/styles.xml` (API 28-29): `shortEdges`
+  - `res/values-v30/styles.xml` (API 30+): `always`
+
+  **Parity rule** (from `docs/mobile/reviews/code-review-round7.md` L3): the three files
+  keep the same styles, parents and items apart from the cutout item, every edit lands in
+  all three in one commit, and both `values-v28/` and `values-v30/` must exist.
+  **Guard:** `scripts/check-android-styles.mjs` with its tests, run in CI by the `build`
+  job's `npm run test`. It is complete once it also checks the positive v28/v30 values and
+  parity (round-7 L3), fails closed (L1) and matches attribute variants (L2). The
+  edge-to-edge intent, minSdk 24 and targetSdk 36 are unchanged. See
+  mobile-architecture.md §6.6 A10.
+
+  *Alternatives considered for the fix:* (a) keeping `always` unconditionally was rejected
+  because it crashes API 28-29 at launch (F1); (b) raising minSdk to 30 was rejected
+  because it reverses owner decision OQ-M6 (a) (M1.1); (c) setting the mode at run time
+  from MainActivity by API level was rejected because the splash theme is applied before
+  any app code runs, and a code path adds risk that resource qualifiers avoid. This last
+  option is also what core-splashscreen's own version-qualified overrides do.
+- **Identity (replaces the "Identity" bullet and the 2026-09-25 "Identity" note).** The
+  owner decided OQ-S1 on 2026-09-25 as option (b), rename (`docs/mobile/PRD-mobile.md`
+  v1.3 §7; `docs/PRD-addendum-v4.md` F22). The applicationId and namespace are
+  `io.github.hogy86.shieldvsrobots`, and the label is "Shield vs Robots". The ID is still
+  an OQ-M11 placeholder until the owner confirms it before step 15, and it is permanent
+  after the first upload. Internal `vvs` identifiers and the `vvs:*` storage keys do not
+  change (F22 AC12-AC13). See mobile-architecture.md §7.1 A10 and §7.2.
+- Closes `docs/mobile/reviews/code-review-round7.md` M1 (the §6.6 change had been made in
+  place with no amendment).
