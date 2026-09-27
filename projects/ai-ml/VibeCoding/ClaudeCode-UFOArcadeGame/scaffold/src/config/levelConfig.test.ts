@@ -1,6 +1,6 @@
 // Tests PRD §F4 (10-level difficulty table matches the owner-approved spec exactly)
 // AC4, AC5 (monotonicity), and §F12 AC1-AC2 (v2: bossHp is null except on levels 5/10,
-// where it is 5x that level's toughest regular HP tier - replaces v1's embedded-boss-
+// where it is 5x (level 5) / 10x (level 10) that level's toughest regular HP tier - replaces v1's embedded-boss-
 // on-every-level-2-10 column, docs/PRD-addendum-v2.md Item A/B).
 
 import { describe, expect, it } from 'vitest';
@@ -106,7 +106,7 @@ const EXPECTED = [
     rows: 6,
     cols: 9,
     hpMix: { 3: 0.4, 4: 0.6 },
-    bossHp: 20,
+    bossHp: 40,
     formationSpeedMultiplier: 2.5,
     fireRateMultiplier: 5.0,
     guaranteedPowerUpDrops: 1,
@@ -189,10 +189,10 @@ describe('LEVEL_CONFIGS boss phase (F12 AC1-AC2 - replaces v1 F4 "Boss HP" colum
     expect(config.bossHp).toBe(3 * 5);
   });
 
-  it('F12 AC2: level 10 boss HP is exactly 5x its toughest regular tier (4-hit -> 20)', () => {
+  it('F12 AC2: level 10 boss HP is exactly 10x its toughest regular tier (4-hit -> 40)', () => {
     const config = getLevelConfig(10);
     expect(toughestRegularTier(config.hpMix)).toBe(4);
-    expect(config.bossHp).toBe(4 * 5);
+    expect(config.bossHp).toBe(4 * 10);
   });
 
   it('F12 AC2 self-check (assertBossHpFormula) is actually exercised: importing levelConfig.ts runs it at module load and it did not throw', () => {
@@ -202,10 +202,11 @@ describe('LEVEL_CONFIGS boss phase (F12 AC1-AC2 - replaces v1 F4 "Boss HP" colum
     // that implicit guarantee explicit and re-derives the same formula against the
     // live export, so a future edit to LEVEL_CONFIGS that broke the formula would
     // fail here even if someone weakened/removed the module-load assertion itself.
-    const BOSS_LEVELS = new Set([5, 10]);
+    const BOSS_MULTIPLIERS: Record<number, number> = { 5: 5, 10: 10 };
     for (const config of LEVEL_CONFIGS) {
-      if (BOSS_LEVELS.has(config.level)) {
-        expect(config.bossHp).toBe(toughestRegularTier(config.hpMix) * 5);
+      const multiplier = BOSS_MULTIPLIERS[config.level];
+      if (multiplier !== undefined) {
+        expect(config.bossHp).toBe(toughestRegularTier(config.hpMix) * multiplier);
       } else {
         expect(config.bossHp).toBeNull();
       }

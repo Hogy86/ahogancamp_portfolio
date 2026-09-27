@@ -73,7 +73,7 @@ describe('enterBossPhase (F12 AC5-AC6, AC4, AC11)', () => {
     expect(world.enemies[0]!.alive).toBe(true);
   });
 
-  it('F12 AC2: the level-5 boss has 15 HP; the level-10 boss has 20 HP', () => {
+  it('F12 AC2: the level-5 boss has 15 HP; the level-10 boss has 40 HP', () => {
     const world5 = makePlayingWorld(5);
     world5.enemies = [];
     enterBossPhase(world5);
@@ -82,7 +82,7 @@ describe('enterBossPhase (F12 AC5-AC6, AC4, AC11)', () => {
     const world10 = makePlayingWorld(10);
     world10.enemies = [];
     enterBossPhase(world10);
-    expect(world10.enemies[0]!.hitsToKill).toBe(20);
+    expect(world10.enemies[0]!.hitsToKill).toBe(40);
   });
 
   it('F12 AC5: the boss is drawn at 5x the linear dimensions of a regular enemy of the same shape', () => {

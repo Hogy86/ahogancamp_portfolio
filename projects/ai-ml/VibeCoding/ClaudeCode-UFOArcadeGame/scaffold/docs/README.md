@@ -312,7 +312,7 @@ See `docs/api/internal-modules.md` for function signatures.
 
 1. Add rows to the `LEVEL_CONFIGS` array in `src/config/levelConfig.ts`.
 2. Update `MAX_LEVEL` in `src/config/constants.ts`.
-3. Set `bossHp` per level: null for non-boss levels, or 5× the toughest regular-enemy tier for boss levels (if you want boss encounters; F12 limits them to levels 5 and 10 by default, but the mechanics support any level).
+3. Set `bossHp` per level: null for non-boss levels, or N× the toughest regular-enemy tier for boss levels (5× on level 5, 10× on level 10) (if you want boss encounters; F12 limits them to levels 5 and 10 by default, but the mechanics support any level).
 4. Adjust `BASE_FORMATION_SPEED`, `BASE_ENEMY_FIRE_INTERVAL_SECONDS`, and other multiplier-base values if the difficulty curve feels off.
 5. Re-run tests to verify monotonicity (see ADR-0003).
 

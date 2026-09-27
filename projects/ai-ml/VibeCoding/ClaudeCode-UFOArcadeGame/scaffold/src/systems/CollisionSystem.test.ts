@@ -23,6 +23,7 @@ import {
   SCORE_POWERUP_BONUS,
   SHIELD_SPEED,
 } from '../config/constants';
+import { getLevelConfig } from '../config/levelConfig';
 import { resetGuaranteedDrops } from './levelRuntimeState';
 import { makePlayingWorld } from '../test-utils/worldFactory';
 import type { Enemy, ShieldProjectile } from '../core/types';
@@ -638,4 +639,67 @@ describe('CollisionSystem - power-up catch / single active-temporary-effect slot
     expect(world.powerUps[0]!.active).toBe(true);
     expect(world.effects.type).toBeNull();
   });
+});
+
+describe('CollisionSystem - boss toughness holds under any hit power (F12 AC2)', () => {
+  // Counts direct center-face hits (one per fresh shield) until the enemy dies.
+  function hitsToKill(
+    level: number,
+    enemy: Enemy,
+    setup: (world: ReturnType<typeof makePlayingWorld>) => void,
+  ): number {
+    const world = makePlayingWorld(level);
+    resetGuaranteedDrops(world.level);
+    setup(world);
+    world.enemies = [enemy];
+    const cx = enemy.x + enemy.width / 2;
+    let hits = 0;
+    while (enemy.alive && hits < 1000) {
+      world.shields = [makeShield({ x: cx, y: enemy.y + enemy.height + 7 })];
+      updateCollisions(world);
+      hits += 1;
+    }
+    return hits;
+  }
+
+  const bossFor = (level: number) =>
+    makeEnemy({ isBoss: true, width: 180, height: 140, hitsToKill: getLevelConfig(level).bossHp! });
+  const toughestFor = (hp: number) => makeEnemy({ hitsToKill: hp });
+
+  const powerSetups: Array<[string, (world: ReturnType<typeof makePlayingWorld>) => void]> = [
+    ['no power-ups', () => {}],
+    [
+      'one permanent multiplier',
+      (w) => {
+        w.permanentMultiplier = PERMANENT_MULTIPLIER_PER_CATCH;
+      },
+    ],
+    [
+      'temporary 5x hit power',
+      (w) => {
+        w.effects = { type: 'HIT_POWER', remaining: 5 };
+      },
+    ],
+    [
+      'stacked multipliers plus 5x hit power',
+      (w) => {
+        w.permanentMultiplier = PERMANENT_MULTIPLIER_PER_CATCH ** 4;
+        w.effects = { type: 'HIT_POWER', remaining: 5 };
+      },
+    ],
+  ];
+
+  for (const [level, toughestHp, multiplier] of [
+    [5, 3, 5],
+    [10, 4, 10],
+  ] as const) {
+    for (const [label, setup] of powerSetups) {
+      it(`level ${level} boss takes ${multiplier}x the hits of the toughest robot with ${label}`, () => {
+        const regularHits = hitsToKill(level, toughestFor(toughestHp), setup);
+        const bossHits = hitsToKill(level, bossFor(level), setup);
+        expect(bossHits).toBe(regularHits * multiplier);
+        expect(bossHits).toBeGreaterThan(1);
+      });
+    }
+  }
 });
