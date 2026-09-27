@@ -604,12 +604,21 @@ layout (OQ-M7 (a)).
   device still forces a portrait or too-small window, the layout's rotate rule shows
   RotatePrompt and keeps the game paused.
 - Edge-to-edge: target API 36 enforces it. The theme sets
-  `android:windowLayoutInDisplayCutoutMode="always"`. **Capacitor's own edge-to-edge
-  margin/inset handling must be disabled**, so the WebView covers the whole window and our
-  layout alone handles insets. In Capacitor 7 this was `android.adjustMarginsForEdgeToEdge:
-  'disable'`; Capacitor 8 moved it to the core SystemBars configuration. The junior
-  developer uses the option name for the installed version, and the lead developer checks
-  that the WebView fills the screen on a cutout emulator.
+  `android:windowLayoutInDisplayCutoutMode="always"` **on API 30+ only**
+  (`values-v30/styles.xml`); API 28-29 uses `shortEdges` (`values-v28/styles.xml`, the same
+  safe value androidx.core:core-splashscreen's own version-qualified overrides use for that
+  range), and the unqualified base `values/styles.xml` (API < 28) omits the attribute
+  entirely since it does not exist before API 28. A real API 28 `google_apis` system image
+  throws `UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3` if
+  `always` is applied unconditionally (mobile validation-report-round2 F1) - the three
+  values folders and `scripts/check-android-styles.mjs` (a regression guard asserting no
+  values/ folder below v30 sets this attribute to `always`) exist to prevent that. **
+  Capacitor's own edge-to-edge margin/inset handling must be disabled**, so the WebView
+  covers the whole window and our layout alone handles insets. In Capacitor 7 this was
+  `android.adjustMarginsForEdgeToEdge: 'disable'`; Capacitor 8 moved it to the core
+  SystemBars configuration. The junior developer uses the option name for the installed
+  version, and the lead developer checks that the WebView fills the screen on a cutout
+  emulator.
 - Immersive: GameShell calls `WindowCompat.getInsetsController(window, decorView)
   .hide(WindowInsetsCompat.Type.systemBars())` with
   `BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE` on `load()` and on every window-focus gain. It

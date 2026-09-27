@@ -149,3 +149,113 @@ yes/no you can answer just by playing.)*
     the edge of the screen, a notch/camera cutout, or the navigation bar?
 
 Please note your phone model and Android version with your answers.
+
+---
+
+# Round 2 — 2026-09-27 (mobile-lead-tester, after F1 round-1 fix + code-review-round6 PASS)
+
+**Build tested:** debug APK built from the mirror `C:\Users\aaron\dev-build\shield-vs-robots`
+at the same commit `b3d53a7` (clean working tree, no test-writer changes since round 1).
+**Environment:** JAVA_HOME/ANDROID_HOME/AAPT2_PATH per the tooling log, matching round 1.
+**New AVDs this round** (installed by mobile-it-analyst per `docs/mobile/tooling-requests.md`):
+`svr_api36_tablet` (`-gpu host -no-window`), `svr_api36_fold` (`-gpu host -no-window`),
+`svr_api29_webview` (`-gpu swiftshader_indirect -no-window`, actually an **API 28**
+`google_apis` x86_64 image with real WebView 69 — the AVD name is a holdover from the
+original request, which asked for WebView ≥ 80; that request could not be satisfied without
+the owner's Play Store sign-in, per it-analyst's completion note. See "Known gaps" below).
+**Screenshots:** `docs/mobile/tests/screenshots/`, filenames prefixed `api36_tablet_`,
+`api36_fold_`, `api28_webview69_`.
+
+## Coverage vs. the required matrix — round 2 rows only
+
+| Required row | Status | Notes |
+|---|---|---|
+| Tablet | **DONE** | `svr_api36_tablet` (Pixel Tablet profile, 2560×1600, WebView 133): full functional pass. See detail table below. Closes the tablet row and closes carry-forward L4 for this form factor. |
+| Foldable (folded and unfolded) | **PARTIAL — AVD fidelity gap, not an app bug** | `svr_api36_fold` boots and the app runs without crashing in both `CLOSED` and `OPENED` device states, but the app's window frame (`Rect(0, 765 - 1080, 1575)`, a 412×309 dp landscape box letterboxed into a 1080×2340 portrait physical display) is **identical between the two device states** — this AVD does not actually resize the app's window when its posture changes, so the M2.9 "re-lays-out ≤1s" behavior has nothing to react to and cannot be meaningfully exercised here. Separately, 412×309 dp is below the app's own documented minimum reference profile (640×360 dp); the DOM (confirmed via the WebView devtools socket) contains the expected title-screen markup, but only a small icon is visible on the actual composited screencap. See "Known gaps" below. |
+| Pre-API-30 WebView ≥ 80 (round-1 tooling-request item 3 / carry-forward I2) | **BLOCKED — real crash found, not the WebView-version gap the request was about** | `svr_api29_webview` is an API 28 image with real WebView 69 (< 80), so it was always going to show the M1.4 fallback rather than close the ≥80 insets gap. Instead, it surfaced a **new, unrelated, blocking crash-on-launch** — see F1 in `validation-report-round2.md`. The original ≥80-WebView gap is therefore still open **and** now additionally blocked by this crash on any API 28/29 device tested so far. |
+
+## Functional pass detail (svr_api36_tablet, API 36, WebView 133.0.6943.137)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Cold start → title | PASS, unclipped, centered at its own aspect (not stretched to the ultra-wide tablet screen) | `screenshots/api36_tablet_title2.png` |
+| M8.1/M8.2 Help overlay | PASS | `screenshots/api36_tablet_help.png` |
+| Gameplay HUD/controls | PASS, nothing clipped | `screenshots/api36_tablet_playing.png` |
+| M4.1/M4.2/M4.3: Home during PLAYING, relaunch | PASS — resumed on PAUSED, score (100) preserved | `screenshots/api36_tablet_resume.png` |
+| M5: Back from PAUSED → Resume | PASS | `screenshots/api36_tablet_back_from_pause.png` |
+| M5: Back from active PLAYING → pause | PASS | `screenshots/api36_tablet_back_from_play.png` |
+| `adb logcat` throughout | PASS | No `FATAL EXCEPTION`, no `AndroidRuntime` crash, no `net::ERR_*` |
+
+## Functional pass detail (svr_api36_fold, API 36, resizable/foldable device-state profile)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Boot + install | PASS | — |
+| `cmd device_state print-states` | 3 states available: CLOSED(1), HALF_OPENED(2), OPENED(3), all `app_accessible=true` | raw-output-round2.log |
+| Cold start in OPENED (default) | App runs, no crash; window frame `Rect(0, 765 - 1080, 1575)` (412×309 dp landscape box letterboxed into the 1080×2340 portrait physical display) | `screenshots/api36_fold_opened_title_with_immersive_hint.png`, `_letterboxed.png` |
+| DOM check via WebView devtools socket | `innerWidth=412 innerHeight=309`; `document.body` contains the expected `#app-root`/`#hud-root`/`#game-canvas`/title-screen markup — the app is running, not stuck | `screenshots/api36_fold_opened_cdp_dom_capture.png`, raw-output-round2.log |
+| Switch to CLOSED via `cmd device_state state 1` | App stays alive (same pid), window frame **unchanged** (`Rect(0, 765 - 1080, 1575)`, identical to OPENED) | `screenshots/api36_fold_closed_title.png` (pixel-identical layout to the OPENED screenshot) |
+| `adb logcat` throughout both states | PASS | No `FATAL EXCEPTION`/`AndroidRuntime`, no `net::ERR_*` |
+
+**Disposition:** this AVD does not simulate a real foldable's window-resize-on-fold
+behavior — it changes an internal posture/sensor value only, while the app's actual window
+bounds stay fixed. M2.9 cannot be verified against this specific AVD as a result. This is
+recorded as a known gap (below), not a code-review finding, since there is no evidence the
+app itself would fail to re-layout if the OS actually resized its window (the app's normal
+resize handling is already unit- and e2e-tested via `layout.test.ts` and
+`controls-layout.spec.ts` at multiple viewport sizes, including narrow ones).
+
+## Crash detail (svr_api29_webview, API 28, real WebView 69.0.3497.100)
+
+See **F1** in `docs/mobile/tests/validation-report-round2.md` for the full stack trace,
+root-cause analysis, and suggested fix. Summary: `am start` crashes the activity
+immediately and reproducibly (two clean attempts, identical stack both times) with
+`UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3`, thrown from
+`PhoneWindow.generateLayout` before Capacitor/WebView ever initialize. Root cause is three
+unqualified `android:windowLayoutInDisplayCutoutMode="always"` items in
+`android/app/src/main/res/values/styles.xml` (lines 13, 20, 31) with no
+API-version-qualified override, unlike the `androidx.core:core-splashscreen` library's own
+theme resources, which do version-gate the identical attribute below API 30.
+Screenshots: `screenshots/api28_webview69_crash_launch1.png`, `_launch2.png` (both show the
+OS launcher home screen because the activity crashed and finished).
+
+## Known gaps (round 2, not silently dropped)
+
+1. **`svr_api36_fold` does not resize the app's window between fold states** on this
+   specific "resizable" AVD device-state configuration — a real Z Fold-class device does
+   give the unfolded app a full-size landscape window; this AVD gives the same
+   412×309 dp letterboxed window in both `CLOSED` and `OPENED`. M2.9's fold/unfold
+   re-layout behavior cannot be exercised on this AVD as configured. Recommend covering
+   this via the Play pre-launch report (which runs on real device farms including
+   foldables) and/or real hardware at UAT/closed test, per the task's own guidance not to
+   block on this.
+2. **The 412×309 dp viewport this AVD provides is below the app's documented minimum
+   reference profile (640×360 dp)** regardless of fold state — this is a property of the
+   AVD's chosen window size, not of a real folded/unfolded physical display, so it is not
+   treated as a new minimum-profile regression; it simply means this AVD cannot be used
+   to validate the low-end reference profile either (the same limitation `svr_api24_small`
+   already had for a different reason in round 1).
+3. **`svr_api29_webview`'s real WebView (69) is still below the app's `minWebViewVersion`
+   (80)**, so even once F1 (the crash) is fixed, this AVD will only ever be able to confirm
+   the M1.4 fallback path, not the "pre-API-30 insets with WebView ≥ 80" scenario the
+   original tooling request (item 3) was about. Per the task instructions, a
+   pre-API-30-with-WebView≥80 device cannot be reached on emulators without the owner's
+   Google/Play Store sign-in — **recorded here as a known gap to be covered by the Play
+   pre-launch report and the closed test, not a blocker for this gate.**
+4. **Carried from round 1, still open:** the Privacy overlay header spacing check on real
+   WebView 80-83 (`svr_api30_mid`) was not re-attempted this round (see
+   validation-report-round2.md's carry-forwards section); 3-button navigation mode was
+   still not independently drilled with a real edge-swipe.
+
+---
+
+## Plain-language checklist addendum for closed-test testers (round 2)
+
+*(Add this item to the round-1 checklist above if any closed-test tester is on a tablet or
+foldable device.)*
+
+13. **Tablets and foldables:** If you're using a tablet or a foldable phone, did the game
+    center itself nicely in the middle of the screen with readable text and buttons — not
+    stretched, squashed, or cut off? If you have a foldable phone, did folding or unfolding
+    it while playing keep your progress (score, lives, level) without the game
+    freezing or losing your place?

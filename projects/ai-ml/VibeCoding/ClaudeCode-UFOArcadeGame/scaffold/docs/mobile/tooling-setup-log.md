@@ -736,3 +736,98 @@ the required 80. To test insets on a pre-API-30 device with WebView ≥ 80, the 
 
 **Date:** 2026-09-27  
 **Commands used:** Java-invoked sdkmanager and avdmanager CLI (Windows bash/POSIX env).
+
+## 2026-09-27 — Step 7 (mobile-junior-developer): fix for validation-report-round2 F1 (API 28 crash-on-launch)
+
+**Root cause (unchanged from the validator's diagnosis):** `android/app/src/main/res/values/styles.xml`
+set `android:windowLayoutInDisplayCutoutMode="always"` unconditionally in all three app themes, with no
+per-API-version resource folder. A real API 28 `google_apis` system image (`svr_api29_webview`) throws
+`UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3` on `setContentView`, before
+Capacitor/WebView init, crashing every launch.
+
+**Fix applied:**
+- `android/app/src/main/res/values/styles.xml` — removed the `windowLayoutInDisplayCutoutMode` item
+  entirely (base/unqualified folder now applies to API < 28, where the attribute does not exist; a
+  no-op, not a regression).
+- `android/app/src/main/res/values-v28/styles.xml` (new) — full copies of all three themes with
+  `android:windowLayoutInDisplayCutoutMode="shortEdges"` (API 28-29; the same safe value
+  androidx.core:core-splashscreen's own `values-v27`/`values-v29` overrides use for this attribute).
+- `android/app/src/main/res/values-v30/styles.xml` (new) — full copies of all three themes with
+  `android:windowLayoutInDisplayCutoutMode="always"` (API 30+, confirmed safe by `svr_api30_mid` and
+  `svr_api36_pixel7`'s round-1/round-2 device-matrix passes).
+- `docs/mobile/architecture/mobile-architecture.md` §6.6 updated to document the version-qualified
+  split instead of the single unconditional `"always"` line.
+- New regression guard: `scripts/check-android-styles.mjs` (+ `scripts/check-android-styles.test.mjs`,
+  12 fixture tests plus 2 assertions against the real `android/` tree) fails if any `values/` or
+  `values-vNN/` folder below API 30 sets `windowLayoutInDisplayCutoutMode` to `"always"`. Run manually
+  the same way as `check-android-manifest.mjs` (no npm-script wrapper, matching that script's existing
+  convention): `node scripts/check-android-styles.mjs`.
+
+**Verification environment:** `JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot`,
+`ANDROID_HOME=C:\Users\aaron\Android\sdk`,
+`AAPT2_PATH=C:\Users\aaron\Android\sdk\build-tools\36.0.0\aapt2.exe`.
+
+**Checks run (repo tree, all green):** `npm run check:secrets`, `npm run typecheck`, `npm run lint`,
+`npm run test` (29 files / 432 tests, including the new `check-android-styles.test.mjs`), `npm run
+build`, `npm run build:android`, `node scripts/check-android-styles.mjs` (PASS: "no unqualified
+windowLayoutInDisplayCutoutMode=\"always\" found").
+
+**Mirror refresh (`C:\Users\aaron\dev-build\shield-vs-robots`, per the documented robocopy/`Remove-Item`
+procedure above):** no stale mirror node processes found; robocopy exit 1 (files copied, no
+failed/mismatched); `diff -rq` on `android/app/src/main/res` — identical to source; no `.csv`/`.env*`/
+`.tfstate*`/`.jks`/`.keystore`/`signing.properties` found outside `node_modules`; `npm ci` (335
+packages); `npm run build:android && npx cap sync android && node scripts/check-capacitor-config.mjs`
+— PASSED; `node scripts/check-android-styles.mjs` — PASSED; `gradlew assembleDebug --no-daemon` —
+**BUILD SUCCESSFUL** (153 tasks); `node scripts/check-android-manifest.mjs --variant debug --apk
+android/app/build/outputs/apk/debug/app-debug.apk` — **PASSED**.
+
+**Real-device re-verification (fresh mirror APK installed on each AVD; each AVD booted, tested, then
+`adb emu kill`'d and confirmed off `adb devices` before the next):**
+
+- **`svr_api29_webview` (API 28, real WebView 69.0.3497.100):** `am force-stop` + `logcat -c` +
+  `am start` run twice from a clean state. Both times: `pidof` shows the process alive after launch,
+  `logcat -d | grep "FATAL EXCEPTION"` returns 0 matches (previously crashed both times pre-fix). A
+  screenshot (`docs/mobile/tests/screenshots/api28_webview69_fixed_fallback.png`) confirms the app
+  reaches and renders M1.4's own fallback text, "Please update Android System WebView from the Play
+  Store." — the exact behavior this device row exists to verify, previously unreachable because the
+  crash happened before Capacitor/WebView init. **F1 is fixed and reproducibly closed.**
+- **`svr_api24_small` (API 24, WebView 53.0.2785.124, below `minWebViewVersion`):** cold launch, process
+  alive after launch, 0 `FATAL EXCEPTION` matches — unchanged from round 1/2 (this API predates the
+  attribute entirely, so it was never affected either way; re-verified only as a spot-check per the
+  validator's recommendation).
+- **`svr_api30_mid` (API 30, WebView 83.0.4103.106):** cold launch, process alive, 0 `FATAL EXCEPTION`
+  matches, screenshot (`docs/mobile/tests/screenshots/api30_mid_regression_check.png`) shows the title
+  screen rendering full-bleed edge-to-edge with no letterboxing regression — confirms `always` still
+  applies correctly on this API-30 device via the new `values-v30/styles.xml`.
+- **`svr_api36_pixel7` (API 36, `-gpu host`):** cold launch, process alive, 0 `FATAL EXCEPTION`
+  matches — confirms no regression on the flagship profile either.
+- No emulator, adb, or node process was left running afterward (`adb devices` empty; no
+  `dev-build\shield-vs-robots`-referencing node/java process found).
+
+**Fold-AVD window-size question (`svr_api36_fold`, carried over from validation-report-round2 Part 3),
+reported per instruction rather than fixed:** the report notes the AVD's window is a fixed 412×309 dp
+landscape box (identical in both `OPENED`/`CLOSED` device states — an AVD fidelity limit, not something
+this fix touches). Checked what `docs/mobile/PRD-mobile.md` requires for a window below the minimum
+supported profile:
+- **M2.10** only defines behavior for a **portrait-shaped** window (pause + "Rotate your device or
+  enlarge the window to play."). The fold AVD's 412×309 dp window is landscape-shaped (aspect ≈ 1.33),
+  so M2.10's trigger condition does not apply here — this is not a case M2.10 covers one way or the
+  other.
+- **M2.13** requires the playfield to render at **≥ 0.5× (≥ 400 × 300 dp)** "using the same side-column
+  layout as phones" on every device in the matrix, with no fallback band/layout. M2.12's own column
+  budget (movement column ≥ 144 dp + THROW column ≥ 80 dp = ≥ 224 dp of side columns before any
+  playfield) means a landscape window narrower than 624 dp (224 + 400) cannot mathematically satisfy
+  M2.13's floor at all, regardless of implementation — and 412 dp is well under that. **The PRD does
+  not state what should happen in this case** (unlike M2.10's explicit portrait-shaped rule, there is
+  no stated fallback for a too-narrow landscape window); M2.6/M2.12 both describe 640×360 dp as "the
+  smallest supported screen profile," implying windows below it are out of the PRD's defined scope
+  rather than a case with a silently-violated criterion.
+- **Conclusion:** this is a genuine PRD gap, not a code defect — no fix was made for it, per the
+  instruction to report rather than invent behavior for an underspecified case. Flagging for
+  mobile-product-manager/mobile-solution-architect to decide (e.g. extend M2.10's rotate/enlarge
+  prompt to also trigger below some absolute dp floor regardless of aspect ratio, or accept it as
+  never happening on real unfolded hardware, which per the validation report gives a full-size
+  landscape window unlike this specific AVD profile).
+
+**Date:** 2026-09-27  
+**No new npm dependencies added. No signing keys, secrets, or CI workflow files were touched.**

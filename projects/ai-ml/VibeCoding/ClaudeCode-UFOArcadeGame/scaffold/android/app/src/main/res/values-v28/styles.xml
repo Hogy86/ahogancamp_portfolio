@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- M1/§6.6, code-review-round2 (mobile) F1: API 28-29 devices (confirmed on a real
+     `google_apis` API 28 system image, WebView 69) throw
+     `UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3` when the
+     attribute is set to "always", even though the attribute itself was added in API 28.
+     `shortEdges` is the value androidx.core:core-splashscreen's own values-v27/values-v29
+     overrides use for this same API range, so it is confirmed safe here too. `always`
+     resumes at API 30 (values-v30/styles.xml), where svr_api30_mid's device-matrix pass
+     already showed it working with no letterboxing regression. Every item from the base
+     values/styles.xml is repeated here (Android resolves a whole style resource per
+     qualifier bucket, not a per-item merge across buckets), so this file must be kept in
+     sync with values/styles.xml and values-v30/styles.xml when either changes -
+     scripts/check-android-styles.mjs guards against a regression to an unqualified or
+     unsafe value. -->
+<resources>
+
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+</resources>
