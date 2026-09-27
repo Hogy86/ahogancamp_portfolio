@@ -5,12 +5,19 @@
 // round-1 tests re-declared their own copy of the exemption set and tested THAT,
 // which never actually exercised this script's real logic).
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import {
   scanEnvTemplate,
   classifyTrackedPath,
   processFiles,
   S1_TEMPLATE_BASENAMES,
 } from './check-no-secrets.mjs';
+
+// vitest (via `npm run test`/`npm test`) always runs with cwd = the `scaffold/`
+// project root (vitest.config's root), the same directory `scripts/` and `android/`
+// both live directly under - matching how `main()` resolves paths from
+// `git rev-parse --show-toplevel` at runtime, just without the git dependency here.
+const SCAFFOLD_ROOT = process.cwd();
 
 describe('scanEnvTemplate (S6)', () => {
   it('(i) passes the CURRENT Cursor .env.example verbatim (code-review-round2 C3(d))', () => {
@@ -206,5 +213,24 @@ describe('processFiles (Addendum 1 item 4(f)): an unreadable exempt file fails',
     expect(exemptionNotices).toEqual([
       'check-no-secrets: S1 template exemption, content scanned clean: .env.example',
     ]);
+  });
+});
+
+describe('S4 regression: the real committed android/app/build.gradle', () => {
+  // A comment explaining the S4 rule ("never signs with the debug key") previously
+  // reused the rule's own banned substring (`signingConfigs.debug`), so the checker
+  // flagged its own explanatory comment as a violation (validation-report round-1
+  // F1). This runs the actual S4 rule against the real, currently-committed file
+  // content - not a paraphrase - so that specific class of bug (a fix's own comment
+  // reintroducing the matched text) cannot recur silently.
+  it('android/app/build.gradle produces no S4 failure', () => {
+    const relPath = 'android/app/build.gradle';
+    expect(classifyTrackedPath(relPath)).toBe('line-rules');
+
+    const readFile = (absPath) => readFileSync(absPath, 'utf8');
+    const { failures } = processFiles(SCAFFOLD_ROOT, [relPath], readFile);
+
+    const s4Failures = failures.filter((failure) => failure.startsWith('S4:'));
+    expect(s4Failures).toEqual([]);
   });
 });

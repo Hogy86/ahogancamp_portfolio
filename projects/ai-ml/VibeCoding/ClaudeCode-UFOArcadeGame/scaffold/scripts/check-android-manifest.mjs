@@ -38,15 +38,35 @@ export function parseArgs(argv) {
   return args;
 }
 
-function loadXmltreeText(args) {
+// code-review-round5.md L2: an `aapt2` binary that isn't on PATH (and no `AAPT2_PATH`
+// override) used to crash with a raw `Error: spawnSync aapt2 ENOENT` stack trace and
+// no hint of the fix. Exported so a test can assert the actionable message/exit code
+// without a real aapt2 install.
+export class Aapt2NotFoundError extends Error {
+  constructor(triedPath) {
+    super(
+      `check-android-manifest: aapt2 not found (tried "${triedPath}"); ` +
+        'set AAPT2_PATH to <ANDROID_HOME>/build-tools/36.0.0/aapt2(.exe)',
+    );
+    this.name = 'Aapt2NotFoundError';
+  }
+}
+
+export function loadXmltreeText(args) {
   // aapt2 (a native Windows binary in this pipeline) emits CRLF line endings; strip
   // the \r so per-line regexes below (which anchor `$` to end-of-line) match reliably
   // on every OS this check runs on (local Windows dev machine and Linux CI).
   if (args.manifestXml) return readFileSync(args.manifestXml, 'utf8').replace(/\r/g, '');
   const aapt2 = process.env.AAPT2_PATH ?? 'aapt2';
-  const text = execFileSync(aapt2, ['dump', 'xmltree', args.apk, '--file', 'AndroidManifest.xml'], {
-    encoding: 'utf8',
-  });
+  let text;
+  try {
+    text = execFileSync(aapt2, ['dump', 'xmltree', args.apk, '--file', 'AndroidManifest.xml'], {
+      encoding: 'utf8',
+    });
+  } catch (error) {
+    if (error && error.code === 'ENOENT') throw new Aapt2NotFoundError(aapt2);
+    throw error;
+  }
   return text.replace(/\r/g, '');
 }
 
@@ -308,7 +328,17 @@ async function main() {
     process.exitCode = 2;
     return;
   }
-  const tree = await loadTree(args);
+  let tree;
+  try {
+    tree = await loadTree(args);
+  } catch (error) {
+    if (error instanceof Aapt2NotFoundError) {
+      console.error(error.message);
+      process.exitCode = 2;
+      return;
+    }
+    throw error;
+  }
   const failures = checkManifest(tree, args.variant, args.allowInternet);
 
   if (failures.length > 0) {

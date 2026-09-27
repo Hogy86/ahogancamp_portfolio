@@ -8,10 +8,13 @@
 // player. Fixed in AndroidPlatform.ts/overlays.ts; this file is the missing test.
 //
 // code-review-round4 L2: Help has no dedicated `overlay-close` control (only
-// Settings/Privacy do) - Escape is Help's only non-"Got it" dismissal, and the test
-// above already covers it. A second variant that clicked `overlay-close` when present
-// and called `test.skip()` otherwise always skipped for Help, so it was dead code and
-// has been removed rather than kept as a permanent skip.
+// Settings/Privacy do) - Escape is Help's only non-"Got it" dismissal, and the first
+// test below ("Start -> Help -> Escape -> ...") already covers it. A second variant
+// that clicked `overlay-close` when present and called `test.skip()` otherwise always
+// skipped for Help, so it was dead code and has been removed rather than kept as a
+// permanent skip.
+// (code-review-round5 L1: corrected "the test above" -> "the first test below", since
+// this note sits in the file header, above both tests, not below either of them.)
 
 import { test, expect, type Page } from '@playwright/test';
 
@@ -44,7 +47,10 @@ test.describe('Help dismissal does not incorrectly start a run (code-review-roun
     // This must clear helpOpenedFromStart without starting a run.
     await page.keyboard.press('Escape');
     await expect(page.locator('[data-action="help-dismiss"]')).toBeHidden();
-    expect(await snapshotState(page)).toBe('TITLE');
+    // code-review-round5 S1 (carried from round-4 L2): poll instead of reading the
+    // state once, immediately - this passed 440/440 as an immediate read too, but an
+    // async state transition here would otherwise be a flaky gate test.
+    await expect.poll(() => snapshotState(page), 'state after Escape from Help').toBe('TITLE');
 
     // Reopen Help from the title's own "Help" menu row (helpOpenedFromStart must stay
     // false - explicitly reset by the 'help' click handler regardless of the flag's
@@ -55,7 +61,7 @@ test.describe('Help dismissal does not incorrectly start a run (code-review-roun
 
     // The bug: this used to start a run (state -> PLAYING) because the stale flag
     // from the first Start tap was still true. The fix keeps the title up.
-    expect(await snapshotState(page)).toBe('TITLE');
+    await expect.poll(() => snapshotState(page), 'state after Got it from menu-opened Help').toBe('TITLE');
   });
 
   test('positive path: Start (first launch) -> Got it gives PLAYING', async ({ page }) => {
@@ -67,6 +73,6 @@ test.describe('Help dismissal does not incorrectly start a run (code-review-roun
     await expect(page.locator('[data-action="help-dismiss"]')).toBeVisible();
     await page.locator('[data-action="help-dismiss"]').click();
 
-    expect(await snapshotState(page)).toBe('PLAYING');
+    await expect.poll(() => snapshotState(page), 'state after Got it from Start-opened Help').toBe('PLAYING');
   });
 });

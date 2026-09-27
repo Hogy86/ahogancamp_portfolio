@@ -92,7 +92,7 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            // The release build type never references signingConfigs.debug, anywhere
+            // The release build type never signs with the debug key, anywhere
             // (§7.5.2 rule 4) - only assigned when a valid, safely-located properties
             // file was loaded above.
             if (vvsSigningPropertiesFile != null) {

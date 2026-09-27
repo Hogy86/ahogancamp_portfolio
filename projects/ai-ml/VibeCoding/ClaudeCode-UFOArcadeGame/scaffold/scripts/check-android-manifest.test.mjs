@@ -329,6 +329,28 @@ describe('checkManifest - M4 (round 2): --variant validation', () => {
   });
 });
 
+describe('loadXmltreeText - code-review-round5.md L2: actionable aapt2-not-found error', () => {
+  it('throws Aapt2NotFoundError naming AAPT2_PATH when the configured binary does not exist', async () => {
+    const { loadXmltreeText, Aapt2NotFoundError } = await import('./check-android-manifest.mjs');
+    const previousAapt2Path = process.env.AAPT2_PATH;
+    process.env.AAPT2_PATH = 'C:\\definitely\\not\\a\\real\\aapt2-binary-xyz.exe';
+    try {
+      expect(() => loadXmltreeText({ manifestXml: null, apk: 'app-debug.apk' })).toThrow(Aapt2NotFoundError);
+      let caught;
+      try {
+        loadXmltreeText({ manifestXml: null, apk: 'app-debug.apk' });
+      } catch (error) {
+        caught = error;
+      }
+      expect(caught.message).toContain('AAPT2_PATH');
+      expect(caught.message).toContain('aapt2-binary-xyz.exe');
+    } finally {
+      if (previousAapt2Path === undefined) delete process.env.AAPT2_PATH;
+      else process.env.AAPT2_PATH = previousAapt2Path;
+    }
+  });
+});
+
 describe('checkManifest - release-only rules', () => {
   function releaseAapt2Text({ debuggable = false, testOnly = false } = {}) {
     return compliantAapt2Text().replace(

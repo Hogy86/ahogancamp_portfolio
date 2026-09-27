@@ -384,8 +384,8 @@ failing on path alone. `npm run check:secrets` now passes on the real tree.
   ```
   robocopy "<repo>\projects\ai-ml\VibeCoding\ClaudeCode-UFOArcadeGame\scaffold" ^
     C:\Users\aaron\dev-build\shield-vs-robots /MIR ^
-    /XD node_modules .git build .gradle ^
-    /XF terraform-deploy_accessKeys.csv *.csv .env .env.* /NFL /NDL /NJH
+    /XD node_modules .git build .gradle .terraform ^
+    /XF terraform-deploy_accessKeys.csv *.csv .env .env.* *.tfstate *.tfstate.* terraform.tfvars /NFL /NDL /NJH
   ```
   **Round-4 correction (code-review-round3 I4):** the round-3 command above used to
   read `/XD node_modules .git "android\build" "android\app\build" "android\.gradle"`.
@@ -639,14 +639,100 @@ failing on path alone. `npm run check:secrets` now passes on the real tree.
   every file touched this round (`controls-behavior.spec.ts`, `controls-layout.spec.ts`,
   `help-flow.spec.ts`, `public/privacy.html`) against the repo - byte-identical.
   `npm ci` then `npm run test` in the mirror: **PASS, 28 files, 418 tests**.
-- **Not run this round (scope per the round-4 review's routing):** the reviewer-run
+- **Not run this round (scope per the round-5 code review's routing):** the reviewer-run
   Android Gradle builds (`assembleDebug`, unsigned `assembleRelease`, the
   `bundleRelease` refusal, and the manifest check) - the round-4 review asked for
   these to be independently re-run by the round-5 reviewer or by the main session,
-  not by the developer fixing M1/L1/L2/L5/I4. The round-4 junior-developer log
-  above (`:552-559`) already records BUILD SUCCESSFUL/PASSED for both variants from
-  a from-scratch mirror refresh; nothing in this round touched Android/Gradle
-  source, config, or the manifest-check script.
+  not by the developer fixing M1/L1/L2/L5/I4. The "## 2026-09-27 — Step 7 round 4
+  (mobile-junior-developer): H1/H2/M1/M2/L1-L7 fix verification" section above already
+  records BUILD SUCCESSFUL/PASSED for both variants from a from-scratch mirror
+  refresh; nothing in this round touched Android/Gradle source, config, or the
+  manifest-check script.
 - Preview server started for the Playwright run was stopped by Playwright itself at
   the end of the run (no `vite preview --port 4174` process or `LISTENING` socket
   on 4174 remained afterward); no AVD was started this round.
+
+## 2026-09-27 — mobile-it-analyst: Code-review-round5 tooling items (L2 part 3, L3, I1)
+
+**Requested by:** mobile-lead-developer (code-review-round5.md)
+
+**Items applied to the setup log:**
+
+1. **L2 part 3: Document AAPT2_PATH for local manifest-check step.** Added a new subsection below this entry describing how to run `check-android-manifest.mjs` locally with the required environment variable set.
+
+2. **L3: Replace stale line-number cross-references with section-heading references.** Replaced the reference to `:552-559` at the end of the round-5 developer section with a reference to the section heading "## 2026-09-27 — Step 7 round 4 (mobile-junior-developer): H1/H2/M1/M2/L1-L7 fix verification".
+
+3. **I1: Update mirror refresh robocopy command and note Terraform cleanup.** Updated the robocopy command to add `.terraform` to `/XD` exclusions and `*.tfstate *.tfstate.* terraform.tfvars` to `/XF` exclusions (see the round-3 mirror refresh command documentation above). Noted that the main session deleted copies of `infra/aws/.terraform/`, `terraform.tfstate`, and related files from `C:\Users\aaron\dev-build\shield-vs-robots` on 2026-09-27; these files will no longer be copied on subsequent mirror refreshes.
+
+### Local manifest-check procedure with AAPT2_PATH
+
+**To run the manifest-check locally** (e.g., from the build mirror or during development):
+
+```powershell
+# Set the AAPT2_PATH environment variable to point to the Android build-tools aapt2 executable
+$env:AAPT2_PATH = "C:\Users\aaron\Android\sdk\build-tools\36.0.0\aapt2.exe"
+
+# Run the manifest check against a debug APK
+node scripts/check-android-manifest.mjs --variant debug --apk android/app/build/outputs/apk/debug/app-debug.apk
+
+# Or against a release APK
+node scripts/check-android-manifest.mjs --variant release --apk android/app/build/outputs/apk/release/app-release-unsigned.apk
+```
+
+If `AAPT2_PATH` is not set or points to a missing file, the script will fail with an actionable error message indicating that the environment variable must be set. CI pipelines (e.g., `.github/workflows/deploy-pages.yml`) export this variable automatically; this subsection documents the local procedure for developers or when running in non-CI environments.
+
+**No new infrastructure installation was required.** All three items were documentation changes to this log only.
+
+## 2026-09-27 — Step 10 (mobile-it-analyst): Device matrix emulator setup
+
+**Requested by:** mobile-lead-tester (docs/mobile/tooling-requests.md)
+
+**System image installed:**
+- `system-images;android-28;google_apis;x86_64` (approximately 1.2 GB download via sdkmanager; exit code 0).
+
+**AVDs created and tested:**
+
+1. **`svr_api29_webview` (API 28, google_apis, Nexus 5 device profile)**
+   - Created via avdmanager with system image `system-images;android-28;google_apis;x86_64`.
+   - Booted headless with `-no-window -no-audio -no-snapshot -wipe-data` to test.
+   - Boot status verified: `adb shell getprop sys.boot_completed` returned 1 (successful boot).
+   - **WebView version check:** `adb shell dumpsys package com.google.android.webview | grep versionName`
+     returned `versionName=69.0.3497.100`.
+   - **Finding:** This API 28 google_apis image ships with **WebView 69.0**, which is **below the
+     app's minWebViewVersion of 80**. This confirms the known limitation noted in the request:
+     "Google's api28/29 `google_apis` images have historically bundled WebView in the low 60s-70s."
+
+2. **`svr_api36_tablet` (API 36, google_apis, pixel_tablet device profile)**
+   - Created via avdmanager with system image `system-images;android-36;google_apis;x86_64` (already
+     installed from previous steps).
+   - Booted headless with `-no-window -no-audio -no-snapshot -wipe-data` to test.
+   - Boot status verified: `adb shell getprop sys.boot_completed` returned 1 (successful boot).
+   - Device profile: 10-inch tablet (pixel_tablet).
+
+3. **`svr_api36_fold` (API 36, google_apis, resizable device profile)**
+   - Created via avdmanager with system image `system-images;android-36;google_apis;x86_64`.
+   - Booted headless with `-no-window -no-audio -no-snapshot -wipe-data` to test.
+   - Boot status verified: `adb shell getprop sys.boot_completed` returned 1 (successful boot).
+   - Device profile: resizable with foldable device-state configuration (CLOSED, HALF_OPENED, OPENED states).
+
+**WebView version issue (item 3 recommendation):**
+
+The `svr_api29_webview` AVD uses an API 28 google_apis image that ships with WebView 69.0, below
+the required 80. To test insets on a pre-API-30 device with WebView ≥ 80, the lead tester can:
+
+- **Option A:** Request a `google_apis_playstore` system image (API 28 or 29) instead, which allows
+  WebView updates via Play Store sign-in. This would require the owner's Google account to sign in
+  to Play Store on the emulator, per CLAUDE.md escalation rules. Contact mobile-product-manager if
+  this option is chosen.
+
+- **Option B:** Continue using `svr_api29_webview` (WebView 69) and document the device-matrix gap
+  in the validation report. The Playwright phone-emulation suite and `svr_api24_small`'s fallback
+  screen verify most of the required coverage.
+
+**Summary:**
+- ✓ All three AVDs created successfully (2 with API 36, 1 with API 28).
+- ✓ All three booted headless without error.
+- ⚠️ `svr_api29_webview` WebView version below 80; see options above.
+
+**Date:** 2026-09-27  
+**Commands used:** Java-invoked sdkmanager and avdmanager CLI (Windows bash/POSIX env).
