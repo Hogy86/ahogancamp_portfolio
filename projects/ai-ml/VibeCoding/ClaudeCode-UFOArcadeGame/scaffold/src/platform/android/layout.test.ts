@@ -484,3 +484,58 @@ describe('classifyWindow/computeLayout - every §6.2.1 A12 worked-check row, bot
     expect(layout.playfieldY).toBeCloseTo(expectedPfY, 1);
   });
 });
+
+// Architecture §6.2.1 Amendment A13 (PRD-mobile M2.3c): a three-button bar kept along the
+// bottom, insets (l 0, r 0, t 24, b 48; no cutout). minW = 576, minH = 22 + 41.5 + 300 =
+// 363.5. Worked-check rows 21-24, each in both swap settings.
+describe('classifyWindow/computeLayout - §6.2.1 A13 worked-check rows 21-24 (bottom bar), both swap settings', () => {
+  const BOTTOM_BAR = LI(0, 0, 24, 48);
+
+  for (const swap of [false, true]) {
+    const suffix = swap ? '(swapped)' : '(unswapped)';
+
+    it(`row 21: 640x360 is tooSmall on height - the M2.3c known limit ${suffix}`, () => {
+      expect(classifyWindow({ width: 640, height: 360 }, BOTTOM_BAR, swap)).toBe('tooSmall');
+    });
+
+    it(`row 22: 640x368 plays at B 64, s=0.5075, text inside the bands, controls placed ${suffix}`, () => {
+      const viewport = { width: 640, height: 368 };
+      expect(classifyWindow(viewport, BOTTOM_BAR, swap)).toBe('playable');
+      const layout = computeLayout(viewport, BOTTOM_BAR, swap);
+      expect(layout.buttonSize).toBe(64);
+      expect(layout.belowFloor).toBe(false);
+      expect(layout.scale).toBeCloseTo(0.5075, 3);
+      expect(layout.playfieldWidth).toBeCloseTo(406, 3);
+      expect(layout.playfieldHeight).toBeCloseTo(304.5, 3);
+      expect(layout.playfieldX).toBeCloseTo(swap ? 81 : 153, 3);
+      expect(layout.playfieldY).toBeCloseTo(22.034, 3);
+      // HUD text top >= t (24) and hint bottom <= H - b (320).
+      expect(layout.playfieldY + TEXT_TOP_LOGICAL * layout.scale).toBeGreaterThanOrEqual(24 - 0.001);
+      expect(layout.playfieldY + layout.playfieldHeight - TEXT_BOTTOM_LOGICAL * layout.scale).toBeLessThanOrEqual(
+        320 + 0.001,
+      );
+      // Controls are #safe-layer relative: PAUSE at the top band edge + 16, bottom row ends at H - b.
+      expect(layout.pauseButtonY).toBe(16);
+      expect(layout.controlRowY).toBeCloseTo(368 - 24 - 48 - 64, 3);
+      // Spec row 22: unswapped THROW 576-640, left ◀ 0-64, ▶ 72-136; mirrored when swapped.
+      expect(layout.throwButtonX).toBeCloseTo(swap ? 0 : 576, 3);
+      expect(layout.leftButtonX).toBeCloseTo(swap ? 504 : 0, 3);
+      expect(layout.rightButtonX).toBeCloseTo(swap ? 576 : 72, 3);
+    });
+
+    it(`row 23: 640x363.5 is the exact boundary: s=0.5, text edges equal the insets ${suffix}`, () => {
+      const viewport = { width: 640, height: 363.5 };
+      expect(classifyWindow(viewport, BOTTOM_BAR, swap)).toBe('playable');
+      const layout = computeLayout(viewport, BOTTOM_BAR, swap);
+      expect(layout.buttonSize).toBe(64);
+      expect(layout.scale).toBe(0.5);
+      expect(layout.playfieldY).toBe(22);
+      expect(layout.playfieldY + TEXT_TOP_LOGICAL * layout.scale).toBe(24);
+      expect(layout.playfieldY + layout.playfieldHeight - TEXT_BOTTOM_LOGICAL * layout.scale).toBe(315.5);
+    });
+
+    it(`row 24: 640x363 (0.5 dp under minH) is tooSmall ${suffix}`, () => {
+      expect(classifyWindow({ width: 640, height: 363 }, BOTTOM_BAR, swap)).toBe('tooSmall');
+    });
+  }
+});

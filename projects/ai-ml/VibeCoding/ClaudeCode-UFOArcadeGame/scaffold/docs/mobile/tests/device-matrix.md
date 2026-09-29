@@ -490,3 +490,69 @@ PASS: `Status: ok`, alive, focus MainActivity, fallback text "Please update Andr
 - Do you ever see the message "Make the window larger to play." on your phone while it is full screen and held sideways? Tell us the phone model and whether you use 3-button or gesture navigation.
 - With the phone's text size set to the largest, do all words stay readable and inside the screen?
 - Press Back during play, then Home, then reopen the game: it should come back paused, never running by itself.
+
+---
+
+# Round 5 - 2026-09-28
+
+**Verdict for this round: PASS** (see `validation-report-round5.md`).
+**Build:** debug APK from the mirror `C:\Users\aaron\dev-build\shield-vs-robots` after `scripts/refresh-android-mirror.ps1` (parity passed, 130 files). HEAD `2cb1cc9` plus uncommitted step-9 tests.
+**Method:** `adb` plus WebView DevTools (CDP) reads for insets and element bounds. Screenshots `screenshots/*_round5.png`. Raw evidence: `raw-output-round5.log` (section DEVICE EVIDENCE).
+
+## Coverage vs. the required matrix - round 5
+
+| Row | Status | Notes |
+|---|---|---|
+| Small low-end phone | DONE | `svr_api24_small` (API 24): Status ok, alive, 0 FATAL. `svr_api36_lowend_640x360`: F1 closed. |
+| Tall phone with cutout | DONE | `svr_api36_pixel7`: F2 closed (prompt on live shrink, restore to pause menu). |
+| Tablet | DONE | `svr_api36_tablet` in 3-button mode plays. |
+| Foldable | DONE (natural CLOSED) | prompt at 412 x 309, 5 taps change nothing, Back leaves the app alive. Unfold gap unchanged. |
+| Orientations | Landscape only (PRD); both directions not re-run this round | covered in round 4. |
+| Gesture / 3-button | DONE | gesture: lowend, pixel7, fold; 3-button: lowend (prompt, expected), tablet (plays), api30_mid (default 3-button, plays). |
+| Full round / background / back | DONE (25-40 s play per device, plus a real Game Over on lowend) | |
+| Nothing clipped | PASS | every measured menu inside the insets. |
+| Smoothness | Not measured (unchanged) | |
+
+## svr_api36_lowend_640x360 (gesture nav, insets t24 l30 r30 b32, allowed y 24-328, x 30-610)
+
+| Screen | Normal font (dp y range) | Largest font 2.0 (dp y range) |
+|---|---|---|
+| Title | 37.8-314.3 | 30-322 |
+| Settings | 77.3-274.8 | 72.3-279.8 |
+| Privacy policy | 36-316 | not measured |
+| How to play | 109.3-242.8 | 98.8-253.3 |
+| Pause | 50.3-301.8 | 42.3-309.8 |
+| Restart Game confirmation | 102.3-239.8 | 91.8-250.3 |
+| Game Over (real, all lives lost) | 93.8-258.3 | not measured |
+
+All inside; no screen scrolls (304/304); x ranges 30-610 or narrower; `visualViewport.scale` 1. Screenshots `f1_lowend_*_round5.png`, `f1_lowend_largefont_*_round5.png`, `m2_3c_lowend_title_gesture_round5.png`.
+3-button (f3): inset t24 l0 r0 b48, "Make the window larger to play." (expected per M2.3c). `m2_3c_lowend_3button_prompt_round5.png`. Restored to gesture (mode 2), font 1.0.
+
+## svr_api36_pixel7 (`-gpu host`) - F2
+
+Playing at 915 x 412. `wm size 945x1680`: prompt shown, run paused underneath, stable over 6 polls (l + r 65.9). `visualViewport.scale` 0.868 while the prompt shows (L1 carry-forward), 1 after restore. `wm size reset`: pause menu, Score 0 / Lives 3, no auto-resume. Back and Home/relaunch return Paused. Screenshots `f2_pixel7_*_round5.png`.
+
+## svr_api36_tablet (3-button) - M2.3c (f4)
+
+navigation_mode 0, taskbar, insets t24 b56. Title, help dismiss, play (score 550 after THROW taps), controls inside (bottom 744 of 800), Back, Home/resume all fine. `f4_tablet_3button_*_round5.png`. Restored to gesture.
+
+## Regression pass
+
+- `svr_api36_fold` natural CLOSED: prompt at 412 x 309, 5 taps unchanged, Back to launcher, process alive, TotalTime 5108 ms (first launch after clear). `m2_10a_fold_prompt_natural_round5.png`.
+- `svr_api30_mid` (WebView 83, 3-button default): title 88.5-334.7, 25 s play, Back to pause, Home/resume Paused. `api30_mid_*_round5.png`.
+- `svr_api29_webview` (API 28, WebView 69): fallback text shown, 0 FATAL. `api28_webview69_fallback_round5.png`.
+- `svr_api24_small`: alive, 0 FATAL. `api24_small_fallback_round5.png`.
+
+## Known gaps (round 5)
+
+1. Fold AVD unfold cannot resize the window (M2.9).
+2. Game Complete not reachable on a device quickly (covered by unit + injected e2e).
+3. L1 page zoom-out (0.868) under the prompt: carry-forward.
+4. 10-level round, 15-minute session, frame rate: UAT / closed test. Pre-API-30 with a modern WebView: blocked on Play sign-in.
+
+## Plain-language checklist addendum for closed-test testers (round 5)
+
+- Hold the phone sideways and open every menu (start screen, How to play, Settings, Pause): no button or title should touch the very top or bottom edge, and none should need scrolling.
+- Set the phone's text size to the largest and repeat: everything stays readable and inside the screen. If a menu is taller than the screen, tell us the phone model and whether you can scroll it with your finger.
+- Use 3-button navigation on a wide tablet or foldable: the game should play with the buttons above the bar. If you see "Make the window larger to play." tell us the phone model, navigation mode and screen size.
+- Shrink the window (split screen or free-form): the game pauses and shows the message; enlarging returns to the Pause menu, never running by itself.

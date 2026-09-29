@@ -10,6 +10,7 @@
 // test sets its own viewport and insets, like too-small-window.spec.ts.
 
 import { test, expect, type Page } from '@playwright/test';
+import { GAME_COMPLETE_MARKUP, GAME_OVER_MARKUP } from '../../src/test-utils/endScreenMarkup';
 
 declare global {
   interface Window {
@@ -81,19 +82,20 @@ async function expectScreenInsideInsets(
   overlaySelector: string,
   viewport: Viewport,
   insets: Insets,
+  tolerance: number = TOLERANCE,
 ): Promise<void> {
   const { scrollable, items } = await measureScreen(page, overlaySelector);
   expect(items.length, `${screen}: nothing visible to measure`).toBeGreaterThan(1);
   expect(scrollable, `${screen}: needs scrolling at the default font`).toBe(false);
   for (const item of items) {
     const where = `${screen} / ${item.name}`;
-    expect(item.left, `${where}: left edge inside the left inset`).toBeGreaterThanOrEqual(insets.left - TOLERANCE);
-    expect(item.top, `${where}: top edge inside the top inset`).toBeGreaterThanOrEqual(insets.top - TOLERANCE);
+    expect(item.left, `${where}: left edge inside the left inset`).toBeGreaterThanOrEqual(insets.left - tolerance);
+    expect(item.top, `${where}: top edge inside the top inset`).toBeGreaterThanOrEqual(insets.top - tolerance);
     expect(item.right, `${where}: right edge inside the right inset`).toBeLessThanOrEqual(
-      viewport.width - insets.right + TOLERANCE,
+      viewport.width - insets.right + tolerance,
     );
     expect(item.bottom, `${where}: bottom edge inside the bottom inset`).toBeLessThanOrEqual(
-      viewport.height - insets.bottom + TOLERANCE,
+      viewport.height - insets.bottom + tolerance,
     );
     if (item.isButton) {
       expect(item.height, `${where}: touch target height`).toBeGreaterThanOrEqual(48 - 0.01);
@@ -111,41 +113,33 @@ const PAUSED = '[role="dialog"][aria-label="Paused"]';
 
 /** Game Over and Game Complete cannot be reached quickly and repeatably from a
  * browser (a run needs about a minute to end and no test hook can set the state),
- * so they are put on screen by writing the exact element structure and classes
- * `ScreenController.renderGameOver`/`renderVictory` produce (src/ui/ScreenController.ts)
- * into `#overlay-root`. The layout under test is pure CSS, which is the same for the
- * real and the injected element. */
+ * so they are put on screen by writing the element structure and classes
+ * `ScreenController.renderGameOver`/`renderVictory` produce into `#overlay-root`.
+ * The sequence comes from src/test-utils/endScreenMarkup.ts, which
+ * src/ui/endScreenMarkup.test.ts asserts against the REAL ScreenController, so it cannot
+ * drift silently (code-review-round13 L2). The layout under test is pure CSS, which is
+ * the same for the real and the injected element. */
 async function showEndScreen(page: Page, kind: 'gameOver' | 'victory'): Promise<string> {
-  await page.evaluate((which) => {
-    const root = document.getElementById('overlay-root')!;
-    root.replaceChildren();
-    const overlay = document.createElement('div');
-    overlay.className = which === 'victory' ? 'screen-overlay screen-overlay--transparent-bg' : 'screen-overlay';
-    overlay.setAttribute('role', 'alert');
-    overlay.dataset.testEndScreen = which;
-    const add = (tag: string, text: string, cls?: string, action?: string): void => {
-      const el = document.createElement(tag);
-      if (cls) el.className = cls;
-      if (action) el.dataset.action = action;
-      el.textContent = text;
-      overlay.append(el);
-    };
-    if (which === 'gameOver') {
-      add('h1', 'GAME OVER');
-      add('p', 'Final Score: 12345');
-      add('p', 'Best: 12345', 'best-score');
-      add('p', 'New best!', 'new-best');
-      add('p', 'Reached Level 12');
-      add('button', 'Play again', 'menu-item', 'play-again');
-    } else {
-      add('h1', 'GAME COMPLETE');
-      add('p', 'The robot forces have been defeated.');
-      add('p', 'Final Score: 123456');
-      add('p', 'Best: 123456', 'best-score');
-      add('p', 'New best!', 'new-best');
-    }
-    root.append(overlay);
-  }, kind);
+  const markup = kind === 'victory' ? GAME_COMPLETE_MARKUP : GAME_OVER_MARKUP;
+  await page.evaluate(
+    ({ which, spec }) => {
+      const root = document.getElementById('overlay-root')!;
+      root.replaceChildren();
+      const overlay = document.createElement('div');
+      overlay.className = spec.overlayClass;
+      overlay.setAttribute('role', spec.role);
+      overlay.dataset.testEndScreen = which;
+      for (const node of spec.children) {
+        const el = document.createElement(node.tag);
+        if (node.className) el.className = node.className;
+        if (node.action) el.dataset.action = node.action;
+        el.textContent = node.text;
+        overlay.append(el);
+      }
+      root.append(overlay);
+    },
+    { which: kind, spec: markup },
+  );
   return `[data-test-end-screen="${kind}"]`;
 }
 
@@ -157,40 +151,46 @@ async function toggleSwapFromTitle(page: Page): Promise<void> {
 
 /** Walks every menu screen in one session: title, first-launch Help, Settings,
  * Privacy, pause menu, Restart Game confirmation, then Game Over and Game Complete. */
-async function walkEveryMenuScreen(page: Page, viewport: Viewport, insets: Insets, swap: boolean): Promise<void> {
+async function walkEveryMenuScreen(
+  page: Page,
+  viewport: Viewport,
+  insets: Insets,
+  swap: boolean,
+  tolerance: number = TOLERANCE,
+): Promise<void> {
   await expect(page.locator('.rotate-prompt')).toBeHidden();
   if (swap) await toggleSwapFromTitle(page);
 
-  await expectScreenInsideInsets(page, 'Title', TITLE, viewport, insets);
+  await expectScreenInsideInsets(page, 'Title', TITLE, viewport, insets, tolerance);
 
   await page.locator('[data-action="settings"]').click();
-  await expectScreenInsideInsets(page, 'Settings', SETTINGS, viewport, insets);
+  await expectScreenInsideInsets(page, 'Settings', SETTINGS, viewport, insets, tolerance);
   await page.locator('[data-action="privacy"]').click();
   await expect(page.locator(PRIVACY)).toBeVisible();
-  await expectScreenInsideInsets(page, 'Privacy policy', PRIVACY, viewport, insets);
+  await expectScreenInsideInsets(page, 'Privacy policy', PRIVACY, viewport, insets, tolerance);
   await page.locator(PRIVACY).locator('[data-action="overlay-close"]').click();
   await page.locator(SETTINGS).locator('[data-action="overlay-close"]').click();
 
   // First launch: Start opens Help, whose "Got it" starts the run.
   await page.locator('[data-action="start"]').click();
   await expect(page.locator(HELP)).toBeVisible();
-  await expectScreenInsideInsets(page, 'Help', HELP, viewport, insets);
+  await expectScreenInsideInsets(page, 'Help', HELP, viewport, insets, tolerance);
   await page.locator('[data-action="help-dismiss"]').click();
   await expect(page.locator('.touch-button--pause')).toBeVisible();
 
   await page.locator('.touch-button--pause').click();
   await expect(page.locator(PAUSED)).toBeVisible();
-  await expectScreenInsideInsets(page, 'Pause menu', PAUSED, viewport, insets);
+  await expectScreenInsideInsets(page, 'Pause menu', PAUSED, viewport, insets, tolerance);
 
   await page.locator('[data-action="pause-option:2"]').click(); // Restart Game
   await expect(page.locator(`${PAUSED} .confirm-box`)).toBeVisible();
-  await expectScreenInsideInsets(page, 'Restart Game confirmation', PAUSED, viewport, insets);
+  await expectScreenInsideInsets(page, 'Restart Game confirmation', PAUSED, viewport, insets, tolerance);
 
-  await expectScreenInsideInsets(page, 'Game Over', await showEndScreen(page, 'gameOver'), viewport, insets);
-  await expectScreenInsideInsets(page, 'Game Complete', await showEndScreen(page, 'victory'), viewport, insets);
+  await expectScreenInsideInsets(page, 'Game Over', await showEndScreen(page, 'gameOver'), viewport, insets, tolerance);
+  await expectScreenInsideInsets(page, 'Game Complete', await showEndScreen(page, 'victory'), viewport, insets, tolerance);
 }
 
-const MENU_CASES: Array<{ label: string; viewport: Viewport; insets: string }> = [
+const MENU_CASES: Array<{ label: string; viewport: Viewport; insets: string; cutout?: string; tolerance?: number }> = [
   { label: 'real insets 30,30,24,32 (M2.3b (a) model)', viewport: { width: 640, height: 360 }, insets: '30,30,24,32' },
   { label: 'measured gesture insets 30,30,28.2,32', viewport: { width: 640, height: 360 }, insets: '30,30,28.2,32' },
   { label: 'round-8 measured insets 29.7,29.7,28.2,32', viewport: { width: 640, height: 360 }, insets: '29.7,29.7,28.2,32' },
@@ -202,16 +202,25 @@ const MENU_CASES: Array<{ label: string; viewport: Viewport; insets: string }> =
     viewport: { width: 640, height: 360 },
     insets: '0,0,30,38.4',
   },
+  {
+    // A13 exact bound (code-review-round13 L3): minH = 28 + 32 + 300 = 360, so the window
+    // plays exactly on the 0.5x floor and the safe height is exactly 291.5 dp.
+    label: 'A13 exact bound: safe height exactly 291.5 dp, 0,0,30,38.5',
+    viewport: { width: 640, height: 360 },
+    insets: '0,0,30,38.5',
+    cutout: '0,0',
+    tolerance: 0.01,
+  },
   { label: 'M2.3c (f2) 640x368 with a bottom bar 0,0,24,48', viewport: { width: 640, height: 368 }, insets: '0,0,24,48' },
 ];
 
 test.describe('M2.3b rule 3 / M2.3c: every menu screen fits inside the full insets (F1, T2)', () => {
-  for (const { label, viewport, insets } of MENU_CASES) {
+  for (const { label, viewport, insets, cutout, tolerance } of MENU_CASES) {
     for (const swap of [false, true]) {
       test(`${label}${swap ? ', controls swapped' : ''}`, async ({ page }) => {
         await page.setViewportSize(viewport);
-        await page.goto(`/?insets=${insets}&e2e=1`);
-        await walkEveryMenuScreen(page, viewport, parseInsets(insets), swap);
+        await page.goto(`/?insets=${insets}${cutout ? `&cutout=${cutout}` : ''}&e2e=1`);
+        await walkEveryMenuScreen(page, viewport, parseInsets(insets), swap, tolerance);
       });
     }
   }
