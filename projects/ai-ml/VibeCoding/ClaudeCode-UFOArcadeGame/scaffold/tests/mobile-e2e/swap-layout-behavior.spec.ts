@@ -66,20 +66,20 @@ async function tap(client: CDPSession, x: number, y: number): Promise<void> {
   await touchUp(client);
 }
 
-async function startRun(page: Page): Promise<void> {
+// code-review-round6.md S1: the caller KNOWS whether Help will appear (M8.1: it only
+// auto-opens the FIRST time Start is tapped after `helpSeen` is false) - this used to
+// guess with a 2s `waitFor(...).catch(() => false)`, which would silently move on
+// (asserting nothing about Help) if the overlay took longer than 2s to appear under
+// CI load. `expectHelp` makes the caller state its assumption, and this asserts
+// Help's actual visibility either way, rather than swallowing a slow-appearance bug.
+async function startRun(page: Page, expectHelp: boolean): Promise<void> {
   await page.locator('[data-action="start"]').click();
-  // M8.1: Help only auto-opens on tapping Start the FIRST time (helpSeen false);
-  // this file starts a run twice per test (a throwaway default-layout baseline,
-  // then the real swapped-layout run) once helpSeen has already been saved by the
-  // first run, so Start goes straight to PLAYING the second time - no "Got it" to
-  // click.
   const helpDismiss = page.locator('[data-action="help-dismiss"]');
-  const helpAppeared = await helpDismiss
-    .waitFor({ state: 'visible', timeout: 2000 })
-    .then(() => true)
-    .catch(() => false);
-  if (helpAppeared) {
+  if (expectHelp) {
+    await expect(helpDismiss).toBeVisible();
     await helpDismiss.click();
+  } else {
+    await expect(helpDismiss).toBeHidden();
   }
   await expect(page.locator(CONTROL_SELECTORS.throw)).toBeVisible();
   await waitForLevelIntroToClear(page);
@@ -97,7 +97,7 @@ test.describe('Swap controls (M3.13) - real behavior in the mirrored layout', ()
     // M3.9: touch controls only render during active play (the F18 intro/boss
     // warning) - hidden on the title screen - so the baseline can only be read
     // from an actual run, not straight off the fresh page load.
-    await startRun(page);
+    await startRun(page, true); // helpSeen is false after the localStorage.clear() above.
     const defaultLeftBox = await page.locator(CONTROL_SELECTORS.left).boundingBox();
     const defaultThrowBox = await page.locator(CONTROL_SELECTORS.throw).boundingBox();
     if (!defaultLeftBox || !defaultThrowBox) throw new Error('controls not visible during the baseline run');
@@ -125,7 +125,7 @@ test.describe('Swap controls (M3.13) - real behavior in the mirrored layout', ()
     await expect(page.locator('[data-action="settings-swap"]')).toHaveText('Swap controls: On');
     await page.getByRole('dialog', { name: 'Settings' }).locator('[data-action="overlay-close"]').click();
 
-    await startRun(page);
+    await startRun(page, false); // helpSeen was already saved by the baseline run above.
 
     // Geometry actually mirrored: THROW is now LEFT of the movement zone (the
     // opposite of the default-layout assertion above), not merely "some other spot".

@@ -1,19 +1,37 @@
-// Implements docs/mobile/architecture/mobile-architecture.md §8.6/§8.7 (M8, M11.4a).
-// Android-only shell overlays: Help (first-launch + reopenable), Settings (Swap
-// controls + Privacy policy entry), Privacy (bundled sandboxed iframe), and
-// RotatePrompt (M2.10). None of these are a game state or a PlatformCopy string -
-// the game state stays TITLE throughout (Amendment A1). Built with src/ui/dom.ts
-// helpers (`textContent` only) - binding constraint L4b: no innerHTML anywhere here.
+// Implements docs/mobile/architecture/mobile-architecture.md §8.6/§8.7/§6.2.1 (M8,
+// M11.4a, M2.10/M2.10a). Android-only shell overlays: Help (first-launch +
+// reopenable), Settings (Swap controls + Privacy policy entry), Privacy (bundled
+// sandboxed iframe), and RotatePrompt (M2.10/M2.10a, Amendment A11: one component,
+// two possible messages - portrait or too-small). None of these are a game state or a
+// PlatformCopy string - the game state stays TITLE throughout (Amendment A1). Built
+// with src/ui/dom.ts helpers (`textContent` only) - binding constraint L4b: no
+// innerHTML anywhere here. RotatePrompt is a fixed, full-viewport, opaque cover
+// (`.rotate-prompt`, android.css) stacked above every other layer, which blocks
+// pointer hit-testing on everything underneath - but that alone does not stop an
+// accessibility service from dispatching `click()` on a hidden control, which
+// bypasses hit-testing. §6.2.1 behaviors 2-3 also require `#app-root` and the
+// contents of `#safe-layer` to be set to `visibility: hidden` while the prompt
+// shows (code-review-round8 R1); `ScreenFit.relayout()` does that, not this module.
+// Amendment A12 behavior 4 (code-review-round8 I3): while the prompt shows, this
+// module's capture-phase `keydown` listener blocks EVERY key (not just Escape) before
+// the shell-overlay-stack check runs, and blurs a focused hidden control on entry -
+// see `setWindowPromptKind` and the listener installed in the constructor.
 
 import { setText, createElement } from '../../ui/dom';
 import { loadSettings, saveSettings, type AndroidSettings } from './settings';
 
 export type ShellOverlayKind = 'help' | 'settings' | 'privacy';
 
+/** §6.2.1 precedence: a portrait-shaped window always keeps M2.10's text, even when
+ * it is also too small; every other too-small window gets M2.10a's text. */
+const PORTRAIT_PROMPT_TEXT = 'Rotate your device or enlarge the window to play.';
+const TOO_SMALL_PROMPT_TEXT = 'Make the window larger to play.';
+
 export class AndroidOverlays {
   private readonly stack: ShellOverlayKind[] = [];
   private settings: AndroidSettings;
   private readonly rotatePrompt: HTMLElement;
+  private readonly rotatePromptText: HTMLElement;
   private readonly helpOverlay: HTMLElement;
   private readonly settingsOverlay: HTMLElement;
   private readonly swapItem: HTMLElement;
@@ -33,10 +51,13 @@ export class AndroidOverlays {
   ) {
     this.settings = loadSettings();
 
-    this.rotatePrompt = createElement('div', 'screen-overlay rotate-prompt');
-    this.rotatePrompt.append(
-      createElement('p', undefined, 'Rotate your device or enlarge the window to play.'),
-    );
+    // Not `.screen-overlay` (that class is `position: absolute`, sized relative to its
+    // PARENT - fine for Help/Settings/Privacy inside the already-inset `#safe-layer`,
+    // but RotatePrompt needs `position: fixed` against the real viewport, see
+    // `rotatePromptElement` and android.css's own `.rotate-prompt` rule below).
+    this.rotatePromptText = createElement('p', undefined, PORTRAIT_PROMPT_TEXT);
+    this.rotatePrompt = createElement('div', 'rotate-prompt');
+    this.rotatePrompt.append(this.rotatePromptText);
 
     this.helpOverlay = createElement('div', 'screen-overlay');
     this.helpOverlay.setAttribute('role', 'dialog');
@@ -94,7 +115,12 @@ export class AndroidOverlays {
     privacyHeader.append(privacyHeading, privacyClose);
     this.privacyOverlay.append(privacyHeader);
 
-    this.root.append(this.rotatePrompt, this.helpOverlay, this.settingsOverlay, this.privacyOverlay);
+    // §6.2.1 A11: `rotatePrompt` is NOT appended to `this.root` (`#shell-overlay-root`,
+    // confined inside the inset-safe `#safe-layer`) like the other three overlays -
+    // ScreenFit appends it directly to `<body>` instead (see `rotatePromptElement`
+    // below), so its background can cover the true full viewport, edge to edge, which
+    // Help/Settings/Privacy deliberately do NOT do.
+    this.root.append(this.helpOverlay, this.settingsOverlay, this.privacyOverlay);
     this.hideAll();
     this.rotatePrompt.classList.add('hidden');
     this.renderSwapSide();
@@ -110,6 +136,19 @@ export class AndroidOverlays {
     document.addEventListener(
       'keydown',
       (event) => {
+        // §6.2.1 Amendment A12 behavior 4 (code-review-round8 I3): checked FIRST, and
+        // wins over the shell-overlay-stack check below - a hidden Settings/Help/
+        // Privacy overlay underneath the prompt must not respond either. EVERY key is
+        // blocked (not just Escape): `preventDefault()` also stops a focused hidden
+        // `<button>` from being activated by Enter/Space, and Esc must not close a
+        // hidden overlay (same order as back, §8.3 A11). `keyup` is deliberately NOT
+        // touched here, so a key already held before the prompt appeared still
+        // releases normally and never sticks.
+        if (this.isRotatePromptShowing()) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
+        }
         if (this.stack.length === 0) return;
         if (event.key === 'Escape') {
           event.preventDefault();
@@ -129,12 +168,41 @@ export class AndroidOverlays {
     return this.settings.swapControls;
   }
 
-  setRotatePromptVisible(visible: boolean): void {
-    this.rotatePrompt.classList.toggle('hidden', !visible);
+  /** ScreenFit appends this directly to `<body>` (a sibling of `#safe-layer`, never a
+   * descendant of it - §6.2.1 A11) so its background covers the full viewport, insets
+   * included - unlike Help/Settings/Privacy, which stay inside the inset-safe area. */
+  get rotatePromptElement(): HTMLElement {
+    return this.rotatePrompt;
+  }
+
+  /** §6.2.1: `null` hides the prompt; `'portrait'`/`'tooSmall'` shows it with the
+   * matching message (M2.10/M2.10a). */
+  setWindowPromptKind(kind: 'portrait' | 'tooSmall' | null): void {
+    const entering = kind !== null && this.isRotatePromptShowing() === false;
+    if (kind) setText(this.rotatePromptText, kind === 'portrait' ? PORTRAIT_PROMPT_TEXT : TOO_SMALL_PROMPT_TEXT);
+    this.rotatePrompt.classList.toggle('hidden', kind === null);
+    // §6.2.1 Amendment A12 behavior 4 (I3 "Focus"): on ENTERING a prompt, blur any
+    // element focused inside the now-hidden `#app-root`/`#safe-layer` (including the
+    // privacy iframe) - otherwise a focused hidden button could still be activated by
+    // a held/repeated key even with every `keydown` blocked at the document level
+    // (some UAs deliver a focused control's default action before the capture-phase
+    // listener above, e.g. via accessibility-service key dispatch).
+    if (entering) {
+      const active = document.activeElement as HTMLElement | null;
+      if (active?.closest('#app-root, #safe-layer')) active.blur();
+    }
   }
 
   isRotatePromptShowing(): boolean {
     return !this.rotatePrompt.classList.contains('hidden');
+  }
+
+  /** §8.3 Amendment A11: a read-only check (unlike `closeTopOverlay`, which pops the
+   * stack) so `backButton.ts`'s order-resolution can ask "is one open" without
+   * closing it - needed because RotatePrompt must now be checked, and win, before
+   * this question is even asked. */
+  hasOpenOverlay(): boolean {
+    return this.stack.length > 0;
   }
 
   showHelp(): void {

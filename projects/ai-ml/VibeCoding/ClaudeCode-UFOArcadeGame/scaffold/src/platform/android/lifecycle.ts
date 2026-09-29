@@ -21,6 +21,9 @@ export interface LifecycleHost {
    * during the transition would otherwise leave THROW stuck held or a direction stuck
    * on resume. */
   clearTouchPointers(): void;
+  /** §6.2.1 "on resume" (code-review-round8 L3): re-checks the window classification
+   * on the way back to the foreground - `ScreenFit.reclassify()`. */
+  reclassifyWindow(): void;
 }
 
 export function registerLifecycle(ctx: PlatformContext, host: LifecycleHost): void {
@@ -41,6 +44,7 @@ export function registerLifecycle(ctx: PlatformContext, host: LifecycleHost): vo
 
   void App.addListener('resume', () => {
     handled = false;
+    host.reclassifyWindow();
     ctx.loop.resume();
   });
 

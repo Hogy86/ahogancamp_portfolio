@@ -5,7 +5,8 @@
 // round-1 tests re-declared their own copy of the exemption set and tested THAT,
 // which never actually exercised this script's real logic).
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import {
   scanEnvTemplate,
   classifyTrackedPath,
@@ -14,9 +15,13 @@ import {
 } from './check-no-secrets.mjs';
 
 // vitest (via `npm run test`/`npm test`) always runs with cwd = the `scaffold/`
-// project root (vitest.config's root), the same directory `scripts/` and `android/`
-// both live directly under - matching how `main()` resolves paths from
-// `git rev-parse --show-toplevel` at runtime, just without the git dependency here.
+// project root - `package.json`'s scripts run from the directory they live in, and
+// `vitest.config.ts` sets no `root` override of its own - the same directory
+// `scripts/` and `android/` both live directly under, matching how `main()` resolves
+// paths from `git rev-parse --show-toplevel` at runtime, just without the git
+// dependency here. code-review-round6.md L1: this is only a CONVENTION, not something
+// enforced here - see the `existsSync` assertion below, which is what actually makes
+// the S4 regression test fail (rather than silently pass) if it is ever violated.
 const SCAFFOLD_ROOT = process.cwd();
 
 describe('scanEnvTemplate (S6)', () => {
@@ -227,7 +232,18 @@ describe('S4 regression: the real committed android/app/build.gradle', () => {
     const relPath = 'android/app/build.gradle';
     expect(classifyTrackedPath(relPath)).toBe('line-rules');
 
-    const readFile = (absPath) => readFileSync(absPath, 'utf8');
+    // code-review-round6.md L1: `processFiles`'s line-rules branch swallows a missing
+    // file silently (`check-no-secrets.mjs`'s `catch { continue; }`, by design - a
+    // deleted tracked file isn't this checker's problem), so a bare `readFileSync`
+    // reader that never actually reached the real file would make this test PASS with
+    // zero failures for the wrong reason (reproduced: running this file with
+    // `cwd` one directory too high gave exactly that). Assert the file was actually
+    // found first, so a future cwd/path regression fails LOUDLY here instead of
+    // silently proving nothing.
+    const absPath = path.join(SCAFFOLD_ROOT, relPath);
+    expect(existsSync(absPath), `expected ${absPath} to exist - is cwd the scaffold/ project root?`).toBe(true);
+
+    const readFile = (p) => readFileSync(p, 'utf8');
     const { failures } = processFiles(SCAFFOLD_ROOT, [relPath], readFile);
 
     const s4Failures = failures.filter((failure) => failure.startsWith('S4:'));

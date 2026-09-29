@@ -10,6 +10,7 @@
 *(Status updated 2026-09-25, v1.3: OQ-S1, OQ-A1 and Q-v3-1 also DECIDED by the owner; OQ-M11..OQ-M14 still PENDING.)*
 *(Status updated 2026-09-25, v1.4: OQ-S1a (hero name "ShieldMan") DECIDED by the owner; a name/trademark check on "ShieldMan" is recommended before step 15; OQ-M11..OQ-M14 still PENDING.)*
 *(Status updated 2026-09-27, v1.5: PM clarification M2.10a (too-small window, any shape) added; no owner decision reopened or needed; OQ-M11..OQ-M14 still PENDING.)*
+*(Status updated 2026-09-28, v1.6: PM decision M2.3b (the playfield may extend under the top/bottom system-gesture bands; text and controls may not) so the 640 × 360 dp reference phone plays with real Android insets; no owner decision reopened or needed; OQ-M11..OQ-M14 still PENDING.)*
 (see §Pending Owner Decisions, OQ-M1..OQ-M14). Every pending decision has a
 default already written into the acceptance criteria below so downstream
 steps (ui-ux-designer round 1, solution-architect) can start. Any owner answer
@@ -87,6 +88,25 @@ cleanly, no tablet-specific layout") and the existing M2.10 pattern rather
 than adding a small-window layout. It is Android screen-fitting only (§0
 rule 2), not a shared game change. Original text is kept; see §9.
 
+**Amendment 2026-09-28 (Draft v1.6) — real Android insets on the 640 × 360
+dp reference phone (code-review round 8 E1, PM decision).** The round-8 code
+review measured real insets on an Android 16 emulator with gesture
+navigation: about 28 dp at the top (the swipe-down band exists even with the
+status bar hidden), 32 dp at the bottom (the home-gesture band) and about
+30 dp on each side (the back gesture). The v1.5 floor subtracted every edge
+inset from the playfield height. A 640 × 360 dp window therefore needs
+t + b ≤ 60 dp, and the real value is about 60. A phone with a slightly taller
+status bar would show "Make the window larger to play." on every screen, on
+the very phone class that M2.6 and M2.12 name as the design target.
+Decision, new **M2.3b**: the **playfield** (non-interactive game art) may
+extend under the top and bottom **system-gesture bands**. HUD text, touch
+controls and menu buttons still may not, and nothing extends under a display
+cutout. The 0.5× floor (M2.13), control sizes (M3.1, M3.2), text sizes (M2.6,
+M2.11) and the side-inset rule (M2.3a) are unchanged. M2.10a and M2.12 get
+dated notes. **Not owner-level:** it changes no game rule, cost or scope, and
+keeps OQ-M7 (a) (no new layout). It is Android screen fitting only (§0
+rule 2). Original text is kept; see §9.
+
 **What this document is — and is not.** The game itself (levels, enemies,
 shield bounce, power-ups, lives, score, pause options, bosses, countdown,
 Game Complete) is already fully defined by `docs/PRD.md` (F1-F10, NFR-1..10)
@@ -117,6 +137,7 @@ performance on low-end devices, and Google Play store/policy requirements.
 - Owner instruction 2026-09-25, relayed verbatim by the main session: *'change Vanguard name to "ShieldMan"'* (2026-09-25, given right after the "Shield vs Robots" decision) → §7 OQ-S1a *(added 2026-09-25, v1.4)*
 - `docs/mobile/market/play-store-research.md` §3-§4 — name/trademark check on "ShieldMan" being run by mobile-marketing-analyst (result pending; → OQ-S1a) *(added 2026-09-25, v1.4)*
 - `docs/mobile/tooling-setup-log.md` (2026-09-27 step-7 entry, "Fold-AVD window-size question"), `docs/mobile/tests/validation-report-round2.md` (svr_api36_fold row, known gaps), `docs/mobile/reviews/code-review-round7.md` I6 — too-small landscape window has no defined behavior (→ M2.10a) *(added 2026-09-27, v1.5)*
+- `docs/mobile/reviews/code-review-round8.md` E1: real gesture-navigation insets measured on `svr_api36_pixel7` (t ≈ 28.2, b = 32, sides ≈ 29.7 dp) make the 640 × 360 dp reference window miss the v1.5 floor (→ M2.3b, M2.10a and M2.12 v1.6 notes) *(added 2026-09-28, v1.6)*
 
 ---
 
@@ -348,6 +369,73 @@ them.
   **0** back gestures, pauses, or home gestures are triggered, and the
   game does not interrupt itself. Deliberate edge swipes that start on the
   screen edge outside the controls still perform back (→ pause, M5).
+
+  **Amended 2026-09-28 (v1.6, code-review-round8 E1) — M2.3b The playfield
+  may extend under the top and bottom system-gesture bands.** Background for
+  the owner: during full-screen play, Android still reserves an invisible
+  band along the top edge (swipe down to show the status bar) and along the
+  bottom edge (swipe up to go home). Android draws nothing there during play,
+  and the game never needs a touch on the playfield. So drawing game art in
+  those bands is safe, while text and buttons must stay out of them.
+  1. *Playfield.* The scaled playfield (canvas art: robots, ShieldMan,
+     shields, power-ups, lasers, background) counts as "background art" under
+     M2.3. Its rectangle may lie under the **top and bottom system-gesture
+     insets** and the hidden status-bar area. It may **not** lie under a
+     display cutout on any edge, never lies in the left or right insets, and
+     never overlaps a control column (M2.3a, M2.4, M2.12). For the vertical
+     fit, only the top and bottom **display-cutout** insets limit the
+     playfield's height.
+  2. *Text.* All text drawn over the playfield (the HUD's score, lives,
+     level, permanent multiplier and active power-up indicator, and any
+     on-playfield hint text) lies fully inside the window minus the **full**
+     M2.3a edge insets (the larger of cutout and system gesture) on all four
+     edges. HUD panel backgrounds may extend into a band; the text may not.
+     The playfield may sit off-centre vertically to achieve this.
+  3. *Controls and menus: unchanged.* Every touch control's full touchable
+     area and every menu button stays inside the full edge insets on all four
+     edges (M2.3, M2.3a, M3.2). Menus, dialogs and the M2.10/M2.10a prompts
+     stay inside the insets as today.
+  4. *Not changed.* The 0.5× floor (M2.13); M3.1 sizes and gaps; M3.2 PAUSE
+     rules; M2.6 and M2.11 text rules; M2.3a's side-edge rule and its 20-press
+     test; M2.2 uniform scaling. No control shrinks and no new layout is added
+     (OQ-M7 (a)). No game rule changes (§0 rule 2).
+  Acceptance (the unit and Playwright tests use the insets fallback; (e) is
+  on an emulator; the architecture doc states the exact formula):
+  (a) **The reference phone plays.** Take a 16:9, 640 × 360 dp landscape
+  window with gesture navigation, no display cutout, default back-gesture
+  sensitivity and a 24-28 dp status bar, modelled as insets l = r = 30,
+  t = 24 to 28.2, b = 32 dp, cutout 0 on every edge. On it the game is
+  playable on every screen: no M2.10a prompt; playfield ≥ 0.5×
+  (≥ 400 × 300 dp); ◀ ▶ THROW ≥ 56 dp; PAUSE ≥ 48 dp; ≥ 8 dp between
+  adjacent targets; and a run can be started and played. The test table
+  includes at least (l, r, t, b) = (30, 30, 24, 32), (30, 30, 28.2, 32) and
+  the round-8 measured (29.7, 29.7, 28.2, 32), each in both control layouts
+  (M3.13).
+  (b) **Three-button navigation also plays** on the same window, with at
+  least (0, 48, 24, 0) and (48, 0, 24, 0).
+  (c) **Text and controls stay out of the bands.** For each case in (a) and
+  (b), element bounds (and one screenshot per case on the emulator) show:
+  every HUD/hint text box has top ≥ t and bottom ≤ H − b; every control is
+  inside the full insets; the playfield rectangle may extend into [0, t) and
+  (H − b, H].
+  (d) **No art under a cutout.** With a 30 dp top display cutout (fixture;
+  the top edge inset is then ≥ 30), the playfield's top edge is at ≥ 30 dp.
+  The same applies to the bottom edge.
+  (e) **Device evidence.** Use the representative 640 × 360 dp AVD that the
+  lead tester adds to `docs/mobile/tests/device-matrix.md` (16:9, no
+  cutout, gesture navigation, API 34+; code-review-round8 E1 (c)). Cold
+  launch shows the title with no prompt. Start, then play for 30 s; the run
+  plays normally. Record the reported insets and the resulting scale next to
+  the screenshot. The `svr_api36_pixel7` `wm size` run is **not** this
+  profile.
+  *Known limit (accepted; recorded in architecture MR4).* Width is not
+  relaxed: the side columns still need l + r ≤ 64 dp on a 640 dp wide window.
+  Default gesture navigation (≈ 30 dp per side) and three-button navigation
+  fit. A 640 dp wide phone with a side camera cutout, or with the back-gesture
+  sensitivity set above default, still gets the M2.10a prompt. The closed
+  test (step 16) asks testers to report any "Make the window larger to play."
+  seen on a phone in full screen. If real devices show it, the options go to
+  the owner then (§7 v1.6 note); the floor is not changed ad hoc.
 - **M2.4 Controls never cover the playfield.** Touch controls sit outside the
   scaled playfield (in the side columns) on every screen ≥ 16:10. On screens
   squarer than that (e.g. 4:3 tablets), the playfield is scaled down until the
@@ -449,6 +537,26 @@ them.
     Web behavior does not change. M2.9 fold/unfold still needs a device or
     emulator whose window actually resizes. The fixed-size fold AVD can
     only exercise M2.10a (see the validation report's known gaps).
+
+  **Amended 2026-09-28 (v1.6, M2.3b; code-review-round8 E1).**
+  (1) *Definition.* "Too small to play" is now judged with M2.3b. The
+  playfield's height is limited only by the top and bottom **display-cutout**
+  insets, and the HUD/hint text must still fit inside the full top and bottom
+  edge insets (M2.3b rule 2). The width test is unchanged: both columns at
+  their minimum widths inside the full side insets, plus a ≥ 400 dp
+  playfield. The "narrower than 624 dp or shorter than 300 dp" example (24 dp
+  side insets, no top/bottom inset) still holds.
+  `docs/mobile/architecture/mobile-architecture.md` restates the exact
+  formula.
+  (2) *Test (c) boundary* is judged with real-inset values and on the M2.3b
+  (e) AVD. A 640 × 360 dp window with insets (l 30, r 30, t 28.2, b 32) plays
+  with no prompt. A 600 × 360 dp window with the same insets shows the
+  prompt. The `svr_api36_pixel7` `wm size` 640 × 360 run keeps a scaled
+  36 dp left camera cutout (l + r ≈ 66 > 64). Its prompt is therefore the
+  expected result under the M2.3b known limit, not an M2.10a (c) failure, and
+  it is recorded that way.
+  (3) The rest of M2.10a (behavior 1-5, tests (a), (b), (d), message text) is
+  unchanged.
 - **M2.11 System font size.** With the Android system font size set to its
   largest value, HUD, menus and help text do not overflow, clip, or overlap
   controls.
@@ -479,6 +587,17 @@ them.
   `docs/mobile/tests/device-matrix.md`; (c) HUD/menu text still meets M2.6
   and game art still meets M2.7 **at the resulting scale** (≈ 0.52×, not the
   ~0.6× originally estimated in M2.6).
+
+  **Amended 2026-09-28 (v1.6, M2.3b; code-review-round8 E1).** The 24 dp side
+  insets and "≈ 0.52×" above are planning numbers. With real
+  gesture-navigation insets (≈ 30 dp per side) the 640 × 360 dp playfield is
+  about **404 × 303 dp (≈ 0.505×)**, still ≥ 0.5×. The minimum column widths
+  and the ≥ 0.5× floor are unchanged. Acceptance (a) now also asks the
+  architecture doc to show the arithmetic with the measured code-review-round8
+  E1 insets and with three-button navigation, on **both** axes (vertical per
+  M2.3b). (b) is run on the M2.3b (e) representative AVD. (c): M2.6 text and
+  M2.7 art are judged **at the actual scale on that AVD** (≈ 0.505×), and the
+  round-2 UX review checks them there.
 - **M2.13 Playfield scale floor on every screen (added 2026-09-25, UX round
   1 N2).** On every device in the matrix the playfield is rendered at
   **≥ 0.5×** (≥ 400 × 300 dp) and at the device's real pixel density (M2.8),
@@ -1079,6 +1198,21 @@ listed here only for traceability.)
 > risk and changes no game rule. It would become an owner question only if
 > someone proposed a new small-window or band layout instead. OQ-M11..OQ-M14
 > remain pending.
+>
+> **Note — 2026-09-28 (v1.6).** M2.3b (the playfield may extend under the
+> top and bottom system-gesture bands; text and controls may not) was
+> decided by the PM to resolve `docs/mobile/reviews/code-review-round8.md`
+> E1. It is **not** an owner question: it adds no feature, cost or scope,
+> changes no game rule, keeps every touch-target and text rule, and keeps
+> OQ-M7 (a) (no new layout). Alternatives considered and rejected: lowering
+> the 0.5× floor to about 0.48× (weakens M2.13/M2.7 art legibility, which the
+> UX gate set) and shrinking ◀ ▶ THROW toward 48 dp (breaks M3.1's 56 dp
+> minimum on this profile). The remaining width limit (a side cutout, or
+> back-gesture sensitivity above default, on a 640 dp wide phone) is
+> recorded in M2.3b. It becomes an owner question only if closed-test
+> testers actually hit it; the options would then be an Android
+> back-gesture exclusion area over the controls or a smaller-control layout.
+> OQ-M11..OQ-M14 remain pending.
 
 Each item: the issue, which doc/subagent it affects, options with
 consequences, the PM recommendation, and the **default already applied** in
@@ -1516,6 +1650,11 @@ block. Both platforms' gates re-run per §0 rule 3.
   `docs/mobile/reviews/code-review-round7.md` I6) and to OQ-M7 (a). It is
   Android screen fitting (§0 rule 2), not a shared game change, so the
   shared PRD is not amended.
+- *(Added 2026-09-28, v1.6.)* M2.3b traces to
+  `docs/mobile/reviews/code-review-round8.md` E1 (measured insets), to M2.3's
+  existing "background art may extend under them" clause, and to OQ-M7 (a).
+  It is Android screen fitting (§0 rule 2), not a shared game change, so the
+  shared PRD is not amended.
 - Market complaint patterns → requirements: ads → M11.5/OQ-M1; touch targets
   and cut-off HUD → M2.3-M2.7, M3.1-M3.2/OQ-M2; fire-button lag → M3.6,
   M10.1; crashes → M10.4, M10.7, MG1.
@@ -1541,6 +1680,7 @@ block. Both platforms' gates re-run per §0 rule 3.
 | 2026-09-25 (v1.3) | Owner decision OQ-S1 = (b), rename (owner overrode PM recommendation (a)) | header; Sources; §7 OQ-S1, OQ-M3 note, OQ-M11 option (a)/placeholder; M9.1 (+v1.3 block); new M9.6; M12.1, M12.3 (+v1.3 blocks); new M12.6; §8 | Product name "Shield vs Robots" (store title + launcher label); hero stays "Vanguard"; enemies "robots"; app ID placeholder `io.github.hogy86.shieldvsrobots`; OQ-S1 (a) Marvel-avoidance constraints kept as M9.6 plus no S.H.I.E.L.D.-style "Shield". Shared rename ACs in `docs/PRD-addendum-v4.md`. OQ-M11 still pending. |
 | 2026-09-25 (v1.4) | Owner decision OQ-S1a: *'change Vanguard name to "ShieldMan"'* (2026-09-25, given right after the "Shield vs Robots" decision) | header (+hero line, status, v1.4 block); Sources; §7 log, OQ-M3 note, new OQ-S1a; M2.4, M3.3/M3.3a, M9.1, M12.1, M12.3, M12.6 (+v1.4 blocks); M9.6 (+items 5-8); §8 | Hero renamed "Vanguard" → "ShieldMan" in all player-visible text; product name, "robots" and app ID placeholder unchanged. Risk note: close to Archie Comics' "The Shield" and Captain America — name/trademark check on "ShieldMan" recommended and made a precondition for step 15 (M9.6 item 8; mobile-marketing-analyst running it). Shared hero-name AC to be added to the shared PRD by the website product-manager; both pipelines' gates re-run. |
 | 2026-09-27 (v1.5) | Spec gap: `docs/mobile/tooling-setup-log.md` 2026-09-27 fold-AVD entry; `docs/mobile/tests/validation-report-round2.md` svr_api36_fold row; `docs/mobile/reviews/code-review-round7.md` I6 | header (status, v1.5 block); Sources; new M2.10a (under M2.10); M2.13 (+v1.5 note); M5 back table (+v1.5 note); §7 note; §8 | Any window that can't fit the M2.12 columns + a ≥ 0.5× playfield (≈ < 624 × 300 dp at nominal insets), of any shape, pauses the game and shows only "Make the window larger to play." Portrait-shaped windows keep M2.10's text. Enlarging it re-lays out within 1 s to the prior screen (a run returns on the pause menu, never auto-resumes). Back leaves the app. Emulator tests (a)-(d), including the fold AVD at 412 × 309 dp and the 640/600 dp boundary. PM decision within OQ-M7 (a), not owner-level. Android-only, no shared PRD change. |
+| 2026-09-28 (v1.6) | `docs/mobile/reviews/code-review-round8.md` **E1** (real gesture-nav insets on `svr_api36_pixel7`: t ≈ 28.2, b = 32, sides ≈ 29.7 dp; 640 × 360 dp window misses the v1.5 floor) | header (status, v1.6 block); Sources; new **M2.3b** (under M2.3a); M2.10a (+v1.6 note: definition, test (c)); M2.12 (+v1.6 note); §7 note; §8 | The **playfield** (non-interactive game art) may extend under the top and bottom **system-gesture** bands and the hidden status-bar area; its height is limited only by top/bottom **display-cutout** insets. HUD/hint **text**, touch controls and menu buttons stay inside the full `max(cutout, gesture)` insets on all four edges. Floor (0.5×), control sizes, text sizes and side-inset rule unchanged. Testable: a 16:9 640 × 360 dp phone with gesture navigation and a 24-28 dp status bar (insets 30, 30, 24-28.2, 32) plays at ≈ 0.505× with no prompt; three-button navigation plays; text/controls out of the bands; no art under a cutout; device evidence on a representative AVD. Known limit: width not relaxed (l + r ≤ 64 dp at 640 dp wide); side cutout or above-default back sensitivity still prompts — watched in the closed test. Rejected: lower floor (0.48×), smaller controls. PM decision within OQ-M7 (a), not owner-level. Android-only, no shared PRD change. |
 
 Not changed (v1.3): OQ-M11..OQ-M14 remain pending (only OQ-M11's option (a)
 app ID text was updated); no original AC text was deleted — every v1.3
@@ -1559,6 +1699,36 @@ implements it (step 7 → 8). mobile-lead-tester adds tests (a)-(d) and
 changes the `svr_api36_fold` expected result in
 `docs/mobile/tests/device-matrix.md` (step 10). mobile-ui-ux-designer checks
 the prompt screen in round 2 (step 11).
+
+Not changed (v1.6): no original or v1.1-v1.5 text was deleted, and no owner
+decision was reopened or needed. The 0.5× floor (M2.13), every touch-target
+rule (M3.1, M3.2), every text rule (M2.6, M2.11), M2.3a's side-edge rule and
+its 20-press test, the M2.10a prompt behavior and text, and OQ-M7 (a) (no new
+layout) are unchanged. No game rule changes, so the shared PRD is not amended
+and the website is unaffected (§0 rule 2).
+Follow-ups (each by the agent that owns the doc):
+- **mobile-solution-architect** amends
+  `docs/mobile/architecture/mobile-architecture.md`: §6.1 (GameShell must
+  give JS the top/bottom **display-cutout** insets separately from the
+  combined `max(cutout, gesture)` edge insets); §6.2 `computeLayout`
+  (playfield height limited by top/bottom cutout insets only; vertical
+  placement keeps HUD/hint text inside the full top/bottom insets, M2.3b
+  rule 2); §6.2.1 (restated `minH` formula, nominal values and worked-check
+  rows with the M2.3b (a)/(b)/(d) insets); §6.3 and §6.4 (re-worked with the
+  code-review-round8 E1 measured insets, both axes, headroom stated per
+  axis); §6.5 (HUD text placement); §10.1 (tests for M2.3b (a)-(d)); §12 MR4
+  (the M2.3b known width limit); a new amendment entry.
+- **mobile-junior-developer** implements it (step 7 → 8).
+- **mobile-lead-tester** adds the representative 640 × 360 dp AVD to
+  `docs/mobile/tests/device-matrix.md` (M2.3b (e); code-review-round8 E1 (c))
+  and re-judges M2.10a (c) and M2.12 on it (step 10).
+- **mobile-ui-ux-designer** checks M2.7 art and M2.6 text at the real
+  ≈ 0.505× scale and the HUD position near the top band (step 11).
+- **mobile-security-compliance-reviewer** sees the GameShell inset-field
+  change in pass 2 (no new permission or plugin expected).
+- **mobile-product-manager** adds "report any 'Make the window larger to
+  play.' shown on a phone in full screen" to the closed-test checklist
+  (step 16).
 
 Not changed: owner decisions OQ-M1..OQ-M10 (final). v1.2 changes no
 existing AC text and decides no owner question; the architecture docs are

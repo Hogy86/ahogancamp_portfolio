@@ -24,10 +24,13 @@ import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 // playwright.mobile.config.ts has no `import.meta`/`__dirname` use elsewhere, and the
-// eslint `no-restricted-syntax` rule reserves `import.meta` for src/main.ts (M-ADR-0002);
-// Playwright always runs from the repo root (its own config resolves `testDir` and
-// `webServer.command` relative to it), so an explicit cwd-relative path is both simpler
-// and consistent with that rule.
+// eslint `no-restricted-syntax` rule reserves `import.meta` for src/main.ts (M-ADR-0002).
+// code-review-round6.md S2: this resolves from `process.cwd()`, which is the
+// `scaffold/` project root (the directory containing `package.json`) - both under
+// `npm run test:e2e:mobile` and in the `mobile-e2e` CI job (`deploy-pages.yml`'s
+// `working-directory: .../scaffold`) - NOT the repo root. `dist-android` and
+// `android/` both live directly under that same directory, so an explicit
+// cwd-relative path is still both simpler and correct.
 const REPO_ROOT = path.resolve(process.cwd());
 const SCANNABLE_EXTENSIONS = new Set(['.js', '.html', '.css']);
 

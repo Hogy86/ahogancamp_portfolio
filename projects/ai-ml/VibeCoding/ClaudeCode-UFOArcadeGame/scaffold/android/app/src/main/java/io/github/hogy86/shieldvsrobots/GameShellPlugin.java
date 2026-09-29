@@ -29,7 +29,7 @@ public class GameShellPlugin extends Plugin {
     // the UI thread; read from getEdgeInsets(), which runs on the plugin's own
     // (non-UI) thread by default. `volatile` makes each thread see the other's
     // latest write instead of a possibly-stale cached value.
-    private volatile JSObject lastInsets = insetsToJson(0, 0, 0, 0);
+    private volatile JSObject lastInsets = insetsToJson(0, 0, 0, 0, 0, 0);
     private volatile boolean hasDispatchedInsets = false;
 
     @Override
@@ -66,11 +66,17 @@ public class GameShellPlugin extends Plugin {
         Insets gestures = insets.getInsets(WindowInsetsCompat.Type.systemGestures());
         float density = getActivity().getResources().getDisplayMetrics().density;
 
+        // §6.1 Amendment A12: cutoutTop/cutoutBottom report the display-cutout inset
+        // alone (not maxed with system gestures) - the playfield's top/bottom limit
+        // (§6.2 A12), separate from the full l/r/t/b edge insets used by controls.
+        // Left/right cutout values are not added: M2.3b keeps the side rule unchanged.
         return insetsToJson(
             Math.max(cutout.left, gestures.left) / density,
             Math.max(cutout.right, gestures.right) / density,
             Math.max(cutout.top, gestures.top) / density,
-            Math.max(cutout.bottom, gestures.bottom) / density
+            Math.max(cutout.bottom, gestures.bottom) / density,
+            cutout.top / density,
+            cutout.bottom / density
         );
     }
 
@@ -130,12 +136,17 @@ public class GameShellPlugin extends Plugin {
         call.resolve();
     }
 
-    private static JSObject insetsToJson(double left, double right, double top, double bottom) {
+    private static JSObject insetsToJson(
+        double left, double right, double top, double bottom, double cutoutTop, double cutoutBottom
+    ) {
         JSObject insets = new JSObject();
         insets.put("left", left);
         insets.put("right", right);
         insets.put("top", top);
         insets.put("bottom", bottom);
+        // §6.1 Amendment A12: the playfield-only top/bottom cutout limits.
+        insets.put("cutoutTop", cutoutTop);
+        insets.put("cutoutBottom", cutoutBottom);
         return insets;
     }
 }

@@ -4,6 +4,28 @@ Format: what, why, which agent, date.
 
 ---
 
+## 2026-09-28 — COMPLETED — mobile-it-analyst (step 10): E1(c) low-end device
+
+**What:** A representative 640 × 360 dp AVD for the device matrix (per code-review-round8.md E1(c)).
+
+**Which agent:** mobile-it-analyst
+
+**Status:** COMPLETED 2026-09-28
+
+**AVD created and verified:**
+- `svr_api36_lowend_640x360` (API 36, google_apis x86_64)
+- 640 × 360 dp landscape (1280 × 720 px at 320 dpi)
+- 16:9 aspect ratio
+- No display cutout
+- Gesture navigation enabled (navigation_mode=2)
+- Booted successfully, confirmed `sys.boot_completed=1`
+- Display verified: `wm size` → 1280×720, `wm density` → 320 dpi
+- System insets recorded: 24 dp bottom nav bar, no cutout, gesture bands on all edges
+
+**Log reference:** See `docs/mobile/tooling-setup-log.md`, dated 2026-09-28.
+
+---
+
 ## 2026-09-27 — mobile-lead-tester (step 10)
 
 **What:** Three additional/replacement emulator images for the device matrix in

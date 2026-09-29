@@ -5,7 +5,7 @@
      attribute). This base (unqualified) folder applies to API < 28, where the attribute
      does not exist yet, so it is omitted here entirely - a no-op, not a bug. See
      values-v28/styles.xml and values-v30/styles.xml for the versions that set it.
-     code-review-round2 (mobile) F1: an unqualified "always" here crashed API 28 devices
+     validation-report-round2 F1: an unqualified "always" here crashed API 28 devices
      with `UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3`. -->
 <resources>
 

@@ -70,3 +70,42 @@
 Recorded by the main session because the architect could not list this directory. The Decision text above is kept as the historical record; where later text differs, it wins.
 - PRD-mobile v1.5 M2.10a (too-small window, any shape) is specified in mobile-architecture.md §6.2.1 (A11): portrait windows keep M2.10's prompt; a landscape window with `W < l + r + 576` or `H < t + b + 300` (run-time insets) pauses and shows "Make the window larger to play." The playfield never renders below 0.5×; the old fixed `W < 640 || H < 360` rule is replaced.
 - Back order (§8.3, A11): the too-small/rotate prompt is checked before any open overlay, so Back leaves the app while the prompt shows.
+
+## Amendment note (2026-09-28, architecture v1.6, Amendment A12)
+Written by mobile-solution-architect. The Decision text above is kept as the historical
+record; where later text differs, it wins. Full specification: `mobile-architecture.md`
+§6.2.1 A12 (behavior 4), §10.1 A12 and §12 MR20.
+
+- **The floor changed; the lifecycle rules did not.** The too-small height test is now
+  `H ≥ max(cT, t − 2) + max(cB, b − 6.5) + 300` (PRD-mobile v1.6 M2.3b; see M-ADR-0004's
+  A12 note). The width test (`W ≥ l + r + 576`) is unchanged. So are pause on entering a
+  prompt, restore to the pause menu, and back leaving the app with the prompt checked first.
+- **Keyboard under a size or rotate prompt (code-review-round8 I3): decided to gate it,
+  not accept it.** Before A12, a hardware Enter on a hidden title started a run that was
+  then paused at once. Esc or Enter on a hidden pause menu let one frame of play pass
+  (≈ 16 ms, up to 0.25 s on a stalled frame) before the `onFrame` guard re-paused it. Both
+  break M2.10a behavior 3 ("no … menu … responds") and M4.2 (no game time passes while the
+  prompt shows). Chromebooks with keyboards are an M1.3 target. The decision:
+  - **Keydown is blocked while a prompt shows.** The Android-only capture-phase `document`
+    `keydown` listener in `overlays.ts` (the one that already gates game keys under the
+    shell overlays) checks the prompt **first**. While the prompt shows, it calls
+    `preventDefault()` and `stopPropagation()` on every `keydown` and does nothing else.
+    Esc does not close a hidden overlay, which matches the back order.
+  - **Keyup passes**, so a key held before the prompt still releases normally and never
+    sticks.
+  - **Focus is cleared.** On entering a prompt, a focused element inside `#app-root` or
+    `#safe-layer` (including the privacy iframe) is blurred.
+  - **The `onFrame` re-pause guard stays** as defense in depth.
+  - **No shared code changes**, and the web is unchanged.
+- **Alternatives considered (and why rejected).**
+  - **Accept and record.** Rejected. It leaves M2.10a behavior 3 and M4.2 broken on
+    keyboard devices. It can also move a player from the title into a paused run they did
+    not start.
+  - **A hold flag in the shared `InputManager`.** Rejected. It is a shared-code change that
+    would need the web gates. It also would not stop Android's own overlay Esc handler from
+    closing a hidden overlay.
+  - **`loop.suspend()` while a prompt shows.** Rejected. It competes with the lifecycle
+    `resume()` for control of the loop, and key edges buffered during the prompt would
+    fire after the restore.
+- **Traces to:** PRD-mobile v1.6 M2.3b and the M2.10a v1.6 note; M2.10a behaviors 3-5;
+  M4.2; M1.3; M3.10; code-review-round8 I3 and S1; MR20.

@@ -70,8 +70,9 @@ html.platform-android .menu-item.selected {
 
 /* Both are absolutely-positioned children of #safe-layer (§6.5). Explicit stacking
    (rather than relying on DOM order alone) guarantees shell overlays (Help/Settings/
-   Privacy/RotatePrompt) always paint above the game-screen overlay when both happen
-   to be present in the DOM at once. */
+   Privacy - RotatePrompt is a separate `<body>` child, not one of these, see
+   `screenFit.ts`) always paint above the game-screen overlay when both happen to be
+   present in the DOM at once. */
 #overlay-root {
   z-index: 21;
   /* code-review-round2 C1: #overlay-root is a full-size sibling that stays in the DOM
@@ -108,9 +109,11 @@ html.platform-android .menu-item.selected {
   width: 100%;
   height: 100%;
   z-index: 22;
-  /* Each child overlay (Help/Settings/Privacy/RotatePrompt) toggles its own `.hidden`
-     class (AndroidOverlays); this container itself has no visible box of its own when
-     every child is hidden, so it never blocks clicks meant for #overlay-root/canvas. */
+  /* Each child overlay (Help/Settings/Privacy) toggles its own `.hidden` class
+     (AndroidOverlays); this container itself has no visible box of its own when every
+     child is hidden, so it never blocks clicks meant for #overlay-root/canvas.
+     RotatePrompt is not a child of this container - see #shell-overlay-root's own
+     comment above and `screenFit.ts`. */
   pointer-events: none;
 }
 
@@ -204,8 +207,42 @@ html.platform-android .menu-item.selected {
   border-style: dashed; /* shape change, not color alone (NFR-9) */
 }
 
-.rotate-prompt.hidden,
 .hidden {
+  display: none;
+}
+
+/* §6.2.1 (Amendment A11): unlike Help/Settings/Privacy (which stay inside the
+   inset-safe `#safe-layer`, `.screen-overlay`), RotatePrompt is appended directly to
+   `<body>` (screenFit.ts) so its BACKGROUND covers the true full viewport, edge to
+   edge, under any cutout/gesture inset too (M2.10a behavior 2: "a full-viewport layer
+   ... covers the window"). `z-index` above `#safe-layer` (30) so it visually and
+   pointer-event-wise covers every other layer regardless of DOM order. Explicit
+   `top`/`left`/`width`/`height` rather than the `inset` shorthand - same WebView <
+   Chromium 87 compatibility reason as `#shell-overlay-root`/`.touch-layer` above.
+   `box-sizing: border-box` so the insets `screenFit.ts` applies as inline `padding`
+   shrink the CONTENT area (keeping the message "inside the edge insets", M2.10a) while
+   the element's own 100%/100% box - and therefore its background - stays full-size. */
+.rotate-prompt {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 40;
+  box-sizing: border-box;
+  background: #05050a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.rotate-prompt p {
+  margin: 0;
+  color: #c8c8e0;
+}
+
+.rotate-prompt.hidden {
   display: none;
 }
 

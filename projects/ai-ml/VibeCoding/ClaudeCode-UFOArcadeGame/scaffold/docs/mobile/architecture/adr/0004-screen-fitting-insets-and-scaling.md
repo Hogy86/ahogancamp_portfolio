@@ -79,3 +79,67 @@
 Recorded by the main session because the architect could not list this directory. The Decision text above is kept as the historical record; where later text differs, it wins.
 - PRD-mobile v1.5 M2.10a (too-small window, any shape) is specified in mobile-architecture.md §6.2.1 (A11): portrait windows keep M2.10's prompt; a landscape window with `W < l + r + 576` or `H < t + b + 300` (run-time insets) pauses and shows "Make the window larger to play." The playfield never renders below 0.5×; the old fixed `W < 640 || H < 360` rule is replaced.
 - Back order (§8.3, A11): the too-small/rotate prompt is checked before any open overlay, so Back leaves the app while the prompt shows.
+
+## Amendment note (2026-09-28, architecture v1.6, Amendment A12)
+Written by mobile-solution-architect. The Decision text above is kept as the historical
+record; where later text differs, it wins. Full specification: `mobile-architecture.md`
+§6.1-§6.5 A12, §6.2.1 A12 and §16 A12.
+
+**Trigger.** PRD-mobile v1.6 **M2.3b**, a mobile-product-manager decision made in response
+to `docs/mobile/reviews/code-review-round8.md` **E1**. Real gesture-navigation insets measured
+on `svr_api36_pixel7` (t ≈ 28.2, b = 32, sides ≈ 29.7 dp) made the 640 × 360 dp reference
+window miss the A11 floor (`t + b ≤ 60` needed; 60.19 measured). M2.3b lets the playfield
+(non-interactive art) extend under the top and bottom **system-gesture** bands, never under
+a display cutout. HUD/hint text, controls and menus stay inside the full insets.
+
+**What changes in this ADR's decisions.**
+- **Decision 2 (GameShell) is extended.** The inset payload (`getEdgeInsets()` and
+  `edgeInsetsChanged`) gains `cutoutTop` and `cutoutBottom`: the display-cutout insets
+  alone, in dp. The four edge fields keep their meaning, `max(cutout, gesture)`, and still
+  govern controls, menus, prompts and all text. If a payload has no cutout fields (for
+  example a stale native build), JS treats each cutout as equal to its edge inset. That is
+  fail-safe: it reproduces the A11 layout, with no art in the bands. This is the only
+  native change. It adds no permission, method, plugin, storage or network, and it goes to
+  security pass 2.
+- **Decision 1 (layout) changes on the vertical axis only:**
+  - `availH = H − max(cT, t − 2) − max(cB, b − 6.5)`.
+  - The playfield is centred between `max(cT, t − 4s)` and `H − max(cB, b − 13s)`.
+  - Floor: `W ≥ l + r + 576` (unchanged) and `H ≥ max(cT, t − 2) + max(cB, b − 6.5) + 300`.
+    The classification still equals `computeLayout(...).belowFloor`.
+  - The width rule, the B = 64 → 56 order and control placement are unchanged.
+- **Decision 3 is kept.** No safe-area padding is added to the HUD. Text stays safe through
+  the playfield's position alone, using two documented constants:
+  - `TEXT_TOP_LOGICAL = 4`: the canvas warnings' em-box top.
+  - `TEXT_BOTTOM_LOGICAL = 13`: the control hint's content-box bottom.
+
+  The HUD panels' content box starts at logical y 15, so it never binds.
+- **RotatePrompt location (code-review-round8 I1).** RotatePrompt is a `<body>`-level,
+  fixed, full-viewport layer above `#safe-layer`, not a child of it. Its message is kept
+  inside the insets by padding.
+
+**Consequences.**
+- At measured gesture insets (30, 30, 28.2, 32), 640 × 360 plays at s = 0.505 (404 × 303
+  dp). Headroom is 8.3 dp vertically and 4 dp horizontally.
+- Three-button navigation (0, 48, 24, 0) plays at s = 0.52.
+- The width limit `l + r ≤ 64` on a 640 dp wide window is an accepted known limit. A side
+  cutout or an above-default back-gesture setting still shows the prompt (MR4), and the
+  closed test watches for it.
+- New risks: MR21 (the text constants drift from the shared CSS or canvas; covered by a
+  Playwright DOM-bounds check and a change-control rule) and MR22 (the payload lacks the
+  new fields; covered by the fail-safe default).
+
+**Alternatives considered for A12 (and why rejected).**
+- **A lower floor (0.48×) or smaller controls.** Rejected by PRD-mobile M2.3b rule 4,
+  M2.13 and M3.1.
+- **An exact, scale-dependent vertical solve** (using `4s` and `13s` in the sizing too).
+  Rejected. It needs a piecewise solve to gain about 1-2 dp of height above the floor. The
+  closed form is exact at s = 0.5, which is where the classification needs exactness.
+- **Moving the HUD/hint text by the band overlap instead of moving the playfield.**
+  Rejected. It forks the shared HUD positions per platform (the N1 decision) and pushes the
+  HUD further into the formation area (MR5).
+- **Letting text into the bands as well.** Rejected by M2.3b rule 2.
+- **`env(safe-area-inset-*)` for the cutout.** Rejected for the same reason as Decision 2
+  (it depends on the WebView version). GameShell already holds the exact value.
+
+**Traces to:** PRD-mobile v1.6 M2.3b (rules 1-4, (a)-(e), known limit), the M2.10a and
+M2.12 v1.6 notes, M2.3a, M2.13, M3.1, M3.2; code-review-round8 E1 and I1; OQ-M7 (a).

@@ -1,8 +1,8 @@
 # Mobile Solution Architecture — Shield vs Robots (Android, Capacitor)
 
 **Stage:** Mobile Pipeline Step 4 — mobile-solution-architect
-**Date:** 2026-09-25 (v1); revised 2026-09-25 (v1.1); amended 2026-09-25 (v1.2, Amendment A8); amended 2026-09-26 (v1.3, Amendment A9); amended 2026-09-27 (v1.4, Amendment A10); amended 2026-09-27 (v1.5, Amendment A11)
-**Status:** v1.5. v1.1 was revised after the security pass-1 FAIL (`docs/mobile/security/review-v1.md`)
+**Date:** 2026-09-25 (v1); revised 2026-09-25 (v1.1); amended 2026-09-25 (v1.2, Amendment A8); amended 2026-09-26 (v1.3, Amendment A9); amended 2026-09-27 (v1.4, Amendment A10); amended 2026-09-27 (v1.5, Amendment A11); amended 2026-09-28 (v1.6, Amendment A12)
+**Status:** v1.6. v1.1 was revised after the security pass-1 FAIL (`docs/mobile/security/review-v1.md`)
 and re-reviewed in pass 1b (`docs/mobile/security/review-v1b.md`: PASS, conditional). v1.2
 adds **Amendment A8**, which closes pass-1b findings N1-N4 and the N5 `allowNavigation` note
 (Conditions C2 and C3). v1.3 adds **Amendment A9**, which records the S1 template carve-out
@@ -14,8 +14,20 @@ the three-folder `styles.xml` parity rule (code-review-round7 **L3**), the
 `scripts/check-android-styles.mjs` guard, and the owner's rename to "Shield vs Robots" /
 `io.github.hogy86.shieldvsrobots`. v1.5 adds **Amendment A11**, which answers PRD-mobile
 v1.5 **M2.10a** (too-small window, any shape) with the exact size-floor formula, its
-precedence against M2.10's portrait rule, and the prompt behavior (§6.2.1). All earlier
-decisions are kept unless an **Amendment** note says otherwise. See the §16 amendment log.
+precedence against M2.10's portrait rule, and the prompt behavior (§6.2.1). v1.6 adds
+**Amendment A12**, which answers PRD-mobile v1.6 **M2.3b** (the playfield may extend under
+the top/bottom system-gesture bands; triggered by code-review-round8 **E1**, real insets
+measured on the Pixel 7 AVD). With A12:
+- GameShell reports the top and bottom display-cutout insets separately.
+- Only cutouts limit the playfield's height.
+- All playfield text stays inside the full insets.
+- The floor, the worked profiles and the headroom are restated with measured insets, on
+  both axes.
+- Round-8 **I1** (where RotatePrompt lives) and **I3** (keyboard input under the prompt,
+  now gated) are closed.
+
+All earlier decisions are kept unless an **Amendment** note says otherwise. See the §16
+amendment log.
 **Mobile ADRs:** `docs/mobile/architecture/adr/0001..0012-*.md` (0009-0012 are new in
 v1.1). To keep them apart from the website ADRs (`docs/architecture/adr/0001..0005`), this
 document calls mobile ADRs **M-ADR-000N** and website ADRs **W-ADR-000N**.
@@ -41,8 +53,9 @@ they are, per F22 AC12-AC13: the `vvs:*` storage keys, `VVS_SIGNING_PROPERTIES`,
 - **[v1.4]** `docs/mobile/tests/validation-report-round2.md` **F1** (API 28 crash on launch: `UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3`) and `docs/mobile/reviews/code-review-round7.md` **M1** (§6.6 edited in place without an amendment), **L1-L3** (guard gaps and three-folder parity) and **I1-I3** (evidence notes); answered by A10, see §6.6 and §16
 - **[v1.4]** `docs/PRD-addendum-v4.md` **F22** (rename; AC12-AC13 internal identifiers and storage keys unchanged) and `docs/mobile/PRD-mobile.md` v1.3/v1.4 (OQ-S1 (b), OQ-S1a; app ID placeholder `io.github.hogy86.shieldvsrobots`; M9.1 as amended); applied by A10, see §7.1 and §16
 - **[v1.5]** `docs/mobile/PRD-mobile.md` v1.5: **M2.10a** (too-small window, any shape; asks this document for the exact formula), the dated M2.13 note (windows below the floor are not M2.13 failures) and the dated M5 note (back on the M2.10a prompt leaves the app). Its triggers: `docs/mobile/tooling-setup-log.md` 2026-09-27 fold-AVD entry, `docs/mobile/tests/validation-report-round2.md` svr_api36_fold row, `docs/mobile/reviews/code-review-round7.md` **I6**. Answered by A11, see §6.2.1 and §16
+- **[v1.6]** `docs/mobile/PRD-mobile.md` v1.6: **M2.3b** (the playfield may extend under the top/bottom system-gesture bands; text, controls and menus stay inside the full insets; tests (a)-(e); known width limit), the dated M2.10a and M2.12 v1.6 notes, and the §9 v1.6 follow-up list. Its trigger: `docs/mobile/reviews/code-review-round8.md` **E1** (real insets measured on `svr_api36_pixel7`: l 51.8/36.2, r 29.7, t 28.2, b 32 dp), plus **I1** (RotatePrompt location) and **I3** (keyboard under the prompt) from the same review. Answered by A12, see §6.1-§6.5, §10.1 and §16
 - `docs/architecture/solution-architecture.md` and W-ADR-0001..0005 (the stack, the fixed-timestep loop and state machine, the instrumentation storage pattern)
-- Code read: `src/main.ts`, `src/core/{InputManager,GameLoop,GameStateMachine,world,types}.ts`, `src/systems/WinLossSystem.ts`, `src/ui/{ScreenController,HUDView}.ts`, `src/instrumentation/Instrumentation.ts`, `src/config/constants.ts`, `src/style.css`, `index.html`, `package.json`, `vite.config.ts`, `.gitignore`, and the repo-root `.github/workflows/deploy-pages.yml`. **[v1.4]** Also `android/app/src/main/res/values{,-v28,-v30}/styles.xml`, `scripts/check-android-styles.mjs`, `capacitor.config.ts`, `android/app/build.gradle` (namespace/applicationId) and `res/values/strings.xml`. **[v1.5]** Also `src/platform/android/layout.ts` (`computeLayout`, `needsRotatePrompt`).
+- Code read: `src/main.ts`, `src/core/{InputManager,GameLoop,GameStateMachine,world,types}.ts`, `src/systems/WinLossSystem.ts`, `src/ui/{ScreenController,HUDView}.ts`, `src/instrumentation/Instrumentation.ts`, `src/config/constants.ts`, `src/style.css`, `index.html`, `package.json`, `vite.config.ts`, `.gitignore`, and the repo-root `.github/workflows/deploy-pages.yml`. **[v1.4]** Also `android/app/src/main/res/values{,-v28,-v30}/styles.xml`, `scripts/check-android-styles.mjs`, `capacitor.config.ts`, `android/app/build.gradle` (namespace/applicationId) and `res/values/strings.xml`. **[v1.5]** Also `src/platform/android/layout.ts` (`computeLayout`, `needsRotatePrompt`). **[v1.6]** Also `android/app/src/main/java/io/github/hogy86/shieldvsrobots/GameShellPlugin.java`, `src/platform/android/{GameShell,layout,screenFit,overlays,AndroidPlatform}.ts`, `src/platform/android/android.css`, `src/render/CanvasRenderer.ts` (canvas text positions), `src/ui/HUDView.ts` and `src/core/KeyboardInputSource.ts`.
 - `.claude/CLAUDE.md` §Mobile Pipeline / §One codebase (fixed constraints)
 
 **Fixed constraints I design within (not reopened here):** (C1) one `src/` for web and Android; game rules exist once. (C2) Android is a Capacitor wrapper with no rewrite. (C3) the website build and GitHub Pages deploy keep working unchanged for web players. (C4) `.github/workflows/deploy-pages.yml` is the single CI check for both versions.
@@ -105,7 +118,7 @@ Everything Android-specific sits behind one interface (`Platform`), under
 | `ScreenController` (changed) | `src/ui/ScreenController.ts` | Text and title actions come from `PlatformCopy`. Items carry `data-action`. Re-renders only when its view key changes (required for taps, §5.4). | M3.8, M6.1, M8.3 |
 | `bestScore` | `src/persistence/bestScore.ts` | The single F20 implementation: validate, load, commit max, "New best!". | F20 AC1-AC15; M7.1, M7.2, M7.5 |
 | `safeStorage` | `src/persistence/safeStorage.ts` | Fail-closed `localStorage` get/set with in-memory fallback. | F20 AC9-AC10; M7.5 |
-| `GameShell` native plugin (ours) | `android/app/src/main/java/io/github/hogy86/shieldvsrobots/GameShellPlugin.java` **[A10]** (v1.3 path segment was `vanguardvssentinels`; the Java package follows the renamed namespace) | Live edge insets (cutout + system gestures), immersive mode, keep-screen-on, window-focus events. | M2.3a, M2.5, M4.1, M4.5; M-ADR-0004 |
+| `GameShell` native plugin (ours) | `android/app/src/main/java/io/github/hogy86/shieldvsrobots/GameShellPlugin.java` **[A10]** (v1.3 path segment was `vanguardvssentinels`; the Java package follows the renamed namespace) | Live edge insets (cutout + system gestures), immersive mode, keep-screen-on, window-focus events. **[A12]** Also reports the top and bottom display-cutout insets as separate fields (§6.1 A12). | M2.3a, M2.3b, M2.5, M4.1, M4.5; M-ADR-0004 |
 
 ---
 
@@ -483,6 +496,62 @@ This is a shared change that is also a small performance win.
 - System bars are hidden (immersive, §6.5), so `systemBars` insets are not added. A
   transient swipe-revealed bar overlays the screen for a moment and does not re-lay-out.
 
+> **Amendment A12 (2026-09-28, v1.6; PRD-mobile v1.6 M2.3b; code-review-round8 E1).
+> GameShell reports the top/bottom cutout insets separately.**
+>
+> **1. Payload.** The payload of `getEdgeInsets()` and of every `edgeInsetsChanged` event
+> gains two fields. The four existing fields keep their meaning.
+>
+> | Field | Value (dp) | Used for |
+> |---|---|---|
+> | `left`, `right`, `top`, `bottom` | `max(displayCutout, systemGestures)` per edge (unchanged) | Controls, menus, prompts, `#safe-layer`, and all text over the playfield (M2.3, M2.3a, M2.3b rules 2-3) |
+> | `cutoutTop` **(new)** | `getInsets(Type.displayCutout()).top / density` | The playfield's top limit only (M2.3b rule 1) |
+> | `cutoutBottom` **(new)** | `getInsets(Type.displayCutout()).bottom / density` | The playfield's bottom limit only (M2.3b rule 1) |
+>
+> **2. Native change** (`GameShellPlugin.java`, `toEdgeInsets` and `insetsToJson`). Add the
+> two values from the `cutout` `Insets` object that `toEdgeInsets` already reads. The
+> `getRootWindowInsets()` fallback goes through the same function, so it reports them too.
+> Nothing else changes: the same zero-size probe view, listener, `volatile` payload and
+> threads, and the insets are still returned unconsumed (§6.6). There is no new method,
+> permission, plugin, I/O or logging. Left and right cutout values are **not** added:
+> M2.3b keeps the side rule unchanged, so nothing needs them.
+>
+> **3. Normalization.** One pure function, `normalizeInsets(raw) → LayoutInsets` in
+> `layout.ts` (unit-tested), is applied to every payload before any other use:
+> 1. **Edge fields.** A missing, non-finite or negative `left`/`right`/`top`/`bottom` →
+>    0. This extends the existing L5 rule (`toFiniteOrZero`) to negatives.
+> 2. **Cutout fields.**
+>    - A **missing** or non-finite `cutoutTop`/`cutoutBottom` → equal to the matching edge
+>      inset. This is fail-safe: a payload without the new fields (for example a stale
+>      native build) lays out exactly as in v1.5, with no art in the bands.
+>    - A negative value → 0.
+> 3. **Raise the edges to the cutouts.** Set `top = max(top, cutoutTop)` and
+>    `bottom = max(bottom, cutoutBottom)`. Then `0 ≤ cutoutTop ≤ top` and
+>    `0 ≤ cutoutBottom ≤ bottom` always hold. Native already guarantees this; the rule
+>    covers test fixtures.
+>
+> **4. Types.**
+> - The payload type in `GameShell.ts` gains `cutoutTop?: number; cutoutBottom?: number`
+>   (optional, as delivered).
+> - `layout.ts` defines `LayoutInsets = EdgeInsets & { cutoutTop: number; cutoutBottom:
+>   number }` with **required** fields. `computeLayout` and `classifyWindow` take a
+>   `LayoutInsets`, so a call site cannot silently leave the cutouts out.
+>
+> **5. Web fallback (Playwright, §10 item 3).** `?insets=l,r,t,b` is unchanged. A new
+> optional `?cutout=top,bottom` supplies the two fields:
+> - It defaults to `0,0`, because a browser has no cutout.
+> - A malformed value parses to 0, as for `?insets=`.
+> - The web fallback **always** emits both fields, so the fail-safe default in 3.2 applies
+>   only to a native payload that really lacks them.
+>
+> **6. Debug evidence.** `screenFit.ts` sets `--vvs-cutout-top` and `--vvs-cutout-bottom`
+> (dp) on `<html>`, next to the existing `--pf-scale`. Step-10 evidence can then read the
+> reported cutouts and the scale over WebView DevTools on a debug build, as round 8 did for
+> the edge insets through `#safe-layer`. Nothing is logged, stored or transmitted.
+>
+> **7. For security pass 2.** This is A12's only native change: two numeric fields added
+> to an existing, app-internal plugin payload (see §14 security handoff).
+
 ### 6.2 Layout algorithm (pure function, unit-tested)
 
 `computeLayout({W, H}, insets{l,r,t,b}, swapControls) → Layout` in
@@ -520,6 +589,55 @@ sizes and stay outside the insets. The playfield shrinks below 0.5×, as M2.3a r
 > M2.10a applies. The fixed `W < 640 or H < 360` thresholds in the last line of the block
 > above are also replaced by §6.2.1, because they ignored the run-time insets that M2.10a
 > requires.
+
+> **Amendment A12 (2026-09-28, v1.6; PRD-mobile v1.6 M2.3b rules 1-2).** The playfield's
+> vertical size and position change. Unchanged: the horizontal algorithm, the B = 64 → 56
+> order, every control position and the A11 meaning of `belowFloor`. Replace the `availH`
+> and `pfY` lines of the block above with:
+>
+> ```
+> inputs  insets {l, r, t, b}  = max(cutout, gesture) per edge (unchanged, M2.3a)
+>         cutout {cT, cB}      = top/bottom display-cutout insets (§6.1 A12; 0 ≤ cT ≤ t, 0 ≤ cB ≤ b)
+> consts  TEXT_TOP_LOGICAL    = 4    // §6.5 A12: nearest playfield text to the top edge (logical px)
+>         TEXT_BOTTOM_LOGICAL = 13   // §6.5 A12: nearest playfield text to the bottom edge (logical px)
+>         MIN_SCALE           = 0.5  // existing
+>
+> // sizing (inside the B loop, replaces availH = H − t − b)
+> topRes = max(cT, t − TEXT_TOP_LOGICAL·MIN_SCALE)      // = max(cT, t − 2)
+> botRes = max(cB, b − TEXT_BOTTOM_LOGICAL·MIN_SCALE)   // = max(cB, b − 6.5)
+> availH = H − topRes − botRes
+> s = min(availW / 800, availH / 600)                   // unchanged form
+>
+> // placement (after B and s are chosen; replaces pfY = t + (availH − pfH)/2)
+> pfH    = 600·s
+> topMin = max(cT, t − TEXT_TOP_LOGICAL·s)              // highest allowed playfield top edge
+> botMin = max(cB, b − TEXT_BOTTOM_LOGICAL·s)           // smallest allowed gap under the playfield
+> pfY    = topMin + (H − topMin − botMin − pfH) / 2
+> ```
+>
+> Why this is correct:
+> - **No art under a cutout (rule 1).** `pfY ≥ topMin ≥ cT` and
+>   `pfY + pfH ≤ H − botMin ≤ H − cB`.
+> - **All text stays inside the full insets (rule 2).** The topmost text is at logical
+>   y ≥ 4, which is `pfY + 4s ≥ t`. The lowest text edge is at `pfY + pfH − 13s ≤ H − b`.
+> - **Always feasible.** When `s ≥ 0.5`, `4s ≥ 2` and `13s ≥ 6.5`. So `topMin ≤ topRes`,
+>   `botMin ≤ botRes`, and `H − topMin − botMin − pfH ≥ availH − pfH ≥ 0`.
+> - **Exact at the floor.** At s = 0.5 the sizing reserves equal the placement minimums.
+>   So `availH ≥ 300` means exactly "a 0.5× playfield fits with its text inside the
+>   insets", which is what §6.2.1 needs.
+> - **Conservative only above the floor.** There the sizing gives up at most
+>   `(4 + 13)·(s − 0.5)` dp of height (≈ 1.7 dp at s = 0.6), in exchange for a closed-form,
+>   single-pass formula.
+> - **Controls are unchanged.**
+>   - `#safe-layer` is still inset by the full `l, r, t, b`.
+>   - PAUSE's top edge stays at `t + 16`, and the bottom row stays at `H − max(b, 16)`.
+>   - Nothing about the controls uses `cT` or `cB`.
+>   - The playfield never shares an x range with a control column, so art in a band never
+>     sits under a control (M2.4, M2.3b rule 1).
+> - **Vertical position.** The playfield is centred between `topMin` and `H − botMin`, so
+>   it may sit off-centre in the window, which M2.3b rule 2 allows.
+> - **Horizontal is unchanged.** `pfX` stays `movCol + (availW − pfW)/2`, mirrored when
+>   swapped.
 
 #### 6.2.1 Window classification: portrait, too small, or playable [new in v1.5; A11; PRD-mobile M2.10, M2.10a, M2.12, M2.13, M3.1, M3.2]
 
@@ -616,6 +734,110 @@ text, not `PlatformCopy`, built with `textContent` per §14.1 L4b):
 small-window or band layout is added (OQ-M7 (a)). Web behavior is unchanged: the web
 platform does not classify windows (C3, M3.12). No game logic is involved (C1).
 
+> **Amendment A12 (2026-09-28, v1.6; PRD-mobile v1.6 M2.3b, the M2.10a v1.6 note and the
+> M2.12 v1.6 note; code-review-round8 E1 and I3).**
+>
+> **Inputs (amended).** The classification also takes `cT` and `cB` from the normalized
+> payload (§6.1 A12). In the web fallback they come from `?cutout=`.
+>
+> **Restated formula (binding; replaces step 2's `minH`):**
+>
+> ```
+> 1. if W ≤ H                                         → 'portrait'  (M2.10; unchanged)
+> 2. minW = l + r + 576                                               (unchanged)
+>    minH = max(cT, t − 2) + max(cB, b − 6.5) + 300                   (M2.3b)
+>    if W < minW or H < minH                           → 'tooSmall' (M2.10a)
+> 3. otherwise                                         → 'playable'
+> ```
+>
+> - **`tooSmall` still equals `computeLayout(...).belowFloor`.** `classifyWindow` stays
+>   "portrait test, then `belowFloor`", so the new vertical terms enter both at once. Step
+>   2 is exactly "`computeLayout` at B = 56 gives s < 0.5" with the §6.2 A12 `availH`.
+> - **No new literals.** `2` and `6.5` are `TEXT_TOP_LOGICAL·MIN_SCALE` and
+>   `TEXT_BOTTOM_LOGICAL·MIN_SCALE`; the code derives them from those constants.
+> - **The PAUSE stack still never binds.** Whenever `H ≥ minH`,
+>   `H − t − b ≥ 300 − 2 − 6.5 = 291.5 > 160` (the largest PAUSE stack).
+> - **Swap still does not change the result** (M3.13).
+>
+> **Nominal values.** Insets are written (l, r, t, b; cT, cB).
+> - Planning insets (24, 24, 0, 0; 0, 0): `minW = 624`, `minH = 300`. The PRD's
+>   "narrower than 624 dp or shorter than 300 dp" still holds (M2.10a v1.6 note (1)).
+> - Measured gesture navigation (30, 30, 28.2, 32; 0, 0), from code-review-round8 E1:
+>   `minW = 636`, `minH = 351.7`.
+> - Three-button navigation (0, 48, 24, 0; 0, 0): `minW = 624`, `minH = 322`.
+>
+> **Worked checks (v1.6).** These become `layout.test.ts` rows, each in both swap
+> settings. Where a window and insets also appear in the A11 table above, this table's
+> numbers win.
+>
+> | # | Window (dp) | Insets (l, r, t, b; cT, cB) | minW / minH | Result | PRD |
+> |---|---|---|---|---|---|
+> | 1 | 640 × 360 | 30, 30, 24, 32; 0, 0 | 636 / 347.5 | playable, B 56, s = 0.505, pfY ≈ 26.77 | M2.3b (a) |
+> | 2 | 640 × 360 | 30, 30, 28.2, 32; 0, 0 | 636 / 351.7 | playable, B 56, s = 0.505, pfY ≈ 28.87 | M2.3b (a); M2.10a (c) v1.6 |
+> | 3 | 640 × 360 | 29.7, 29.7, 28.2, 32; 0, 0 | 635.4 / 351.7 | playable, B 56, s ≈ 0.5058, pfY ≈ 28.65 | M2.3b (a), round-8 measured |
+> | 4 | 640 × 360 | 0, 48, 24, 0; 0, 0 | 624 / 322 | playable, B 56, s = 0.52, pfY ≈ 34.96 | M2.3b (b) |
+> | 5 | 640 × 360 | 48, 0, 24, 0; 0, 0 | 624 / 322 | playable, B 56, s = 0.52, pfY ≈ 34.96 | M2.3b (b) |
+> | 6 | 640 × 360 | 30, 30, 30, 32; 30, 0 | 636 / 355.5 | playable, s = 0.505, pfY ≈ 30.78 (≥ 30) | M2.3b (d) top |
+> | 7 | 640 × 360 | 30, 30, 24, 32; 0, 32 | 636 / 354 | playable, s = 0.505, playfield bottom ≈ 326.49 (≤ 328) | M2.3b (d) bottom |
+> | 8 | 600 × 360 | 30, 30, 28.2, 32; 0, 0 | 636 / 351.7 | **tooSmall** (600 < 636) | M2.10a (c) v1.6 |
+> | 9 | 640 × 360 | 36.2, 29.7, 28.2, 32; 0, 0 | 641.9 / 351.7 | **tooSmall** on width (l + r ≈ 66 > 64): the expected result under the M2.3b known limit (§12 MR4), not an M2.10a (c) failure | M2.10a v1.6 note (2) |
+> | 10 | 915 × 412 | 51.8, 29.7, 28.2, 32; 0, 0 | 657.5 / 351.7 | playable, B 64, s ≈ 0.6005 (height binds) | round-8 Pixel 7 native window |
+> | 11 | 636 × 351.5 | 30, 30, 28, 32; 0, 0 | 636 / 351.5 | playable, s = 0.5 exactly (boundary) | M2.10a |
+> | 12 | 635 × 351.5 | 30, 30, 28, 32; 0, 0 | 636 / 351.5 | **tooSmall** | M2.10a |
+> | 13 | 636 × 351 | 30, 30, 28, 32; 0, 0 | 636 / 351.5 | **tooSmall** | M2.10a |
+> | 14 | 640 × 352 | 30, 30, 28, 32; 0, 0 | 636 / 351.5 | playable, s ≈ 0.5008 (height binds; the v1.5 formula said tooSmall) | M2.3b |
+> | 15 | 624 × 300 / 623 × 300 / 624 × 299 | 24, 24, 0, 0; 0, 0 | 624 / 300 | playable (s = 0.5) / **tooSmall** / **tooSmall** (unchanged) | M2.10a |
+> | 16 | 640 × 360 | 24, 24, 0, 24; 0, 0 | 624 / 317.5 | playable, s = 0.52 (the A11 table had minH 324) | §6.3 planning |
+> | 17 | 640 × 360 | 40, 40, 0, 24; 0, 0 | 656 / 317.5 | **tooSmall** on width (unchanged) | MR4 |
+> | 18 | 412 × 309 (`svr_api36_fold`) | any | ≥ 576 / — | **tooSmall** | M2.10a (a) |
+> | 19 | 360 × 640 | any | — | **portrait** | M2.10 |
+> | 20 | 640 × 360 | 30, 30, 28.2, 32; cutout fields **absent** (normalized to cT = 28.2, cB = 32) | 636 / 360.2 | **tooSmall**. The fail-safe default reproduces v1.5, which shows the native fields are needed | §6.1 A12 |
+>
+> Rows 11-14 use values that are exact in binary floating point (multiples of 0.5), so
+> `s = 0.5` compares exactly. The other rows use `toBeCloseTo(…, 3)`.
+>
+> **Behavior 2, clarified (code-review-round8 I1).** The "full-viewport layer" is a
+> `<body>`-level fixed element, not a child of `#safe-layer`; see §6.5 A12.
+>
+> **Behavior 4, amended (code-review-round8 I3): keyboard input is gated while a prompt
+> shows.** Decision: close both I3 gaps, entirely inside `src/platform/android/`, with no
+> shared-code change.
+> - **Mechanism.** `overlays.ts` already has a capture-phase `document` `keydown` listener
+>   that stops game keys reaching the shared `KeyboardInputSource` while a shell overlay
+>   is open. That listener now checks the prompt **first**:
+>   - While `isRotatePromptShowing()`, every `keydown` gets `preventDefault()` and
+>     `stopPropagation()`, and nothing else happens.
+>   - Esc does **not** close a hidden overlay. This is the same order as back (§8.3 A11).
+>   - `preventDefault()` also stops a focused `<button>` from being activated by
+>     Enter/Space.
+>   - `keyup` is **not** blocked, so a key held before the prompt still releases normally
+>     and never sticks.
+> - **Focus.** On entering a prompt, if `document.activeElement` is inside `#app-root` or
+>   `#safe-layer` (including the privacy iframe), call `.blur()` on it.
+> - **Effect.**
+>   - Enter on a hidden title cannot start a run.
+>   - Esc or Enter on a hidden pause menu cannot resume it, so **no** frame of play passes
+>     (the ≈ 16 ms, up to 0.25 s, window that I3 describes is gone).
+>   - A hidden Help, Settings or Privacy overlay cannot be closed or changed from the
+>     keyboard.
+>
+>   This meets M2.10a behavior 3 ("no … menu … responds") and M4.2 on hardware-keyboard
+>   devices (M1.3 Chromebooks, M3.10).
+> - **Defense in depth.** The `onFrame` re-pause guard (behavior 4 as written above)
+>   **stays**. It should now never fire.
+> - **Alternatives considered (and why rejected).**
+>   - **Accept and record.** Rejected. It leaves M2.10a (3) and M4.2 broken, and it can
+>     move a player from the title into a paused run they did not start.
+>   - **A hold flag in the shared `InputManager`.** Rejected. It is a shared-code change
+>     that would need the web gates, and it would not stop the Android overlay Esc handler.
+>   - **`loop.suspend()` while a prompt shows.** Rejected. It competes with the lifecycle
+>     `resume()` for control of the loop, and buffered key edges would fire after the
+>     restore.
+> - **Web:** unchanged. The web platform shows no prompt and registers no such listener.
+>
+> **Not changed by A12:** behaviors 1-3, 5 and 6, the precedence rule, where the
+> classification runs, the prompt texts, and OQ-M7 (a) (no new layout).
+
 ### 6.3 The 640 × 360 dp profile, worked (M2.12 (a); UX carry-forward 1 and 5)
 
 Planning insets: left 24, right 24 (gesture), top 0, bottom 24 (home-gesture band).
@@ -665,6 +887,86 @@ emulator's actual reported insets next to the screenshot. **[A11]** The `belowFl
 is now the M2.10a "Make the window larger to play." prompt (§6.2.1), not a sub-0.5×
 playfield.
 
+> **Amendment A12 (2026-09-28, v1.6; PRD-mobile v1.6 M2.12 note and M2.3b;
+> code-review-round8 E1 (a)).** The tables above use the v1 planning insets
+> (24, 24, 0, 24) and are kept as the historical record; row 16 of §6.2.1 A12 still tests
+> them. The **binding worked profile** is now 640 × 360 dp with the **measured**
+> gesture-navigation insets l = r = 30, t = 28.2, b = 32 and no cutout, in the default
+> layout. That is the M2.3b (a) model, rounded from round-8 E1's 29.7 / 29.7 / 28.2 / 32.
+>
+> **Horizontal** (only the side insets change)
+>
+> | Band | x from | x to | Width | Contents |
+> |---|---|---|---|---|
+> | Left edge inset | 0 | 30 | 30 | nothing interactive, no art |
+> | ◀ | 30 | 86 | 56 | touch rect 56×56 |
+> | gap | 86 | 94 | 8 | part of `#move-zone` |
+> | ▶ | 94 | 150 | 56 | touch rect 56×56 |
+> | **Playfield** | 150 | 554 | **404** | 800×600 at **s = 0.505** |
+> | THROW lane | 554 | 610 | 56 | THROW 56×56; PAUSE 48×48 at x 558-606 |
+> | Right edge inset | 610 | 640 | 30 | nothing interactive, no art |
+> | **Sum** | | | 30+56+8+56+404+56+30 = **640** ✓ | movement col 150, THROW col 86 |
+>
+> - **B = 64 fails:** availW = 640 − 166 − 94 = 380 → 0.475 < 0.5, so B = 56 (M3.1
+>   allows 56 on this profile).
+> - **At B = 56:** availW = 404 → 0.505, and availH = 360 − 26.2 − 25.5 = 308.3 → 0.514.
+> - **Width binds:** s = 0.505, playfield **404 × 303** (≥ 400 × 300; M2.12, M2.13). This
+>   matches the PRD's M2.12 v1.6 note ("about 404 × 303 dp (≈ 0.505×)").
+>
+> **Vertical: playfield and text (M2.3b)**
+>
+> | Item | y | Check |
+> |---|---|---|
+> | Top gesture band | 0 to 28.2 | no text, no control |
+> | Playfield | **28.87 to 331.87** (303) | centred in [topMin, H − botMin] = [26.18, 334.565]; topMin = 28.2 − 4·0.505, botMin = 32 − 13·0.505 = 25.435 |
+> | Topmost playfield text: canvas warning em-box top (logical y 4) | 30.89 | ≥ t = 28.2 ✓ |
+> | HUD panel text: content-box top (logical y 15) | 36.45 | ≥ 28.2 ✓ |
+> | Hint text: `#control-text` content-box bottom (logical y 587) | 325.31 | ≤ H − b = 328 ✓ |
+> | Bottom gesture band | 328 to 360 | the playfield extends 3.87 dp into it: art only, which M2.3b rule 1 allows |
+>
+> **Vertical: control column (full insets; rule unchanged)**
+>
+> | Item | y from | y to | Height |
+> |---|---|---|---|
+> | Top inset | 0 | 28.2 | 28.2 |
+> | PAUSE (THROW column) | 44.2 | 92.2 | 48 (top = t + 16) |
+> | Clear space PAUSE → THROW | 92.2 | 272 | 179.8 (≥ 24, M3.2) |
+> | ◀ ▶ THROW row | 272 | 328 | 56 (bottom = H − max(b, 16)) |
+> | Bottom inset | 328 | 360 | 32 |
+> | **Column sum** | | | 28.2 + 16 + 48 + 179.8 + 56 + 32 = **360** ✓ |
+>
+> - ShieldMan's row (logical y 552) is at 28.87 + 552·0.505 ≈ 307.6, above the bottom
+>   band.
+> - No control overlaps the playfield: ▶ ends at 150, where the playfield starts, and
+>   THROW starts at 554, where it ends (M2.4).
+> - **Swap controls** mirrors x: movement 490-610, THROW lane 30-86, playfield 86-490. The
+>   sums are the same.
+>
+> **Three-button navigation (0, 48, 24, 0; M2.3b (b))**
+> - Columns: movement 0 + 120 (◀ 0-56, ▶ 64-120), playfield 120-536 (**416**), THROW lane
+>   536-592, right inset 592-640. Sum 56 + 8 + 56 + 416 + 56 + 48 = 640 ✓.
+> - Scale: s = 0.52 (width binds; availH = 360 − 22 − 0 = 338 → 0.563). The playfield is
+>   416 × 312 at y 34.96-346.96.
+> - Text: HUD and canvas text top ≥ 34.96 + 2.08 = 37.04 ≥ 24 ✓. Hint bottom = 340.2 ≤ 360
+>   ✓.
+> - Controls: PAUSE 40-88, bottom row 288-344 (16 dp bottom margin).
+> - The mirror case (48, 0, 24, 0): movement 48-168, playfield 168-584, THROW 584-640.
+>
+> **Inset headroom per axis** (replaces "up to 32 dp per side edge"; UX carry-forward 2).
+> On 640 × 360 at B = 56:
+> - **Width: `l + r ≤ 64`** (not changed by M2.3b).
+>   - Gesture navigation: 60, so 4 dp to spare. Round-8 measured: 59.4 (4.6 spare).
+>     Three-button: 48 (16 spare).
+>   - With gesture navigation, any side cutout wider than about 4 dp, or a back-gesture
+>     setting above default, shows the prompt. This is the M2.3b known limit (§12 MR4).
+> - **Height: `max(cT, t − 2) + max(cB, b − 6.5) ≤ 60`.** With no cutouts that is
+>   `t + b ≤ 68.5`.
+>   - Gesture navigation: 28.2 + 32 = 60.2, so 8.3 dp to spare. The top band can grow to
+>     36.5 dp with b = 32, or the bottom band to 40.3 dp with t = 28.2.
+>   - Three-button: 24 + 0, so 44.5 dp to spare.
+>   - A top or bottom cutout counts in full.
+> - The device matrix records all six reported inset fields next to each screenshot.
+
 ### 6.4 Resulting scale per device-matrix profile (M2.13; UX carry-forward 1)
 
 These are nominal values (same planning insets). The lead tester pins exact AVDs, and the
@@ -687,6 +989,27 @@ layout (OQ-M7 (a)).
 > profiles at or above the §6.2.1 floor. A matrix window below the floor, such as the
 > `svr_api36_fold` AVD's 412 × 309 dp window, is expected to show the M2.10a prompt. The
 > device matrix records it that way; it is not an M2.13 failure.
+
+> **Amendment A12 (2026-09-28, v1.6; PRD-mobile v1.6 M2.3b and M2.12 note).** The same
+> profiles, recomputed with the measured gesture-navigation insets (30, 30, 28.2, 32; no
+> cutout) and the §6.2 A12 formula. `layout.test.ts` asserts these rows. The planning
+> rows above stay as tested rows too, because they are still valid inputs; with
+> (24, 24, 0, 24) their placement changes slightly (for example the 640 × 360 pfY is 15.38,
+> not 12).
+>
+> | Profile (landscape dp) | B | Move col / THROW col | Playfield (dp) | Scale | Limiting axis |
+> |---|---|---|---|---|---|
+> | Low-end / small phone 640 × 360 | 56 | 150 / 86 | 404 × 303 | 0.505 | width |
+> | Tall low-end 20:9, 800 × 360 | 64 | 166 / 94 | 411.1 × 308.3 | 0.514 | height |
+> | Mid-range 20:9, ≈ 915 × 412 | 64 | 166 / 94 | 480.4 × 360.3 | 0.600 | height |
+> | 10" tablet 16:10, 1280 × 800 | 64 | 166 / 94 | 997.7 × 748.3 | 1.247 | height |
+> | 4:3 tablet, 1024 × 768 | 64 | 166 / 94 | 764 × 573 | 0.955 | width |
+> | Foldable inner, ≈ 841 × 701 | 64 | 166 / 94 | 581 × 435.8 | 0.726 | width |
+>
+> Every profile is still ≥ 0.5×, with the same side-column layout and no tablet-specific
+> layout (OQ-M7 (a)). Real devices report their own insets. The device matrix records them
+> next to the measured scale, which is judged against the floor and not against these
+> nominal rows.
 
 ### 6.5 Applying the layout (`screenFit.ts`)
 
@@ -732,6 +1055,69 @@ layout (OQ-M7 (a)).
   CanvasRenderer pre-renders the enemy/power-up/shield sprites into offscreen canvases keyed
   by `(sprite, damage state, k)` and invalidates them when `k` changes. This is a shared,
   render-only change and goes through both gates.
+
+> **Amendment A12 (2026-09-28, v1.6; PRD-mobile v1.6 M2.3b rules 2-3;
+> code-review-round8 I1).**
+>
+> **1. HUD and hint text placement rule (binding).** All text drawn over the playfield
+> lies inside the window minus the **full** edge insets. This is achieved **only** through
+> the playfield's vertical position (§6.2 A12). As before:
+> - no safe-area padding is added to `#hud-root` or `#control-text`;
+> - `src/style.css` and `CanvasRenderer` are not edited (the N1 decision above stands);
+> - the sentence above, "because the playfield already sits inside the insets", now reads
+>   "because the playfield is placed so that its text sits inside the insets".
+>
+> The text inventory, and the two constants in `layout.ts` derived from it (each carries
+> a comment citing its source line):
+>
+> | Text | Where | Distance from the nearest playfield edge to its text box (logical px) |
+> |---|---|---|
+> | Formation warning "WARNING: ROBOTS APPROACHING" (bold 16 px) and boss warning "BOSS INCOMING" (bold 20 px) | canvas, baseline y = 24 (`CanvasRenderer.drawFormationWarning` / `drawBossWarning`) | top: em box ≥ 24 − 20 = **4** → `TEXT_TOP_LOGICAL = 4` |
+> | HUD panels (score, lives, level, multiplier, active effect) | DOM `#hud-root` > `.hud-panel` | top: content box at 8 (`#hud-root` padding) + 2 (margin) + 1 (border) + 4 (padding) = 15. Does not bind. |
+> | Control hint | DOM `#control-text` | bottom: content box at 8 (`bottom`) + 1 (border) + 4 (padding) = **13** → `TEXT_BOTTOM_LOGICAL = 13` |
+> | Level intro "LEVEL N" | canvas, centred | far from both edges |
+>
+> - These edges are anchored. The Android font floor (`max(15px, 12px / s)`) and
+>   `textZoom` (≤ 130 %, §7.3) make text grow away from them, not across them.
+> - The `.hud-effect-active` pulse (`scale(1.18)`) moves the HUD content-box top up to
+>   about 11 logical px at most, which is still ≥ 4.
+> - Panel backgrounds (the `.hud-panel` border and padding, and the `#control-text` box)
+>   may extend into a band (M2.3b rule 2).
+>
+> **2. Change control.** A shared change that moves any playfield text closer to an edge
+> than these constants must update the constant in the same change. Examples: moving the
+> warning baseline, reducing the HUD padding, or adding a new canvas caption. It is a
+> shared-file change, so it goes through both platforms' gates.
+> - The §10.1 A12 Playwright check measures the DOM text boxes on every CI run.
+> - Canvas text is covered by the constant and the arithmetic check.
+> - The lead developer checks any diff to `#hud-root`, `.hud-panel`, `#control-text` or
+>   `CanvasRenderer` text calls against this table (§12 MR21).
+>
+> **3. Unchanged (M2.3b rule 3).** Menus, dialogs, shell overlays and touch controls stay
+> in `#safe-layer`, inset by the full `l, r, t, b`. RotatePrompt's message stays padded by
+> the full insets.
+>
+> **4. Re-layout triggers.** Unchanged. An `edgeInsetsChanged` event that changes only
+> `cutoutTop` or `cutoutBottom` re-lays-out like any other insets-only change: it does not
+> pause, unless the window drops below the floor.
+>
+> **5. Where RotatePrompt lives (code-review-round8 I1).** This supersedes the "rotate
+> screens" item in the Overlays bullet above; the A11 implementation already did this.
+> - RotatePrompt is **not** inside `#safe-layer`. It is a `<body>`-level,
+>   `position: fixed`, full-viewport layer with z-index 40 (above `#safe-layer`'s 30), and
+>   its background covers the whole window.
+> - Its message stays inside the edge insets through inline padding with
+>   `box-sizing: border-box`.
+> - It cannot be a child of the inset `#safe-layer`, because such a child could not cover
+>   the inset bands, which §6.2.1 behavior 2 requires.
+> - While it shows, `#app-root` and `#safe-layer` are `visibility: hidden` (§6.2.1
+>   behavior 2; code-review-round8 R1).
+> - Scoping `.rotate-prompt` under `html.platform-android` is optional. `android.css`
+>   never reaches the web bundle.
+>
+> **6. MR5 note.** At s ≈ 0.505 the 12 dp HUD takes a slightly larger share of the
+> playfield than at 0.52. The UX round-2 check (step 11) judges it on the representative
+> AVD (PRD-mobile M2.12 v1.6 note (c)).
 
 ### 6.6 Orientation, edge-to-edge and immersive (M2.1, M2.1a, M2.5, M2.10)
 
@@ -1474,7 +1860,7 @@ shared storage the default and a plugin the exception.
 
 ---
 
-## 10. CI: one pipeline guards both versions (M-ADR-0008; amended by M-ADR-0011, 0012 and Amendments A8, A9, A10, A11)
+## 10. CI: one pipeline guards both versions (M-ADR-0008; amended by M-ADR-0011, 0012 and Amendments A8, A9, A10, A11, A12)
 
 Changes to the repo-root `.github/workflows/deploy-pages.yml`. **The existing `build` job's
 steps stay exactly as they are** (Node 20, lint, test, build with `VITE_BASE_PATH`,
@@ -1511,6 +1897,7 @@ upload-pages-artifact). Additions:
    `window.__vvsTest` (read-only world snapshot + per-frame player-x log) is created
    **only** when `?e2e=1` is present **and** `Capacitor.isNativePlatform()` is false. It
    never exists in the installed app. (**[v1.1, L4a]** further constraints in §14.1.)
+   **[A12]** The web fallback also reads `?cutout=top,bottom` (default `0,0`; §6.1 A12).
 4. `deploy` job: `needs: [build, android-build, mobile-e2e]`. A break in either version
    blocks the website deploy (C4).
 
@@ -1552,6 +1939,73 @@ reached from PLAYING or PAUSED. Static check: `dist-android/privacy.html` contai
     Settings open underneath.
 - M2.10a (a)-(d) on real AVDs (`svr_api36_fold`, `svr_api36_pixel7` with a window shrink,
   the largest-font check) run in step 10 per `device-matrix.md`.
+
+**[v1.6, A12 / M2.3b] Added** (PRD-mobile M2.3b (a)-(e); M2.10a v1.6 note; code-review-round8 I3, S1):
+- **Unit (`layout.test.ts`):**
+  - Every row of the §6.2.1 A12 worked-check table in both swap settings, and every
+    §6.4 A12 row. The A11 rows whose numbers changed are updated to the A12 values
+    (§6.2.1 A12 rows 15-17).
+  - `normalizeInsets`:
+    - an absent or non-finite cutout field → equal to its edge inset;
+    - a negative field → 0;
+    - a cutout larger than its edge → the edge is raised;
+    - a complete, valid payload is unchanged.
+  - An **invariant grid**:
+    - W 560-1400 and H 280-820 in 20 dp steps;
+    - l and r ∈ {0, 24, 30, 48}, t ∈ {0, 24, 28.2, 36}, b ∈ {0, 24, 32, 40};
+    - cT ∈ {0, t} and cB ∈ {0, b};
+    - both swap settings.
+
+    For every playable result, assert:
+    - `s ≥ 0.5`;
+    - `pfY ≥ cT` and `pfY + pfH ≤ H − cB`;
+    - `pfY + 4s ≥ t − 1e-9` and `pfY + pfH − 13s ≤ H − b + 1e-9`;
+    - every control rect is inside the full insets and does not overlap the playfield's x
+      range;
+    - `classifyWindow` agrees with `belowFloor`.
+- **Playwright** (web fallback `?insets=l,r,t,b&cutout=t,b`; 640 × 360 viewport unless
+  stated):
+  - **(a) The reference phone plays.** Insets (30,30,24,32), (30,30,28.2,32) and
+    (29.7,29.7,28.2,32), each in the default and swapped layouts:
+    - no prompt on the title;
+    - Start (dismiss Help if shown) → PLAYING;
+    - hold ▶ for 500 ms → the player's x increases; tap THROW → a shield is in flight;
+    - ◀ ▶ THROW ≥ 56 px, PAUSE ≥ 48 px, ≥ 8 px between adjacent targets, and every
+      control inside the full insets;
+    - the `#game-canvas` rect is ≥ 400 × 300.
+  - **(b) Three-button navigation plays.** The same checks for (0,48,24,0) and
+    (48,0,24,0).
+  - **(c) Text and controls stay out of the bands.** For every (a) and (b) case, while
+    PLAYING and before the first throw (so `#control-text` is laid out):
+    - each `.hud-panel` content-box top (`rect.top + borderTopWidth + paddingTop`) ≥ t;
+    - the `#control-text` content-box bottom ≤ H − b;
+    - canvas text: `canvasRect.top + 4·s ≥ t`, with `s = canvasRect.height / 600`;
+    - every control inside the full insets;
+    - the playfield rect may extend into [0, t) and (H − b, H]: no assertion.
+
+    Tolerance is 0.01 px. Attach one screenshot per case to the test output.
+  - **(d) No art under a cutout.**
+    - `?insets=30,30,24,32&cutout=30,0` → playable and `canvasRect.top ≥ 30`.
+    - `?insets=30,30,24,32&cutout=0,32` → playable and `canvasRect.bottom ≤ 328`.
+  - **M2.10a (c) v1.6.** With `?insets=30,30,28.2,32`: 640 × 360 shows no prompt, and
+    600 × 360 shows the prompt. The A11 test at 600 × 360 with the planning insets stays.
+  - **Keyboard under the prompt (I3; also round-8 S1 / MR20 regression cover):**
+    - At 600 × 360 on TITLE, press Enter → the state stays TITLE and Help is not shown.
+    - Start a run at 640 × 360, shrink to 600 × 360, press Escape twice and Enter, wait
+      2 frames → the state is PAUSED, and the `__vvsTest` snapshot (enemy positions,
+      timers, score) is unchanged. Restore 640 × 360 → the pause menu shows.
+    - With Settings open underneath, Escape under the prompt leaves Settings open; it is
+      visible again after the restore.
+- **Device (step 10, `device-matrix.md`; lead tester):**
+  - **M2.3b (e)** on the representative 640 × 360 dp AVD (16:9, no cutout, gesture
+    navigation, API 34+):
+    - cold launch → title with no prompt; Start → 30 s of normal play;
+    - record all six reported inset fields (the `#safe-layer` offsets and
+      `--vvs-cutout-top/bottom`) and `--pf-scale` next to the screenshot.
+  - **M2.3b (c)** emulator screenshots, one per navigation mode.
+  - **M2.10a (c)** and **M2.12 (b)** are re-judged on this AVD.
+  - The `svr_api36_pixel7` `wm size` 640 × 360 run is recorded as the expected width-limit
+    prompt (§6.2.1 A12 row 9), not as an M2.10a (c) result.
 
 ### 10.2 The 40/40 slide test (M3.3a, UX carry-forward 3)
 
@@ -1728,6 +2182,7 @@ CI.
 | M11.1-M11.3 offline, no permissions, no data | No INTERNET permission (verified per §7.3.1 on debug and, **[A8]**, on the signed AAB at step 15; fallback documented), no network code, no SDKs, backup disabled, logcat console only in debug |
 | **M11.4a in-app privacy policy [v1.1]** | Bundled `privacy.html` in a sandboxed same-origin iframe overlay, reached Title → Settings (2 taps), offline, back returns to Settings (§8.7) |
 | **M2.10a too-small window [v1.5, A11]** | §6.2.1 classification on every re-layout (synchronous, ≤ 1 s); prompt pauses, hides everything else and blocks taps; restore returns to the pause menu or the prior screen |
+| **M2.3b playfield under the top/bottom gesture bands [v1.6, A12]** | GameShell reports the top/bottom cutouts separately (§6.1 A12). `computeLayout` limits the playfield height by cutouts only, and places it so that all playfield text stays inside the full insets (§6.2 A12, §6.5 A12). Floor: `H ≥ max(cT, t − 2) + max(cB, b − 6.5) + 300` (§6.2.1 A12). The 640 × 360 reference phone plays at s = 0.505 with 8.3 dp vertical headroom (§6.3 A12). Keyboard is gated while a prompt shows (§6.2.1 A12 behavior 4). |
 
 ---
 
@@ -1738,7 +2193,7 @@ CI.
 | MR1 | WebView `localStorage` loses a just-written best on process kill (Chromium batches disk commits) | Save at every F20 event, not only on exit; M7.4 kill test; contingency §9.4 (owner exception) | junior dev, lead tester, PM |
 | MR2 | Capacitor's edge-to-edge handling fights our inset layout | Disable it (§6.6); lead dev verifies full-bleed WebView on a cutout AVD | junior dev, lead dev |
 | MR3 | Notification shade / system dialog is not detected by `pause` | GameShell `windowFocusChanged` (§8.1); emulator test in step 10 | junior dev, lead tester |
-| MR4 | Real gesture insets > 32 dp on a 640×360 device push the playfield below 0.5× | Documented `belowFloor` path (§6.2); device matrix records actual insets. **[A11]** Such a device now shows the M2.10a prompt instead of a sub-0.5× playfield (§6.2.1). If real devices hit this, the fix goes through mobile-product-manager (e.g. a smaller-control or band layout under OQ-M7), not an ad hoc floor change. | lead tester, UX, PM |
+| MR4 | Real gesture insets > 32 dp on a 640×360 device push the playfield below 0.5× | Documented `belowFloor` path (§6.2); device matrix records actual insets. **[A11]** Such a device now shows the M2.10a prompt instead of a sub-0.5× playfield (§6.2.1). If real devices hit this, the fix goes through mobile-product-manager (e.g. a smaller-control or band layout under OQ-M7), not an ad hoc floor change. **[A12, code-review-round8 E1]** Real devices hit it on the **height** axis, and the PM's M2.3b decision relaxed that axis: the reference phone now fits with 8.3 dp of vertical headroom (§6.2.1 A12, §6.3 A12). **Known width limit (accepted, PRD-mobile M2.3b):** `l + r ≤ 64` on a 640 dp wide window. Gesture navigation (≈ 60) and three-button navigation (48) fit. A side camera cutout (for example the Pixel 7 `wm size` run, l + r ≈ 66; §6.2.1 A12 row 9) or an above-default back-gesture setting still shows the prompt. The closed test (step 16) asks testers to report any "Make the window larger to play." seen in full screen. If it appears, the options go to the owner through mobile-product-manager (PRD §7 v1.6 note), not an ad hoc floor or control-size change. | lead tester, UX, PM |
 | MR5 | HUD at the 12 dp floor is ~1.5× larger relative to the playfield at 0.52× and covers more of the formation area | UX round-2 screenshot check (carry-forward 6); the HUD band is DOM, so it can be reflowed in `android.css` without touching game rules | UX, junior dev |
 | MR6 | GameShell inset listener clobbers Capacitor's | Own child view or chained listener, insets not consumed (§6.6) | lead dev |
 | MR7 | Accidental web behavior change | Web bundle purity check; `WebPlatform` = today's behavior; shared tests; web UX/test gates | lead dev, web pipeline |
@@ -1754,7 +2209,9 @@ CI.
 | **MR17 [v1.2, A8]** | Release WebView remote debugging, mixed content, an origin change or `allowNavigation` enters via the runtime config, which the manifest checker cannot see | Config guard extended (§14.1 N2); pass-2 `chrome://inspect` check | junior dev, lead dev, security |
 | **MR18 [v1.3, A9]** | An emulator or build result comes from a stale or hand-edited build mirror, so it does not reflect the tree under review | Mirror refreshed from the repo before every build, never edited, never committed from; evidence counts only from a freshly refreshed mirror (§3 A9) | junior dev, lead dev, lead tester, release engineer |
 | **MR19 [v1.4, A10]** | A theme value that is valid only on newer Android crashes older devices at launch (as `always` did on API 28, validation-report-round2 F1), or the three `styles.xml` copies drift so an edit affects only API 24-27 | Cutout mode split per API level; three-folder parity rule; `check-android-styles` guard in CI with the round-7 L1-L3 completions; API 28 image in the device matrix; Play pre-launch / closed test for API 29 (§6.6 A10) | junior dev, lead dev, lead tester |
-| **MR20 [v1.5, A11]** | While a size or rotate prompt hides the pause menu, a hardware keyboard resumes the run unseen, or back closes an overlay the player cannot see | `onFrame` re-pauses any `PLAYING` state while a prompt shows; back checks the prompt before overlays (§6.2.1 behaviors 4 and 6, §8.3 A11); Playwright checks (§10.1) | junior dev, lead dev |
+| **MR20 [v1.5, A11]** | While a size or rotate prompt hides the pause menu, a hardware keyboard resumes the run unseen, or back closes an overlay the player cannot see | `onFrame` re-pauses any `PLAYING` state while a prompt shows; back checks the prompt before overlays (§6.2.1 behaviors 4 and 6, §8.3 A11); Playwright checks (§10.1). **[A12, code-review-round8 I3]** Closed at the source: while a prompt shows, the Android capture-phase keyboard gate blocks every `keydown` (keyup passes) and blurs focused hidden controls (§6.2.1 A12 behavior 4). The `onFrame` guard stays as defense in depth. Playwright keyboard-under-prompt checks are in §10.1 A12. | junior dev, lead dev |
+| **MR21 [v1.6, A12]** | The text-edge constants (`TEXT_TOP_LOGICAL = 4`, `TEXT_BOTTOM_LOGICAL = 13`) drift from the shared HUD CSS or the canvas text positions, so text slides into a gesture band | Constants documented with their sources, plus a change-control rule (§6.5 A12). The Playwright §10.1 A12 (c) check measures the DOM text boxes on every CI run. The lead developer checks any shared change to HUD, hint or warning text positions against the §6.5 A12 table. | junior dev, lead dev |
+| **MR22 [v1.6, A12]** | The GameShell payload lacks the new cutout fields (stale native build, bridge change), or reports a cutout larger than the edge inset | Fail-safe normalization: an absent cutout is treated as equal to the edge inset (the v1.5 layout, with no art in the bands), and edges are raised to cutouts (§6.1 A12). Unit rows cover it (§6.2.1 A12 row 20). The step-10 evidence records all six fields. | junior dev, lead dev, lead tester |
 
 ---
 
@@ -1772,6 +2229,19 @@ CI.
 **[v1.1] For UX round 2 (new item):** the placement of "Privacy policy" (inside Settings)
 and the privacy overlay layout (§8.7) need mobile-ui-ux-designer's confirmation. Moving the
 item directly onto the title (1 tap) is allowed without an architecture change.
+
+> **[A12, 2026-09-28]** Rows 1, 2, 4, 5 and 6 now also have answers with measured insets:
+> - **Rows 1 and 5:** §6.3 A12. At 640 × 360 with insets 30/30/28.2/32: 150 | 404 | 86 =
+>   640; s = 0.505; the playfield is at x 150-554, y 28.87-331.87. PAUSE is at y
+>   44.2-92.2, the control row at 272-328, and the column sums to 360. Per-profile scales
+>   are in §6.4 A12.
+> - **Row 2:** per-axis headroom (§6.3 A12). Width: `l + r ≤ 64`. Height:
+>   `max(cT, t − 2) + max(cB, b − 6.5) ≤ 60`. GameShell now also reports
+>   `cutoutTop`/`cutoutBottom` (§6.1 A12).
+> - **Row 4:** still none. Text safety comes only from the playfield's position (§6.5 A12).
+> - **Row 6:** legibility is judged at the real ≈ 0.505× on the representative AVD
+>   (PRD-mobile M2.12 v1.6 note (c)). The UX round-2 check also looks at the HUD's
+>   position next to the top band (PRD §9 v1.6 follow-ups).
 
 ---
 
@@ -1840,6 +2310,43 @@ same constants as `computeLayout` (no new literals). Extend RotatePrompt to show
 message with the §6.2.1 behaviors 1-6, move the prompt check to the front of the back
 order (§8.3 A11), add the `onFrame` re-pause guard, and add the §10.1 A11 tests. All of
 this stays in `src/platform/android/`; no shared file changes.
+
+**[A12, 2026-09-28; PRD-mobile v1.6 M2.3b; code-review-round8 E1, I1, I3] Playfield under
+the top/bottom gesture bands.** In this order:
+1. **`GameShellPlugin.java`.** Add `cutoutTop` and `cutoutBottom` (dp, taken from the
+   `displayCutout()` `Insets` object `toEdgeInsets` already reads) to the inset payload.
+   The listener and the `getRootWindowInsets()` fallback both go through `toEdgeInsets`,
+   so both report them (§6.1 A12). Change nothing else in native code.
+2. **`GameShell.ts`.**
+   - The payload type gains `cutoutTop?` and `cutoutBottom?`.
+   - The web fallback parses `?cutout=top,bottom` (default `0,0`, malformed → 0) and
+     always emits both fields.
+3. **`layout.ts`.**
+   - Add `LayoutInsets` (cutout fields required), `normalizeInsets`,
+     `TEXT_TOP_LOGICAL = 4` and `TEXT_BOTTOM_LOGICAL = 13`. Each constant gets a comment
+     citing its source, per the §6.5 A12 table.
+   - Change `computeLayout`'s sizing and placement exactly per §6.2 A12.
+   - `classifyWindow` stays "portrait test, then `belowFloor`".
+   - Control coordinates do not change.
+4. **`screenFit.ts`.**
+   - Normalize every payload once, at `init` and in the `edgeInsetsChanged` handler.
+   - Pass the `LayoutInsets` to layout and classification.
+   - `#safe-layer` and the RotatePrompt padding keep using the full edge insets.
+   - Set `--vvs-cutout-top` and `--vvs-cutout-bottom` on `<html>`.
+5. **`overlays.ts`.** Extend the capture-phase `keydown` listener:
+   - check the prompt first: `preventDefault()` + `stopPropagation()`, nothing else;
+   - do not block `keyup`;
+   - on entering a prompt, blur a focused element inside `#app-root` or `#safe-layer`.
+
+   Keep the `onFrame` guard (§6.2.1 A12 behavior 4). Update the stale header comment
+   there, per code-review-round8 R1 item 4.
+6. **Tests** per §10.1 A12. Update the existing A11 rows whose numbers changed (§6.2.1
+   A12 rows 15-17).
+
+No shared file changes: `src/core`, `src/ui`, `src/render`, `src/config` and
+`src/style.css` stay untouched. The code-review-round8 R1 and L1-L3 fixes land as that
+review requires; A12 does not change them. Record any deviation from this spec in
+`docs/mobile/tooling-setup-log.md`, for the architect.
 
 ### 14.1 Binding step-7 constraints from security review-v1 (L2-L5) and review-v1b (N2, N3, N5) [new in v1.1; extended by A8 and A9]
 
@@ -1915,6 +2422,21 @@ full there.
 - **[v1.5, A11, 2026-09-27] Too-small window (M2.10a).** Screen-fitting behavior only
   (§6.2.1, §8.3 A11). It adds no permission, storage, network, plugin or native code; the
   new prompt text is built with `textContent` (§14.1 L4b).
+- **[v1.6, A12, 2026-09-28] Playfield under the gesture bands (M2.3b). One small native
+  change for pass 2.**
+  - `GameShellPlugin.java` adds two numeric fields, `cutoutTop` and `cutoutBottom` (dp),
+    to its existing inset payload. They are read from the same `WindowInsetsCompat`
+    object, in the same listener and fallback path (§6.1 A12).
+  - There is no new plugin method, permission, manifest component, plugin, storage,
+    logging or network request.
+  - The values are screen geometry, not user data. They are exposed only as two CSS
+    custom properties on `<html>` (readable only through DevTools, which is enabled only
+    on debuggable builds), and never stored or sent.
+  - The Android-only keyboard gate (§6.2.1 A12 behavior 4) only suppresses `keydown`
+    events while the size/rotate prompt shows.
+  - The Data safety answer is unchanged.
+  - Pass 2 can check that `GameShellPlugin.java` still returns the insets unconsumed and
+    still registers only on its own probe view (§6.6, MR6).
 - Data safety answer expected: "No data collected, no data shared" (M11.3).
 - **[v1.1] M5 / OQ-S1** (the "Sentinels" name) is with the owner and not decided here. See
   the §7.1 note on applicationId coupling. (review-v1b Condition C1 is the owner's
@@ -1951,6 +2473,7 @@ full there.
 | **[v1.4]** A10: cutout mode per API level (base absent, v28 `shortEdges`, v30 `always`), three-folder parity, `check-android-styles` guard (§6.6 A10, §3, §10.3, §12 MR19, §14; M-ADR-0007 note) | validation-report-round2 **F1**; code-review-round7 **M1**, **L1-L3**, S1, S2, I1-I3; M1.1 (minSdk 24), M1.4, M2 (edge-to-edge and cutouts), M2.3/M2.3a; C4 |
 | **[v1.4]** A10: identity "Shield vs Robots" / `io.github.hogy86.shieldvsrobots` (§7.1 A10, §7.2, §1, title; M-ADR-0007 note) | PRD-mobile v1.3 **OQ-S1 (b)**, v1.4 OQ-S1a, M9.1 (as amended); PRD-addendum-v4 **F22** (AC1, AC12, AC13); OQ-M11 (still pending) |
 | **[v1.5]** A11: window classification (portrait → too small → playable), size-floor formula `W ≥ l + r + 576`, `H ≥ t + b + 300`, prompt behavior, back order, re-pause guard (§6.2 A11, **§6.2.1**, §6.3, §6.4, §6.5, §6.6, §8.1, §8.3 A11, §10.1, §11, §12 MR4/MR20, §13, §14) | PRD-mobile v1.5 **M2.10a**, M2.10, M2.12, M2.13 (v1.5 note), M3.1, M3.2, M2.3a, M2.6, M2.9, M2.11, M4.1-M4.4, M4.6, M5 (v1.5 note); code-review-round7 **I6**; validation-report-round2 svr_api36_fold row; OQ-M7 (a); C1, C3 |
+| **[v1.6]** A12: separate top/bottom cutout insets from GameShell with fail-safe normalization (§6.1 A12); playfield height limited by cutouts only, and placement that keeps text in the full insets via `TEXT_TOP_LOGICAL`/`TEXT_BOTTOM_LOGICAL` (§6.2 A12, §6.5 A12); restated floor `H ≥ max(cT, t − 2) + max(cB, b − 6.5) + 300`, still equal to `belowFloor` (§6.2.1 A12); measured-inset profiles and per-axis headroom (§6.3 A12, §6.4 A12); RotatePrompt location (§6.5 A12); keyboard gate under the prompt (§6.2.1 A12 behavior 4); tests (§10.1 A12); risks (§12 MR4, MR20, MR21, MR22); handoff (§13, §14); M-ADR-0004 and M-ADR-0005 notes | PRD-mobile v1.6 **M2.3b** (rules 1-4, tests (a)-(e), known limit), the M2.10a and M2.12 v1.6 notes, the §9 v1.6 follow-up list, M2.3, M2.3a, M2.6, M2.11, M2.13, M3.1, M3.2, M4.2, M1.3, M3.10; code-review-round8 **E1**, **I1**, **I3**, S1; OQ-M7 (a); C1, C3 |
 
 ---
 
@@ -1971,6 +2494,7 @@ full there.
 | **A9** | 2026-09-26 (v1.3) | review-v1b **Addendum 1** (security decision on code-review-round1 **C3**: S1 false positive on a sibling project's committed `.env.example`); code-review-round1 **I1** (INFO: Gradle cannot build inside OneDrive) | Header, Sources, §3 (**A9 build-location note**), §7 heading, **§7.5.3 (S1 row carve-out, new S6 row, A9 binding block)**, §10 heading, §10.3 heading + `build` step 2, §12 MR12 + **MR18 (new)**, §14 item 5 + **build-location note**, §14.1 heading + **row N3**, §14 security handoff, §15, §16; dated amendment note appended to **M-ADR-0011** | **Secret check:** S1 skips the path failure only for tracked files whose basename is exactly `.env.example`, `.env.sample` or `.env.template` (`S1_TEMPLATE_BASENAMES`, `path.posix.basename`, case-sensitive). New rule **S6** content-scans those files and fails on unreadable files, on key/token signatures anywhere (a), on secret-named `KEY=VALUE` lines with a non-empty value, commented lines included (b), and on 32+ character token-like values (c). Passing exempt files are logged. `scanEnvTemplate` is a pure exported function with inline-fixture tests (i)-(vii) and basename-boundary tests. The workflow change is not merged until this passes on the real tree. No other exemption without security review. **Build location:** Android Gradle builds and emulator installs on the owner's machine run from `C:\Users\aaron\dev-build\shield-vs-robots` (outside OneDrive), a disposable mirror refreshed from the repo before every build; source edits stay in the repo; signing material never enters the mirror. | S1-S5 patterns, the whole-repository scope (A8/N3), the "stop and report; no ad hoc exclusion" rule and the A3 ignore list **kept**. The only change to S1 is the reviewed carve-out, and it adds a content scan. §7.5 signing contract and CI **unchanged**. No PRD requirement changed. |
 | **A10** | 2026-09-27 (v1.4) | validation-report-round2 **F1** (API 28 launch crash: `Unknown windowLayoutInDisplayCutoutMode: 3`); code-review-round7 **M1** (§6.6 rewritten in place by the implementer with no amendment, version bump or log row; broken bold markup), **L3** (three-folder parity), L1/L2 (guard completeness), S1/S2; owner rename per PRD-mobile v1.3 **OQ-S1 (b)** / v1.4 OQ-S1a and PRD-addendum-v4 **F22** | Title, header, Status, **Naming note (new)**, Sources, §1 (GameShell path), §3 (layout: `check-android-styles.mjs`, three `styles.xml` folders), **§6.6 (edge-to-edge bullet rewritten, bold markup repaired, A10 block)**, §7 heading, **§7.1 (applicationId and label rows, A10 note)**, **§7.2 (`appId`, `appName`)**, §10 heading, §10.3 heading + `build` step 7 + A10 note, §12 **MR19 (new)**, §14 **theme-styles note** + security handoff, §15, §16, Owner questions (OQ-S1 note); dated amendment note appended to **M-ADR-0007** | **Cutout mode:** `android:windowLayoutInDisplayCutoutMode` is absent in base `values/` (API 24-27), `shortEdges` in `values-v28/` (API 28-29) and `always` in `values-v30/` (API 30+), on all three app styles. The implementer's in-place wording is adopted as the A10 text and marked as such. **Parity rule:** the three `styles.xml` files hold the same styles, parents and items apart from the cutout item; edits land in all three in one commit; v28 and v30 must exist; either L3 option (a) or (b) conforms. **Guard:** `scripts/check-android-styles.mjs` + tests, run by the `build` job's `npm run test`; complete when it also asserts positive v28/v30 values and parity (L3), fails closed (L1) and tolerates attribute variants (L2). **Identity:** applicationId/namespace `io.github.hogy86.shieldvsrobots`, label "Shield vs Robots"; still an OQ-M11 placeholder until confirmed before step 15; `vvs` internal identifiers and storage keys unchanged (F22 AC12-AC13). | v1.3's unconditional `always` **replaced** for API < 30, **kept** for API 30+. v1.3's app ID `io.github.hogy86.vanguardvssentinels` and label "Vanguard vs. Sentinels" **replaced** by the owner's OQ-S1 (b) decision. Edge-to-edge intent, GameShell insets, Capacitor inset handling disabled, minSdk 24 / targetSdk 36 and the OQ-M11 immutability rule **kept**. No PRD requirement changed by this amendment. |
 | **A11** | 2026-09-27 (v1.5) | PRD-mobile v1.5 **M2.10a** (too-small window, any shape; asks this document for the exact formula and its interaction with M2.10), with the v1.5 M2.13 and M5 notes; underlying reports: code-review-round7 **I6**, validation-report-round2 svr_api36_fold row, tooling-setup-log 2026-09-27 fold-AVD entry | Header, Status, Sources, §6.2 (code-block annotation + A11 note superseding the sub-0.5× `belowFloor` paragraph), **§6.2.1 (new)**, §6.3 (headroom note), §6.4 (A11 note), §6.5 (re-layout triggers), §6.6 (rotate bullet), §8.1 (portrait/too-small row), **§8.3 (A11 note: prompt rule first)**, §10 heading, **§10.1 (A11 tests)**, §11, §12 MR4 + **MR20 (new)**, §13 row 2, §14 **too-small note** + security handoff, §15, §16 | **Classification**, in order: `W ≤ H` → portrait (M2.10 text); else too small when `W < l + r + 576` or `H < t + b + 300` (M2.12 columns at B = 56 + M3.1 gap + ≥ 0.5× playfield; the M3.2 PAUSE stack, ≤ 160 dp, never binds) → "Make the window larger to play."; else playable. It uses the run-time insets and is identical to `computeLayout(...).belowFloor` at B = 56. Nominal floor 624 × 300 dp. **Behavior:** pause via `pauseForInterruption`; only the prompt is drawn (other layers hidden, not destroyed); taps ignored; `onFrame` re-pauses a hidden `PLAYING` state; restore returns to the pause menu or the prior screen within one re-layout; back leaves the app and is checked before shell overlays. | v1's fixed `W < 640 or H < 360` rotate thresholds and the "playfield shrinks below 0.5×" `belowFloor` path are **replaced**. The portrait rule (`W ≤ H`), the §6.2 layout algorithm for playable windows, the 640 × 360 design profile, the OQ-M7 (a) no-band-layout decision and web behavior are **kept**. No shared game code changes. |
+| **A12** | 2026-09-28 (v1.6) | PRD-mobile v1.6 **M2.3b** (with the M2.10a and M2.12 v1.6 notes and the §9 v1.6 follow-up list), a mobile-product-manager decision in response to code-review-round8 **E1**: real insets measured on `svr_api36_pixel7` (l 51.8/36.2, r 29.7, t 28.2, b 32 dp) made the 640 × 360 dp reference window miss the A11 floor. Also code-review-round8 **I1** (RotatePrompt location) and **I3** (keyboard under the prompt). | Header, Status, Sources, §1 (GameShell row), **§6.1 (A12: `cutoutTop`/`cutoutBottom`, `normalizeInsets`, `?cutout=`, debug CSS properties)**, **§6.2 (A12: `availH` and `pfY`)**, **§6.2.1 (A12: restated `minH`, nominal values, v1.6 worked-check table, behavior 2 clarification, behavior 4 keyboard gate)**, **§6.3 (A12: measured-inset profile, three-button profile, per-axis headroom)**, **§6.4 (A12 table)**, **§6.5 (A12: text placement rule and constants, change control, RotatePrompt location)**, §10 heading + item 3 note, **§10.1 (A12 tests)**, §11, §12 MR4 and MR20 + **MR21, MR22 (new)**, §13 note, §14 **A12 note** + security handoff, §15, §16; dated notes on **M-ADR-0004** and **M-ADR-0005** | **Insets:** GameShell adds `cutoutTop`/`cutoutBottom` (display cutout only). JS normalizes every payload: an absent cutout is treated as equal to the edge inset (fail-safe), and edges are raised to the cutouts. **Layout:** `availH = H − max(cT, t − 2) − max(cB, b − 6.5)`, and `pfY` is centred between `max(cT, t − 4s)` and `H − max(cB, b − 13s)`. Art may enter the top/bottom gesture bands but never a cutout or a side inset. All playfield text (canvas warnings at logical y ≥ 4, HUD at ≥ 15, the hint ≤ 13 from the bottom) stays inside the full insets. Controls, menus and prompts are unchanged. **Floor:** `minW = l + r + 576` (unchanged), `minH = max(cT, t − 2) + max(cB, b − 6.5) + 300`, still equal to `computeLayout(...).belowFloor`. At the measured gesture insets, 640 × 360 plays at s = 0.505 (404 × 303) with 8.3 dp vertical and 4 dp horizontal headroom; three-button navigation plays at 0.52. **Keyboard (I3):** while a prompt shows, the Android capture-phase gate blocks every `keydown` (keyup passes) and blurs focused hidden controls; the `onFrame` guard stays. **I1:** RotatePrompt is a `<body>`-level fixed layer, not a `#safe-layer` child. | v1.5's `minH = t + b + 300`, `availH = H − t − b` and `pfY = t + (availH − pfH)/2` are **replaced**. The width rule, the B order, control placement, the 0.5× floor, portrait precedence, prompt behaviors 1-3 and 5-6, the back order, the N1 no-HUD-padding decision and OQ-M7 (a) are **kept**. The §6.3/§6.4 planning tables are kept as history and still tested. v1 §6.5's "rotate screens in `#safe-layer`" is **corrected** (the A11 implementation had already moved it). The "accept and record" option for I3 is **rejected**. No shared game code changes; the web is unchanged. |
 
 **ADR note:** M-ADR-0009..0012 each state which earlier ADR they amend (0001, 0002, 0005,
 0007, 0008). In v1.1 the text of M-ADR-0001..0008 was not edited. **[A8, 2026-09-25]** A
@@ -1983,7 +2507,18 @@ per API level, parity rule and guard; identity rename). **[A11, 2026-09-27]** A1
 decisions recorded in M-ADR-0004 (the sub-0.5× `belowFloor` path) and M-ADR-0005 (the back
 resolution order). This log entry and §6.2.1 / §8.3 A11 are the record; a dated pointer
 note on those two ADRs is still to be added. Where a new ADR and an old one differ, the
-newer ADR and this amendment log win.
+newer ADR and this amendment log win. **[A12, 2026-09-28]** The A11 pointer notes are now in
+place: the main session appended them to M-ADR-0004 and M-ADR-0005 on 2026-09-27. A12
+appends a second dated note to:
+- **M-ADR-0004** (`0004-screen-fitting-insets-and-scaling.md`): the inset fields, the
+  vertical fit and placement, the floor, the text constants, the RotatePrompt location and
+  A12's rejected alternatives;
+- **M-ADR-0005** (`0005-lifecycle-back-quit-and-timing.md`): the keyboard gate while a
+  prompt shows, and its rejected alternatives.
+
+M-ADR-0003 (merged input) is not edited. Its decision stands: the keyboard stays a shared
+`InputSource`, and touch never fakes key presses. The gate is an Android screen-fitting
+behavior layered in front of it, recorded in M-ADR-0005.
 
 ---
 

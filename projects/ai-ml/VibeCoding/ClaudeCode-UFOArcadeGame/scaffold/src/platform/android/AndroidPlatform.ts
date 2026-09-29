@@ -24,7 +24,7 @@ import {
 import { TouchControls } from './TouchControls';
 import { ScreenFit } from './screenFit';
 import { AndroidOverlays } from './overlays';
-import { registerBackButton } from './backButton';
+import { registerBackButton, resolveBackTarget } from './backButton';
 import { registerLifecycle } from './lifecycle';
 import { GameShell } from './GameShell';
 
@@ -81,6 +81,15 @@ export const androidPlatform: Platform = {
     return screenFit ? screenFit.renderScale() : 1;
   },
   onFrame(world: World): void {
+    // §6.2.1 behavior 4 / MR20: while a size/rotate prompt hides the pause menu, a
+    // hardware keyboard could still send Enter/Esc to the hidden pause menu and
+    // resume play unseen underneath it. Re-pause every frame the prompt shows, using
+    // the same shared, idempotent command every other interruption uses (no shared
+    // code changes) - checked BEFORE `playing` below so the rest of this frame's
+    // bookkeeping (touch visibility, keep-awake) already reflects the re-paused state.
+    if (overlays.isRotatePromptShowing() && world.state === 'PLAYING') {
+      pauseForInterruption(world);
+    }
     const playing = world.state === 'PLAYING';
     if (playing !== touchControlsVisible) {
       touchControlsVisible = playing;
@@ -136,16 +145,24 @@ export const androidPlatform: Platform = {
     );
     ctx.input.addSource(touchControls.input);
 
-    screenFit = new ScreenFit(ctx.dom.appRoot, ctx.dom.overlayRoot, shellOverlayRoot, touchControls, {
-      // M7: a viewport SIZE change (fold/split-screen/freeform resize, §8.1) goes
-      // through the same shared interruption command as backgrounding - not the plain
-      // `pause()` GameCommand - so it also holds VICTORY and commits the best score.
-      onPause: () => pauseForInterruption(ctx.getWorld()),
-      onRotatePromptChange: (show) => overlays.setRotatePromptVisible(show),
-      // M3: re-applies the canvas backing-store scale on every re-layout, not just
-      // once at boot (fold/resize/insets changes were previously never picked up).
-      onScaleChange: (scale) => ctx.setRenderScale(scale),
-    });
+    screenFit = new ScreenFit(
+      ctx.dom.appRoot,
+      ctx.dom.overlayRoot,
+      shellOverlayRoot,
+      touchControls,
+      overlays.rotatePromptElement,
+      {
+        // M7: a viewport SIZE change (fold/split-screen/freeform resize, §8.1) goes
+        // through the same shared interruption command as backgrounding - not the
+        // plain `pause()` GameCommand - so it also holds VICTORY and commits the
+        // best score.
+        onPause: () => pauseForInterruption(ctx.getWorld()),
+        onWindowPromptChange: (kind) => overlays.setWindowPromptKind(kind),
+        // M3: re-applies the canvas backing-store scale on every re-layout, not just
+        // once at boot (fold/resize/insets changes were previously never picked up).
+        onScaleChange: (scale) => ctx.setRenderScale(scale),
+      },
+    );
     await screenFit.init();
     screenFit.setSwapControls(overlays.swapControls);
 
@@ -196,6 +213,7 @@ export const androidPlatform: Platform = {
 
     registerBackButton(ctx.getWorld, {
       closeTopOverlay: () => overlays.closeTopOverlay(),
+      hasOpenOverlay: () => overlays.hasOpenOverlay(),
       isRotatePromptShowing: () => overlays.isRotatePromptShowing(),
     });
     registerLifecycle(ctx, {
@@ -203,6 +221,9 @@ export const androidPlatform: Platform = {
       // loop suspends immediately after, so no later frame's `setVisible(false)` would
       // otherwise catch it) must not stick held/moving on resume.
       clearTouchPointers: () => touchControls.clearAllPointers(),
+      // code-review-round8 L3: §6.2.1 also re-checks the window classification "on
+      // resume", not just on resize/edgeInsetsChanged.
+      reclassifyWindow: () => screenFit.reclassify(),
     });
 
     installE2eTestHook(ctx);
@@ -245,6 +266,14 @@ function installE2eTestHook(ctx: PlatformContext): void {
     // a genuine, inert copy.
     snapshot: () => deepFreeze(structuredClone(ctx.getWorld())),
     playerXLog: () => [...playerXLog],
+    // §10.1 Amendment A11: the same pure order-resolution `registerBackButton` uses,
+    // called directly rather than through the real `App.addListener('backButton', ...)`
+    // path (see backButton.ts's own comment on why that path is excluded here).
+    resolveBack: () =>
+      resolveBackTarget({
+        isRotatePromptShowing: () => overlays.isRotatePromptShowing(),
+        hasOpenOverlay: () => overlays.hasOpenOverlay(),
+      }),
   });
 
   const recordFrame = (): void => {

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- M1/§6.6, code-review-round2 (mobile) F1: API 28-29 devices (confirmed on a real
+<!-- M1/§6.6, validation-report-round2 F1: API 28-29 devices (confirmed on a real
      `google_apis` API 28 system image, WebView 69) throw
      `UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3` when the
      attribute is set to "always", even though the attribute itself was added in API 28.

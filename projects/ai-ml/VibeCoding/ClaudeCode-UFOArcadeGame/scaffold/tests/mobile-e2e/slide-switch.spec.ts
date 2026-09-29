@@ -34,6 +34,19 @@
 // the scripted gesture still uses real-time waits (a real thumb takes real time to
 // slide), but the *pass/fail measurement* is exact array arithmetic over events and
 // frames the page itself timestamped.
+// 3. (code-review-round11.md R2) A third source of flakiness turned out to be a
+//    check-then-act race against the game's OWN GAMEOVER (Level 1's formation is
+//    never opposed by this suite - see runFortySwipes - so it eventually reaches
+//    the player's row and ends the run). `ensurePlaying` could observe PLAYING and
+//    return, then GAMEOVER could land (hiding the touch controls, M3.9) before the
+//    next read. `currentRects` and `runOneSlide`'s data-collection loop are now
+//    race-free by construction: every recovery read is a single, unwaited snapshot
+//    (bounding boxes plus game state) taken together, bounded to a small number of
+//    attempts, with `ensurePlaying` re-run between attempts to click "Play again."
+//    Recovering from GAMEOVER this way is setup code, never a retry of an M3.3a rule
+//    assertion; if recovery still fails after the bound, the test throws a clear,
+//    distinct "data collection interrupted"/"could not reach PLAYING" error instead
+//    of asserting rules over a corrupted or absent log.
 
 import { test, expect, type Page, type CDPSession } from '@playwright/test';
 
@@ -132,17 +145,6 @@ async function waitForLevelIntroToClear(page: Page): Promise<void> {
     .toBe(0);
 }
 
-async function boxOf(page: Page, selector: string) {
-  // A bounded wait for visibility (not a poll/retry of an M3.3a assertion) - the
-  // control can be legitimately hidden for a moment right after GAMEOVER (M3.9)
-  // while ensurePlaying is still restarting the run.
-  const locator = page.locator(selector);
-  await locator.waitFor({ state: 'visible', timeout: 5000 }).catch(() => undefined);
-  const box = await locator.boundingBox();
-  if (!box) throw new Error(`${selector} has no bounding box`);
-  return box;
-}
-
 async function touchDown(client: CDPSession, x: number, y: number): Promise<void> {
   await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
 }
@@ -217,19 +219,37 @@ async function recentreIfNearEdge(page: Page, client: CDPSession, rects: Rects):
   }
 }
 
+// code-review-round11.md R2: bounded, race-free recovery from GAMEOVER landing
+// between a caller's `ensurePlaying` and this function's own reads. The previous
+// version waited up to 5s for visibility with nothing ever clicking "Play again"
+// during that wait (a genuine deadlock once GAMEOVER lands), so it could never
+// recover and always threw "no bounding box". This version never waits: each
+// attempt reads both buttons' current `boundingBox()` (null immediately, not after
+// a timeout, if hidden) and the game's own state in a single snapshot, and only
+// accepts the result if both boxes exist AND the state is still PLAYING at that
+// instant. If GAMEOVER is found instead, `ensurePlaying` (which clicks "Play
+// again") runs again at the top of the next attempt - this is setup/recovery code
+// re-running, never a retry of an M3.3a rule assertion.
+const CURRENT_RECTS_MAX_ATTEMPTS = 3;
+
 async function currentRects(page: Page): Promise<Rects> {
-  // Self-defending: a caller may have called ensurePlaying just before this, but
-  // GAMEOVER (M3.9 hides the controls) can still land in the gap between that call
-  // and this one.
-  await ensurePlaying(page);
-  const leftBox = await boxOf(page, LEFT_SELECTOR);
-  const rightBox = await boxOf(page, RIGHT_SELECTOR);
-  const y = leftBox.y + leftBox.height / 2;
-  return {
-    left: { x: leftBox.x + leftBox.width / 2, y },
-    right: { x: rightBox.x + rightBox.width / 2, y },
-    gap: { x: (leftBox.x + leftBox.width + rightBox.x) / 2, y },
-  };
+  for (let attempt = 0; attempt < CURRENT_RECTS_MAX_ATTEMPTS; attempt += 1) {
+    await ensurePlaying(page);
+    const leftBox = await page.locator(LEFT_SELECTOR).boundingBox();
+    const rightBox = await page.locator(RIGHT_SELECTOR).boundingBox();
+    const state = (await snapshot(page)).state;
+    if (leftBox && rightBox && state === 'PLAYING') {
+      const y = leftBox.y + leftBox.height / 2;
+      return {
+        left: { x: leftBox.x + leftBox.width / 2, y },
+        right: { x: rightBox.x + rightBox.width / 2, y },
+        gap: { x: (leftBox.x + leftBox.width + rightBox.x) / 2, y },
+      };
+    }
+  }
+  throw new Error(
+    `could not reach PLAYING with visible touch controls after ${CURRENT_RECTS_MAX_ATTEMPTS} attempts (GAMEOVER kept landing before the controls could be read)`,
+  );
 }
 
 function lastAtOrBefore(log: Array<[number, number]>, t: number): [number, number] | undefined {
@@ -275,7 +295,9 @@ async function runOneSlide(
   // a rule assertion itself.
   let xLog: Array<[number, number]> = [];
   let pointerLog: Array<[number, string]> = [];
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  const RUN_ONE_SLIDE_MAX_ATTEMPTS = 3;
+  let dataCollectionInterrupted = true;
+  for (let attempt = 0; attempt < RUN_ONE_SLIDE_MAX_ATTEMPTS; attempt += 1) {
     await page.evaluate(() => window.__startSlideRecorder!());
 
     await touchDown(client, from.x, from.y);
@@ -293,8 +315,19 @@ async function runOneSlide(
     const result = await page.evaluate(() => window.__stopSlideRecorder!());
     xLog = result.xLog;
     pointerLog = result.pointerLog;
-    if (!result.leftPlaying) break;
+    dataCollectionInterrupted = result.leftPlaying;
+    if (!dataCollectionInterrupted) break;
     await ensurePlaying(page);
+  }
+  // code-review-round11.md R2 (second hole): the old code re-collected at most twice
+  // and then, if still interrupted, silently fell through into the rule assertions
+  // below over a corrupted log (recorded across a GAMEOVER) - which could surface as
+  // a false rule-1/2/3 failure with no indication the log itself was bad. Fail loudly
+  // instead, distinct from any M3.3a rule failure.
+  if (dataCollectionInterrupted) {
+    throw new Error(
+      `data collection interrupted by GAMEOVER ${RUN_ONE_SLIDE_MAX_ATTEMPTS} times in a row - no clean slide was recorded to check M3.3a rules against`,
+    );
   }
 
   // The scripted gesture dispatches exactly one pointerdown (from) then two

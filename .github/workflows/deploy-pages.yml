@@ -125,6 +125,11 @@ jobs:
 
       - run: node scripts/check-capacitor-config.mjs
 
+      # code-review-round7.md S1: previously only ran indirectly via `npm run test`'s
+      # real-tree vitest assertions (§6.6 A10 item 3) - a visible, separately-attributed
+      # step here makes a regression's failure obvious without reading the test log.
+      - run: npm run check:android-styles
+
       # H4(b): aapt2 is not on ubuntu-latest's PATH. Pin a build-tools version
       # (matching android/variables.gradle's compileSdkVersion) via sdkmanager so the
       # resolved aapt2 path is deterministic rather than "highest installed" guesswork.
