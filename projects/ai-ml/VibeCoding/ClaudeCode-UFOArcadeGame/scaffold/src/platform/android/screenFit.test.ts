@@ -11,21 +11,39 @@ import { classifyWindow, normalizeInsets } from './layout';
 import { readLayoutViewport } from './screenFit';
 
 /** The measured device payload: t 28.1905, b 32, l 36.1905, r 29.7143 (l + r = 65.9). */
-const PIXEL7_REAL_INSETS = normalizeInsets({ left: 36.1905, right: 29.7143, top: 28.1905, bottom: 32 });
+const PIXEL7_REAL_INSETS = normalizeInsets({
+  left: 36.1905,
+  right: 29.7143,
+  top: 28.1905,
+  bottom: 32,
+});
 
 const originalInnerWidth = Object.getOwnPropertyDescriptor(window, 'innerWidth');
 const originalInnerHeight = Object.getOwnPropertyDescriptor(window, 'innerHeight');
 
-function restoreWindowProperty(name: 'innerWidth' | 'innerHeight', original: PropertyDescriptor | undefined): void {
+function restoreWindowProperty(
+  name: 'innerWidth' | 'innerHeight',
+  original: PropertyDescriptor | undefined,
+): void {
   if (original) Object.defineProperty(window, name, original);
   else delete (window as unknown as Record<string, unknown>)[name];
 }
 
-function stubWindow(inner: { width: number; height: number }, layout: { width: number; height: number }): void {
+function stubWindow(
+  inner: { width: number; height: number },
+  layout: { width: number; height: number },
+): void {
   Object.defineProperty(window, 'innerWidth', { configurable: true, value: inner.width });
   Object.defineProperty(window, 'innerHeight', { configurable: true, value: inner.height });
   document.documentElement.getBoundingClientRect = () =>
-    ({ width: layout.width, height: layout.height, top: 0, left: 0, right: layout.width, bottom: layout.height }) as DOMRect;
+    ({
+      width: layout.width,
+      height: layout.height,
+      top: 0,
+      left: 0,
+      right: layout.width,
+      bottom: layout.height,
+    }) as DOMRect;
 }
 
 describe('readLayoutViewport (F2)', () => {
@@ -57,8 +75,12 @@ describe('readLayoutViewport (F2)', () => {
     stubWindow({ width: 642, height: 361 }, { width: 640, height: 360 });
     expect(classifyWindow(readLayoutViewport(), PIXEL7_REAL_INSETS, false)).toBe('tooSmall');
     // What the pre-fix code classified (documents the bug this test guards).
-    expect(classifyWindow({ width: window.innerWidth, height: window.innerHeight }, PIXEL7_REAL_INSETS, false)).toBe(
-      'playable',
-    );
+    expect(
+      classifyWindow(
+        { width: window.innerWidth, height: window.innerHeight },
+        PIXEL7_REAL_INSETS,
+        false,
+      ),
+    ).toBe('playable');
   });
 });

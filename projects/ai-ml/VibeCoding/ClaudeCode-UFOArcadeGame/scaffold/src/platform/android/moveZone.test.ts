@@ -49,7 +49,9 @@ describe('classifyMovePointer - M3.3a rule 4: elsewhere clears direction/lastDir
 
   it('re-entering a button afterward resumes (lastDir was cleared, not stuck)', () => {
     const away = classifyMovePointer({ x: 500, y: 128 }, RECTS, 'right', { isFreshTouch: false });
-    const back = classifyMovePointer({ x: 28, y: 128 }, RECTS, away.lastDir, { isFreshTouch: false });
+    const back = classifyMovePointer({ x: 28, y: 128 }, RECTS, away.lastDir, {
+      isFreshTouch: false,
+    });
     expect(back).toEqual({ dir: 'left', lastDir: 'left' });
   });
 });

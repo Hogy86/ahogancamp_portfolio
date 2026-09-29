@@ -556,3 +556,31 @@ navigation_mode 0, taskbar, insets t24 b56. Title, help dismiss, play (score 550
 - Set the phone's text size to the largest and repeat: everything stays readable and inside the screen. If a menu is taller than the screen, tell us the phone model and whether you can scroll it with your finger.
 - Use 3-button navigation on a wide tablet or foldable: the game should play with the buttons above the bar. If you see "Make the window larger to play." tell us the phone model, navigation mode and screen size.
 - Shrink the window (split screen or free-form): the game pauses and shows the message; enlarging returns to the Pause menu, never running by itself.
+
+## 2026-09-29 - Round 6 B2 evidence: M2.7 small-scale art legibility (svr_api36_lowend_640x360)
+
+Closes the evidence gap in design-review-round3.md B2. Debug APK built from the current working tree (mirror refresh + build:android + cap sync + assembleDebug), installed on `svr_api36_lowend_640x360` (1280 x 720 px, 320 dpi = 640 x 360 dp, gesture nav, default settings; nothing in Settings was changed). The `?e2e=1` hook is disabled on native, so the states were reached by real play driven by a screenshot-reading tap bot over adb (touch buttons only; no app code or state modified). One run reached Level 5 and the boss; another reached Level 6. Screenshots are raw device captures (1280 x 720), all in `docs/mobile/tests/screenshots/`. On this AVD, 1 dp = 2 px; a robot is about 40 px (20 dp) wide.
+
+| Item (M2.7) | Captured | File(s) |
+|---|---|---|
+| (b) 1-hit vs multi-hit robots, later level | Yes, Level 3 and Level 5 formations | `m2_7_lowend_mixed_robots_powerups_L3_round6_b2.png`, `m2_7_lowend_mixed_robots_L5_round6_b2.png`, `m2_7_lowend_mixed_robots_L5_b_round6_b2.png` |
+| (a) Power-up 1 (two horizontal bars) + power-up 2 (X) falling | Yes | `m2_7_lowend_powerups_caret_equals_L2_round6_b2.png` (bars + chevron), `m2_7_lowend_powerups_x_diamond_L2_round6_b2.png` (X + diamond x2), `m2_7_lowend_mixed_robots_powerups_L3_round6_b2.png` (X + diamond, Level 3) |
+| (a) All four falling types | Yes, two types per frame across the frames above: bars, chevron, X, diamond | (same three files) |
+| (c) Bouncing shield with trail | Yes | `m2_7_lowend_shield_trail_level1_round6_b2.png`, `m2_7_lowend_boss_shield_trail_L5_round6_b2.png` (diagonal, mid-bounce) |
+| Boss (Level 5) | Yes | `m2_7_lowend_boss_L5_round6_b2.png`, `m2_7_lowend_boss_damaged_L5_round6_b2.png` (damage chevrons), `m2_7_lowend_boss_shield_trail_L5_round6_b2.png` |
+
+Note: I did not map each glyph to its named effect (Speed, Shield, Power, etc.) on a per-glyph basis; the HUD showed "3x Speed", "Shield" and a Power value change during the runs, but I only judge that the four glyphs differ from each other.
+
+### Lead-tester legibility judgment against M2.7 (the UX reviewer makes the formal call)
+
+- (a) Power-ups: PASS on shape. Each falling pickup is a 13 dp (26 px) outlined yellow circle with a different inner glyph: two bars, chevron, X, diamond. At real scale the four are distinguishable by glyph in every capture, although they are small and thin-stroked; all four use the same yellow ring and rely on the inner glyph only. A diamond and the chevron are the closest pair at a glance. If the reviewer wants more margin, the glyph stroke could be thicker or the circle bigger.
+- (b) 1-hit vs multi-hit: PASS with a caveat. On a Level 5 formation the robots show three clear tones (white, light grey, dark grey), same silhouette, and they read apart at 20 dp width. The distinction is by brightness only (no shape, number or outline cue), so it is weak for colour-blind or low-brightness viewing; dark grey (about 110 grey on near-black) is the dimmest. I could not confirm from the screenshots alone whether the tone means toughness or remaining hit points.
+- (c) Shield trail: BORDERLINE. The shield itself (blue disc with white rim) is clear. The trail is a fading row of dark navy dots; measured peak colour beside the ball is RGB (19, 41, 89) on background (5, 5, 10), fading to about (9, 13, 27) at the tail. It is visible on close inspection in `..._boss_shield_trail_L5_...` and `..._shield_trail_level1_...` but is faint at real scale (roughly 2:1 contrast at the brightest, less further back). Recommend the reviewer decide whether that meets "visible" (F15 AC9); if not, raise it to mobile-junior-developer as a brighter or longer trail (not a lower scale floor).
+- Boss: the boss is large (about 100 x 80 px), dark grey with red eyes and light outline, readable against the black playfield; the damage chevrons are visible on the damaged capture. The boss body is low contrast, but the outline and eyes carry it.
+
+### Could not capture / caveats
+
+- Nothing on the B2 list was unreachable. Not captured: Levels 7-10 (not needed for B2) and a single frame showing all four power-ups at once (never spawned together in play; covered by the two-per-frame captures).
+- The tap bot restarts a run automatically after Game Over by tapping "Play again"; those runs are not evidence for anything else.
+- The HUD panel "Power" / status lines partly overlap the top-right of the formation in some Level 1-3 frames when the formation is at the top (e.g. the L3 capture near "Power x1.80"). Not part of B2, noted for the UX reviewer.
+- The emulator was stopped after the session; no settings were changed, so nothing needed restoring. No commits or pushes made.

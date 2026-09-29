@@ -22,7 +22,14 @@
 //   Amendment A11 pauses on ENTERING either prompt regardless of what triggered it
 //   (a 180-degree flip moving the cutout can do this with no `resize` event at all).
 
-import { classifyWindow, computeLayout, normalizeInsets, type LayoutInsets, type Layout, type WindowClass } from './layout';
+import {
+  classifyWindow,
+  computeLayout,
+  normalizeInsets,
+  type LayoutInsets,
+  type Layout,
+  type WindowClass,
+} from './layout';
 import { GameShell } from './GameShell';
 import type { TouchControls } from './TouchControls';
 
@@ -59,7 +66,14 @@ export class ScreenFit {
   // §6.1 Amendment A12: normalized on every assignment (init, and every
   // `edgeInsetsChanged` payload) - `this.insets` is always a complete `LayoutInsets`,
   // never a raw GameShell payload that might be missing the new cutout fields.
-  private insets: LayoutInsets = { left: 0, right: 0, top: 0, bottom: 0, cutoutTop: 0, cutoutBottom: 0 };
+  private insets: LayoutInsets = {
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    cutoutTop: 0,
+    cutoutBottom: 0,
+  };
   private swapControls = false;
   private lastViewportKey = '';
   private currentLayout: Layout | null = null;
@@ -132,7 +146,9 @@ export class ScreenFit {
   }
 
   renderScale(): number {
-    return this.currentLayout ? Math.min(this.currentLayout.scale * window.devicePixelRatio, BACKING_STORE_SCALE_CAP) : 1;
+    return this.currentLayout
+      ? Math.min(this.currentLayout.scale * window.devicePixelRatio, BACKING_STORE_SCALE_CAP)
+      : 1;
   }
 
   private relayout(viewportSizeChanged: boolean): void {
@@ -168,7 +184,10 @@ export class ScreenFit {
     // reported cutouts (next to `--pf-scale`) over WebView DevTools. Nothing is
     // logged, stored or transmitted.
     document.documentElement.style.setProperty('--vvs-cutout-top', `${this.insets.cutoutTop}px`);
-    document.documentElement.style.setProperty('--vvs-cutout-bottom', `${this.insets.cutoutBottom}px`);
+    document.documentElement.style.setProperty(
+      '--vvs-cutout-bottom',
+      `${this.insets.cutoutBottom}px`,
+    );
 
     const windowClass = classifyWindow(viewport, this.insets, this.swapControls);
     // §6.2.1 behavior 1 / §6.5 Amendment A11: pause on ENTERING a prompt, even from an

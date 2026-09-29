@@ -47,8 +47,5 @@ export function loadSettings(): AndroidSettings {
 }
 
 export function saveSettings(settings: AndroidSettings): void {
-  safeSetItem(
-    SETTINGS_STORAGE_KEY,
-    JSON.stringify({ v: SETTINGS_SCHEMA_VERSION, ...settings }),
-  );
+  safeSetItem(SETTINGS_STORAGE_KEY, JSON.stringify({ v: SETTINGS_SCHEMA_VERSION, ...settings }));
 }

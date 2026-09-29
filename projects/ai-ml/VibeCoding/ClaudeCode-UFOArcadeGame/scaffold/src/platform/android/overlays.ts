@@ -66,15 +66,16 @@ export class AndroidOverlays {
     gotIt.dataset.action = 'help-dismiss';
     this.helpOverlay.append(
       createElement('h1', undefined, 'How to play'),
+      // design-review-round3 F3: three short stacked lines (no separators, so no symbol
+      // is ever orphaned from its word on wrap), naming the hero (F22 AC6) and using
+      // the words the buttons actually show.
+      createElement('p', undefined, 'Left and right buttons: move ShieldMan'),
       createElement(
         'p',
         undefined,
-        // code-review-round3 L2: copy matches the actual on-screen button glyphs
-        // (TouchControls.ts: '<', '>', 'THROW', 'II'), not the pictographic Unicode
-        // set those buttons were changed away from (round 3, same review) because it
-        // rendered as nothing on this WebView.
-        '< > Move · THROW (one shield at a time — catch it on the rebound for +1 life) · II Pause',
+        'THROW: throw your shield. One at a time. Catch it on the rebound for +1 life.',
       ),
+      createElement('p', undefined, 'Pause button: pause the game'),
       gotIt,
     );
 
@@ -179,7 +180,11 @@ export class AndroidOverlays {
    * matching message (M2.10/M2.10a). */
   setWindowPromptKind(kind: 'portrait' | 'tooSmall' | null): void {
     const entering = kind !== null && this.isRotatePromptShowing() === false;
-    if (kind) setText(this.rotatePromptText, kind === 'portrait' ? PORTRAIT_PROMPT_TEXT : TOO_SMALL_PROMPT_TEXT);
+    if (kind)
+      setText(
+        this.rotatePromptText,
+        kind === 'portrait' ? PORTRAIT_PROMPT_TEXT : TOO_SMALL_PROMPT_TEXT,
+      );
     this.rotatePrompt.classList.toggle('hidden', kind === null);
     // §6.2.1 Amendment A12 behavior 4 (I3 "Focus"): on ENTERING a prompt, blur any
     // element focused inside the now-hidden `#app-root`/`#safe-layer` (including the
@@ -259,6 +264,9 @@ export class AndroidOverlays {
       this.privacyFrame.remove();
       this.privacyFrame = null;
     }
+    // design-review-round3 F4: while a shell overlay (opaque) is open, the title menu
+    // underneath is hidden outright, so no part of it can show around the panel.
+    document.documentElement.classList.toggle('vvs-shell-overlay-open', this.stack.length > 0);
     const top = this.stack[this.stack.length - 1];
     if (top === 'help') this.helpOverlay.classList.remove('hidden');
     if (top === 'settings') this.settingsOverlay.classList.remove('hidden');

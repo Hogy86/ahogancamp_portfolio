@@ -24,7 +24,10 @@ describe('settings - fail-closed loading (§9.2)', () => {
   });
 
   it('defaults a field with a non-boolean value while keeping the other valid field', () => {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify({ swapControls: 'yes', helpSeen: true }));
+    localStorage.setItem(
+      SETTINGS_STORAGE_KEY,
+      JSON.stringify({ swapControls: 'yes', helpSeen: true }),
+    );
     expect(loadSettings()).toEqual({ swapControls: false, helpSeen: true });
   });
 

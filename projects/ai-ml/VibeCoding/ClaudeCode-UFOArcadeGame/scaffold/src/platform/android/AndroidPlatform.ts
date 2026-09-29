@@ -38,6 +38,28 @@ let keepAwakeOn = false;
 /** L4: tracked so `touchControls.setVisible()` (and therefore `clearAllPointers()`) is
  * only called on a PLAYING/not-PLAYING transition, not every non-PLAYING frame. */
 let touchControlsVisible = true;
+/** Last state written to `<html data-vvs-state>`, so the attribute is only touched on a
+ * transition (android.css hides the HUD and control hint by state). */
+let publishedState: string | null = null;
+
+/** design-review-round3 L1 (code-review-round13): while the too-small/portrait prompt
+ * shows, the hidden 800 x 600 `#app-root` is wider than a narrow window, and WebView
+ * answers by shrinking the page (measured visualViewport.scale 0.868 at a live
+ * `wm size 945x1680`). `minimum-scale=1` forbids that. Done here, not in index.html, so
+ * the website's viewport meta is untouched. */
+function lockMinimumPageScale(): void {
+  document
+    .querySelector('meta[name="viewport"]')
+    ?.setAttribute('content', 'width=device-width, initial-scale=1, minimum-scale=1');
+}
+
+/** design-review-round3 F1/B1: CSS-only consumers (android.css) key off this so the
+ * dimmed HUD panels and the hint no longer bleed through the title/game-over menus. */
+function publishState(state: string): void {
+  if (state === publishedState) return;
+  publishedState = state;
+  document.documentElement.dataset.vvsState = state;
+}
 
 function handlePauseMenuClick(world: World, action: string): void {
   const match = /^pause-option:(\d+)$/.exec(action);
@@ -61,9 +83,9 @@ function handlePauseMenuClick(world: World, action: string): void {
 export const androidPlatform: Platform = {
   id: 'android',
   copy: {
-    // code-review-round3 L2: matches the ASCII glyphs the touch buttons actually show
-    // (TouchControls.ts: '<', '>', 'THROW', 'II').
-    controlHint: '< > move · THROW · II pause',
+    // design-review-round3 F3: words, not the old `< > ... II` punctuation. "top corner"
+    // rather than "top right": PAUSE mirrors to the left when Swap controls is on.
+    controlHint: 'Left / right: move · THROW · Pause: top corner',
     titleStartLabel: 'Start',
     titleExtraActions: ['help', 'settings', 'quit'],
     menuHint: null,
@@ -90,6 +112,7 @@ export const androidPlatform: Platform = {
     if (overlays.isRotatePromptShowing() && world.state === 'PLAYING') {
       pauseForInterruption(world);
     }
+    publishState(world.state);
     const playing = world.state === 'PLAYING';
     if (playing !== touchControlsVisible) {
       touchControlsVisible = playing;
@@ -109,6 +132,7 @@ export const androidPlatform: Platform = {
   },
   async init(ctx: PlatformContext): Promise<void> {
     document.documentElement.classList.add('platform-android');
+    lockMinimumPageScale();
 
     // A SEPARATE node from ctx.dom.overlayRoot: ScreenController clears and rebuilds
     // overlayRoot on every view-key change (§5.4), which would otherwise wipe out

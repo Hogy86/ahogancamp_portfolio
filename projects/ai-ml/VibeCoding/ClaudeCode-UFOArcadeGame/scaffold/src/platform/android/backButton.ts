@@ -38,7 +38,9 @@ export type BackTarget = 'leaveApp' | 'closeOverlay' | 'gameCommand';
  * registration race in `@capacitor/app`, unrelated to this ordering logic), so the M5
  * table's real wiring stays a device-matrix-only check; only the ordering RULE this
  * amendment adds is asserted here, deterministically. */
-export function resolveBackTarget(host: Pick<BackButtonHost, 'isRotatePromptShowing' | 'hasOpenOverlay'>): BackTarget {
+export function resolveBackTarget(
+  host: Pick<BackButtonHost, 'isRotatePromptShowing' | 'hasOpenOverlay'>,
+): BackTarget {
   if (host.isRotatePromptShowing()) return 'leaveApp';
   if (host.hasOpenOverlay()) return 'closeOverlay';
   return 'gameCommand';

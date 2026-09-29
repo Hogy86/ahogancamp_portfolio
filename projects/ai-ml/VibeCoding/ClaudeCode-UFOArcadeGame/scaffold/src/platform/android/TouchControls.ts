@@ -1,5 +1,5 @@
 // Implements docs/mobile/architecture/mobile-architecture.md §5.2/§5.3 (M-ADR-0003):
-// the on-screen ◀ ▶ THROW PAUSE controls. PRD-mobile M3.1-M3.11.
+// the on-screen left/right arrows, THROW and PAUSE controls. PRD-mobile M3.1-M3.11.
 // - Movement: one DOM element (#move-zone) covering ◀, the gap, and ▶; pointer capture
 //   keeps a finger tracked wherever it slides (§5.2).
 // - Throw: a latch cleared only once at least one simulation step has run this frame,
@@ -11,6 +11,7 @@ import { createElement, setText } from '../../ui/dom';
 import type { InputSource } from '../../core/InputManager';
 import { classifyMovePointer, type MoveDirection, type MoveZoneRects } from './moveZone';
 import { CONTROL_GAP_DP, type Layout } from './layout';
+import { createArrowGlyph, createPauseGlyph } from './glyphs';
 
 export class TouchInputSource implements InputSource {
   // §5.1 step 4 / L2: this reports left/right INDEPENDENTLY - InputManager is the only
@@ -67,22 +68,23 @@ interface TrackedMovePointer {
 }
 
 // M3: the buttons carry `aria-label`s already, but a sighted player needs a visible
-// glyph to tell < from > from THROW from PAUSE - empty bordered squares (round-2 M3)
-// don't. The glyph lives in a separate `aria-hidden` span so screen readers keep using
-// the button's `aria-label`, not this decorative text, as the accessible name.
+// glyph to tell left from right from THROW from PAUSE - empty bordered squares (round-2
+// M3) don't. The glyph lives in a separate `aria-hidden` span so screen readers keep
+// using the button's `aria-label`, not this decorative content, as the accessible name.
 //
 // code-review-round3 (real-device evidence, svr_api36_pixel7, `-gpu host`): the
-// pictographic Unicode glyphs tried first (◀/▶/⏸/\u{1F6E1}) rendered as
-// nothing at all on this AVD system image's WebView - not tofu boxes, genuinely
-// invisible, confirmed via a 4x-zoomed screenshot crop showing empty button interiors.
-// Plain ASCII text has no font-coverage risk on any Android WebView, and M3's own
-// fix suggestion explicitly allows "a shield or 'THROW' label" - so every glyph below
-// is now plain ASCII.
+// pictographic Unicode glyphs tried first rendered as nothing on this AVD's WebView, so
+// text glyphs were switched to ASCII; design-review-round3 F2 then found bare ASCII
+// punctuation (`<`, `>`, `II`) unreadable as icons. The arrows and pause bars are now
+// inline SVG shapes (glyphs.ts, no font involved); THROW keeps its word, and the
+// recharging state is the word WAIT (`...` was ambiguous).
 const THROW_GLYPH_READY = 'THROW';
-const THROW_GLYPH_NOT_READY = '...'; // shield is out, recharging - a different glyph, not just a dimmer one (NFR-9)
+const THROW_GLYPH_NOT_READY = 'WAIT'; // shield is out, recharging - a different glyph, not just a dimmer one (NFR-9)
 
-function appendGlyph(button: HTMLElement, glyph: string): HTMLElement {
-  const span = createElement('span', 'touch-glyph', glyph);
+function appendGlyph(button: HTMLElement, glyph: string | SVGSVGElement): HTMLElement {
+  const span = createElement('span', 'touch-glyph');
+  if (typeof glyph === 'string') setText(span, glyph);
+  else span.append(glyph);
   span.setAttribute('aria-hidden', 'true');
   button.append(span);
   return span;
@@ -109,19 +111,25 @@ export class TouchControls {
     this.moveZone.setAttribute('aria-hidden', 'true'); // decorative container; buttons carry labels
     this.leftButton = createElement('button', 'touch-button touch-button--left');
     this.leftButton.setAttribute('aria-label', 'Move left');
-    appendGlyph(this.leftButton, '<');
+    appendGlyph(this.leftButton, createArrowGlyph('left'));
     this.rightButton = createElement('button', 'touch-button touch-button--right');
     this.rightButton.setAttribute('aria-label', 'Move right');
-    appendGlyph(this.rightButton, '>');
+    appendGlyph(this.rightButton, createArrowGlyph('right'));
     this.moveZone.append(this.leftButton, this.rightButton);
 
-    this.throwButton = createElement('button', 'touch-button touch-button--throw') as HTMLButtonElement;
+    this.throwButton = createElement(
+      'button',
+      'touch-button touch-button--throw',
+    ) as HTMLButtonElement;
     this.throwButton.setAttribute('aria-label', 'Throw shield');
     this.throwGlyph = appendGlyph(this.throwButton, THROW_GLYPH_READY);
 
-    this.pauseButton = createElement('button', 'touch-button touch-button--pause') as HTMLButtonElement;
+    this.pauseButton = createElement(
+      'button',
+      'touch-button touch-button--pause',
+    ) as HTMLButtonElement;
     this.pauseButton.setAttribute('aria-label', 'Pause');
-    appendGlyph(this.pauseButton, 'II'); // pause bars, ASCII-safe
+    appendGlyph(this.pauseButton, createPauseGlyph());
 
     this.root.append(this.moveZone, this.throwButton, this.pauseButton);
 
@@ -195,12 +203,9 @@ export class TouchControls {
   private reclassify(pointerId: number, x: number, y: number, isFreshTouch: boolean): void {
     const tracked = this.movePointers.get(pointerId);
     if (!tracked) return;
-    const result = classifyMovePointer(
-      { x, y },
-      this.currentRects(),
-      tracked.lastDir,
-      { isFreshTouch },
-    );
+    const result = classifyMovePointer({ x, y }, this.currentRects(), tracked.lastDir, {
+      isFreshTouch,
+    });
     // `lastDir` alone is enough to drive the shared direction below: classifyMovePointer
     // sets it to the live direction on ◀/▶, leaves it unchanged (carrying the direction
     // forward) in the gap, and clears it to null everywhere else (§5.2).

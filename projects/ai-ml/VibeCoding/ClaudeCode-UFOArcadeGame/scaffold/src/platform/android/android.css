@@ -24,6 +24,42 @@ html.platform-android #control-text {
   font-size: max(15px, calc(12px / var(--pf-scale, 1)));
 }
 
+/* design-review-round3 B1 (M2.4: nothing covers ShieldMan's row): the shared
+   `#control-text` sits at the playfield's bottom edge, exactly on the hero (whose top
+   is 48 logical px above the bottom, PLAYER_Y = 600 - 48). On Android it sits 24 dp
+   (on screen) above that row instead - `24px / --pf-scale` converts dp back to the
+   scaled playfield's logical px - which is still far below the level-1 formation.
+   `nowrap`: the longer word copy would otherwise wrap inside the 50%-wide
+   shrink-to-fit box its `left: 50%` gives it. The 12 sp floor above is unchanged. */
+html.platform-android #control-text {
+  bottom: calc(48px + 24px / var(--pf-scale, 1));
+  white-space: nowrap;
+}
+
+/* design-review-round3 F1: the game-screen overlays are translucent, so the HUD panels
+   (empty stubs on the title, stale text on Game Over) and the hint bled through the
+   menus. `data-vvs-state` is published by AndroidPlatform.onFrame. The hint shows only
+   while playing; the HUD also stays on PAUSED (the dimmed HUD helps orientation). */
+html.platform-android:not([data-vvs-state='PLAYING']) #control-text {
+  visibility: hidden;
+}
+
+html.platform-android:not([data-vvs-state='PLAYING']):not([data-vvs-state='PAUSED']) #hud-root {
+  visibility: hidden;
+}
+
+/* design-review-round3 F10: the active-power-up panel is empty most of the time and
+   read as a rendering glitch (an empty outlined bar under "Power"). */
+html.platform-android .hud-panel:empty {
+  display: none;
+}
+
+/* design-review-round3 F4: an open shell overlay (Help/Settings/Privacy) is opaque,
+   but the title menu beneath it is hidden outright so nothing can show around it. */
+html.vvs-shell-overlay-open #overlay-root {
+  visibility: hidden;
+}
+
 /* C1: every menu/shell-overlay button gets a real ≥48dp touch target, regardless of
    playfield scale - `src/style.css`'s `.menu-item` is unscoped px sizing meant for the
    (also unscaled, on web) desktop-mouse case. */
@@ -61,6 +97,15 @@ html.platform-android .menu-item.selected {
    screen. */
 #shell-overlay-root > .screen-overlay {
   background: #05050a;
+}
+
+/* design-review-round3 F5: one gap between every title/pause/end-screen row. The shared
+   `.menu-list` adds a 16px top margin on top of the overlay's 12px gap, which left a
+   much larger gap between Start and How to play than between the buttons below it
+   (the short-window media query below already evens them at 6px). */
+html.platform-android .menu-list {
+  margin: 0;
+  gap: 12px;
 }
 
 /* Validation round 4 F1 (PRD-mobile M2.3 / M2.3b rule 3): every menu, dialog and
@@ -223,7 +268,14 @@ html.platform-android .screen-overlay > :last-child {
   line-height: 1;
 }
 
-/* The THROW glyph is the word "THROW" (ASCII, round 3 - see TouchControls.ts), which
+/* design-review-round3 F2: arrows and pause bars are inline SVG (glyphs.ts). */
+.touch-glyph-svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+/* The THROW glyph is the word "THROW" (WAIT while recharging - see TouchControls.ts), which
    needs to fit inside a ~56-64dp square rather than a single symbol's width. */
 .touch-button--throw .touch-glyph {
   font-size: 11px;
@@ -236,7 +288,7 @@ html.platform-android .screen-overlay > :last-child {
   pointer-events: auto;
 }
 
-/* ◀/▶ positions are relative to `.move-zone` itself (which JS repositions as a
+/* Left/right button positions are relative to `.move-zone` itself (which JS repositions as a
    whole) - the buttons' left-to-right order within it never mirrors, only the
    move-zone's own placement does (§6.3: "Swap controls mirrors x ... the sums are
    the same"). */

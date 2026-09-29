@@ -16,7 +16,14 @@ import {
 
 /** Test-only shorthand for a fully-normalized `LayoutInsets` (cutout fields default
  * to 0, i.e. "no cutout" - the common case across most of these tables). */
-function LI(left: number, right: number, top: number, bottom: number, cutoutTop = 0, cutoutBottom = 0): LayoutInsets {
+function LI(
+  left: number,
+  right: number,
+  top: number,
+  bottom: number,
+  cutoutTop = 0,
+  cutoutBottom = 0,
+): LayoutInsets {
   return { left, right, top, bottom, cutoutTop, cutoutBottom };
 }
 
@@ -130,9 +137,24 @@ describe('computeLayout - §6.4 device-matrix scale table (v1 planning insets, k
   // §6.2 Amendment A12: only the height-bound rows' scale changes (the bottom
   // reservation at the floor shrank from 24 to 17.5); width-bound rows are unchanged.
   const cases: Array<[string, { width: number; height: number }, number, number]> = [
-    ['Low-end / small phone 640x360 (width-bound, unchanged)', { width: 640, height: 360 }, 56, 0.52],
-    ['Tall low-end 20:9, 800x360 (height-bound, A12 changes it)', { width: 800, height: 360 }, 64, 0.5708],
-    ['Mid-range 20:9, ~915x412 (height-bound, A12 changes it)', { width: 915, height: 412 }, 64, 0.6575],
+    [
+      'Low-end / small phone 640x360 (width-bound, unchanged)',
+      { width: 640, height: 360 },
+      56,
+      0.52,
+    ],
+    [
+      'Tall low-end 20:9, 800x360 (height-bound, A12 changes it)',
+      { width: 800, height: 360 },
+      64,
+      0.5708,
+    ],
+    [
+      'Mid-range 20:9, ~915x412 (height-bound, A12 changes it)',
+      { width: 915, height: 412 },
+      64,
+      0.6575,
+    ],
     ['10" tablet 16:10, 1280x800 (width-bound, unchanged)', { width: 1280, height: 800 }, 64, 1.29],
     ['4:3 tablet, 1024x768 (width-bound, unchanged)', { width: 1024, height: 768 }, 64, 0.97],
     ['Foldable inner, ~841x701 (width-bound, unchanged)', { width: 841, height: 701 }, 64, 0.741],
@@ -198,13 +220,27 @@ describe('normalizeInsets (§6.1 Amendment A12)', () => {
   });
 
   it('a negative cutout field normalizes to 0, not the fallback edge', () => {
-    expect(normalizeInsets({ left: 30, right: 30, top: 28.2, bottom: 32, cutoutTop: -5, cutoutBottom: -1 })).toEqual(
-      LI(30, 30, 28.2, 32, 0, 0),
-    );
+    expect(
+      normalizeInsets({
+        left: 30,
+        right: 30,
+        top: 28.2,
+        bottom: 32,
+        cutoutTop: -5,
+        cutoutBottom: -1,
+      }),
+    ).toEqual(LI(30, 30, 28.2, 32, 0, 0));
   });
 
   it('a cutout larger than its edge raises the edge to the cutout (never leaves cutout > edge)', () => {
-    const result = normalizeInsets({ left: 30, right: 30, top: 10, bottom: 10, cutoutTop: 40, cutoutBottom: 50 });
+    const result = normalizeInsets({
+      left: 30,
+      right: 30,
+      top: 10,
+      bottom: 10,
+      cutoutTop: 40,
+      cutoutBottom: 50,
+    });
     expect(result.cutoutTop).toBe(40);
     expect(result.cutoutBottom).toBe(50);
     expect(result.top).toBe(40);
@@ -212,59 +248,171 @@ describe('normalizeInsets (§6.1 Amendment A12)', () => {
   });
 
   it('a complete, valid payload is unchanged', () => {
-    const raw: RawInsets = { left: 12, right: 8, top: 4, bottom: 16, cutoutTop: 4, cutoutBottom: 10 };
+    const raw: RawInsets = {
+      left: 12,
+      right: 8,
+      top: 4,
+      bottom: 16,
+      cutoutTop: 4,
+      cutoutBottom: 10,
+    };
     expect(normalizeInsets(raw)).toEqual(LI(12, 8, 4, 16, 4, 10));
   });
 
   it('missing/non-finite/negative edge fields normalize to 0, same as before A12', () => {
     expect(
-      normalizeInsets({ left: Number.NaN, right: -5, top: undefined as unknown as number, bottom: 24 }),
+      normalizeInsets({
+        left: Number.NaN,
+        right: -5,
+        top: undefined as unknown as number,
+        bottom: 24,
+      }),
     ).toEqual(LI(0, 0, 0, 24, 0, 24));
   });
 });
 
 describe('classifyWindow (§6.2.1, Amendment A12) - v1.6 worked-check table', () => {
-  const cases: Array<[string, { width: number; height: number }, LayoutInsets, 'portrait' | 'tooSmall' | 'playable']> = [
-    ['row 1: 640x360, gesture insets (t=24)', { width: 640, height: 360 }, LI(30, 30, 24, 32), 'playable'],
-    ['row 2: 640x360, measured gesture insets', { width: 640, height: 360 }, MEASURED_GESTURE_INSETS, 'playable'],
-    ['row 3: 640x360, round-8 measured (29.7,29.7,28.2,32)', { width: 640, height: 360 }, LI(29.7, 29.7, 28.2, 32), 'playable'],
-    ['row 4: 640x360, three-button (0,48,24,0)', { width: 640, height: 360 }, LI(0, 48, 24, 0), 'playable'],
-    ['row 5: 640x360, three-button mirrored (48,0,24,0)', { width: 640, height: 360 }, LI(48, 0, 24, 0), 'playable'],
-    ['row 6: 640x360, top cutout (30,30,30,32;cT=30)', { width: 640, height: 360 }, LI(30, 30, 30, 32, 30, 0), 'playable'],
-    ['row 7: 640x360, bottom cutout (30,30,24,32;cB=32)', { width: 640, height: 360 }, LI(30, 30, 24, 32, 0, 32), 'playable'],
-    ['row 8: 600x360, measured gesture insets is too small (600 < 636)', { width: 600, height: 360 }, MEASURED_GESTURE_INSETS, 'tooSmall'],
+  const cases: Array<
+    [string, { width: number; height: number }, LayoutInsets, 'portrait' | 'tooSmall' | 'playable']
+  > = [
+    [
+      'row 1: 640x360, gesture insets (t=24)',
+      { width: 640, height: 360 },
+      LI(30, 30, 24, 32),
+      'playable',
+    ],
+    [
+      'row 2: 640x360, measured gesture insets',
+      { width: 640, height: 360 },
+      MEASURED_GESTURE_INSETS,
+      'playable',
+    ],
+    [
+      'row 3: 640x360, round-8 measured (29.7,29.7,28.2,32)',
+      { width: 640, height: 360 },
+      LI(29.7, 29.7, 28.2, 32),
+      'playable',
+    ],
+    [
+      'row 4: 640x360, three-button (0,48,24,0)',
+      { width: 640, height: 360 },
+      LI(0, 48, 24, 0),
+      'playable',
+    ],
+    [
+      'row 5: 640x360, three-button mirrored (48,0,24,0)',
+      { width: 640, height: 360 },
+      LI(48, 0, 24, 0),
+      'playable',
+    ],
+    [
+      'row 6: 640x360, top cutout (30,30,30,32;cT=30)',
+      { width: 640, height: 360 },
+      LI(30, 30, 30, 32, 30, 0),
+      'playable',
+    ],
+    [
+      'row 7: 640x360, bottom cutout (30,30,24,32;cB=32)',
+      { width: 640, height: 360 },
+      LI(30, 30, 24, 32, 0, 32),
+      'playable',
+    ],
+    [
+      'row 8: 600x360, measured gesture insets is too small (600 < 636)',
+      { width: 600, height: 360 },
+      MEASURED_GESTURE_INSETS,
+      'tooSmall',
+    ],
     [
       'row 9: 640x360, side cutout pushes l+r past 64 (M2.3b known width limit)',
       { width: 640, height: 360 },
       LI(36.2, 29.7, 28.2, 32),
       'tooSmall',
     ],
-    ['row 10: round-8 Pixel 7 native window 915x412', { width: 915, height: 412 }, LI(51.8, 29.7, 28.2, 32), 'playable'],
-    ['row 11: 636x351.5 is the exact boundary (s=0.5) and plays', { width: 636, height: 351.5 }, LI(30, 30, 28, 32), 'playable'],
-    ['row 12: 635x351.5 (1dp under minW) is too small', { width: 635, height: 351.5 }, LI(30, 30, 28, 32), 'tooSmall'],
-    ['row 13: 636x351 (0.5dp under minH) is too small', { width: 636, height: 351 }, LI(30, 30, 28, 32), 'tooSmall'],
-    ['row 14: 640x352 plays - the v1.5 formula would have said tooSmall', { width: 640, height: 352 }, LI(30, 30, 28, 32), 'playable'],
-    ['row 15a: 624x300 plays (s=0.5 exactly)', { width: 624, height: 300 }, LI(24, 24, 0, 0), 'playable'],
-    ['row 15b: 623x300 (1dp under minW) is too small', { width: 623, height: 300 }, LI(24, 24, 0, 0), 'tooSmall'],
-    ['row 15c: 624x299 (1dp under minH) is too small', { width: 624, height: 299 }, LI(24, 24, 0, 0), 'tooSmall'],
-    ['row 16: 640x360 with planning insets plays (§6.3 planning)', { width: 640, height: 360 }, PLANNING_INSETS, 'playable'],
+    [
+      'row 10: round-8 Pixel 7 native window 915x412',
+      { width: 915, height: 412 },
+      LI(51.8, 29.7, 28.2, 32),
+      'playable',
+    ],
+    [
+      'row 11: 636x351.5 is the exact boundary (s=0.5) and plays',
+      { width: 636, height: 351.5 },
+      LI(30, 30, 28, 32),
+      'playable',
+    ],
+    [
+      'row 12: 635x351.5 (1dp under minW) is too small',
+      { width: 635, height: 351.5 },
+      LI(30, 30, 28, 32),
+      'tooSmall',
+    ],
+    [
+      'row 13: 636x351 (0.5dp under minH) is too small',
+      { width: 636, height: 351 },
+      LI(30, 30, 28, 32),
+      'tooSmall',
+    ],
+    [
+      'row 14: 640x352 plays - the v1.5 formula would have said tooSmall',
+      { width: 640, height: 352 },
+      LI(30, 30, 28, 32),
+      'playable',
+    ],
+    [
+      'row 15a: 624x300 plays (s=0.5 exactly)',
+      { width: 624, height: 300 },
+      LI(24, 24, 0, 0),
+      'playable',
+    ],
+    [
+      'row 15b: 623x300 (1dp under minW) is too small',
+      { width: 623, height: 300 },
+      LI(24, 24, 0, 0),
+      'tooSmall',
+    ],
+    [
+      'row 15c: 624x299 (1dp under minH) is too small',
+      { width: 624, height: 299 },
+      LI(24, 24, 0, 0),
+      'tooSmall',
+    ],
+    [
+      'row 16: 640x360 with planning insets plays (§6.3 planning)',
+      { width: 640, height: 360 },
+      PLANNING_INSETS,
+      'playable',
+    ],
     [
       'row 17: 640x360 with real insets above the 32dp headroom is too small (MR4)',
       { width: 640, height: 360 },
       LI(40, 40, 0, 24),
       'tooSmall',
     ],
-    ['row 18: svr_api36_fold 412x309 is too small regardless of insets', { width: 412, height: 309 }, LI(0, 0, 0, 0), 'tooSmall'],
-    ['row 19: 360x640 stays on the portrait path (M2.10 precedence)', { width: 360, height: 640 }, PLANNING_INSETS, 'portrait'],
+    [
+      'row 18: svr_api36_fold 412x309 is too small regardless of insets',
+      { width: 412, height: 309 },
+      LI(0, 0, 0, 0),
+      'tooSmall',
+    ],
+    [
+      'row 19: 360x640 stays on the portrait path (M2.10 precedence)',
+      { width: 360, height: 640 },
+      PLANNING_INSETS,
+      'portrait',
+    ],
   ];
 
   it.each(cases)('%s', (_label, viewport, insets, expected) => {
     expect(classifyWindow(viewport, insets, false)).toBe(expected);
   });
 
-  it.each(cases)('%s (swapped - swap does not change the floor, M3.13)', (_label, viewport, insets, expected) => {
-    expect(classifyWindow(viewport, insets, true)).toBe(expected);
-  });
+  it.each(cases)(
+    '%s (swapped - swap does not change the floor, M3.13)',
+    (_label, viewport, insets, expected) => {
+      expect(classifyWindow(viewport, insets, true)).toBe(expected);
+    },
+  );
 
   // Row 20: an absent cutout payload is normalized to equal its edge inset (fail-safe,
   // §6.1 A12), which reproduces the v1.5 formula exactly and is stricter than the true
@@ -328,7 +476,14 @@ describe('classifyWindow/computeLayout agreement over the full invariant grid (�
               for (const bottom of BOTTOM_INSETS) {
                 for (const cutoutTop of [0, top]) {
                   for (const cutoutBottom of [0, bottom]) {
-                    const insets: LayoutInsets = { left, right, top, bottom, cutoutTop, cutoutBottom };
+                    const insets: LayoutInsets = {
+                      left,
+                      right,
+                      top,
+                      bottom,
+                      cutoutTop,
+                      cutoutBottom,
+                    };
                     for (const swapControls of [false, true]) {
                       const viewport = { width, height };
                       const windowClass = classifyWindow(viewport, insets, swapControls);
@@ -336,7 +491,10 @@ describe('classifyWindow/computeLayout agreement over the full invariant grid (�
 
                       if (portrait) {
                         if (windowClass !== 'portrait') {
-                          violations.push({ label, reason: `expected portrait, got ${windowClass}` });
+                          violations.push({
+                            label,
+                            reason: `expected portrait, got ${windowClass}`,
+                          });
                         }
                         continue;
                       }
@@ -351,7 +509,14 @@ describe('classifyWindow/computeLayout agreement over the full invariant grid (�
                       }
                       if (windowClass !== 'playable') continue;
 
-                      const { scale, playfieldX, playfieldY, playfieldWidth, playfieldHeight, buttonSize } = layout;
+                      const {
+                        scale,
+                        playfieldX,
+                        playfieldY,
+                        playfieldWidth,
+                        playfieldHeight,
+                        buttonSize,
+                      } = layout;
 
                       // Assertion 1: s >= 0.5.
                       if (scale < 0.5 - 1e-9) {
@@ -359,16 +524,25 @@ describe('classifyWindow/computeLayout agreement over the full invariant grid (�
                       }
                       // Assertion 2: no art under a cutout (M2.3b rule 1).
                       if (playfieldY < insets.cutoutTop - 1e-9) {
-                        violations.push({ label, reason: `playfieldY ${playfieldY} above cutoutTop ${insets.cutoutTop}` });
+                        violations.push({
+                          label,
+                          reason: `playfieldY ${playfieldY} above cutoutTop ${insets.cutoutTop}`,
+                        });
                       }
                       if (playfieldY + playfieldHeight > height - insets.cutoutBottom + 1e-9) {
-                        violations.push({ label, reason: 'playfield bottom edge is below cutoutBottom' });
+                        violations.push({
+                          label,
+                          reason: 'playfield bottom edge is below cutoutBottom',
+                        });
                       }
                       // Assertion 3: text inside the full insets (M2.3b rule 2).
                       if (playfieldY + TEXT_TOP_LOGICAL * scale < insets.top - 1e-9) {
                         violations.push({ label, reason: 'top text is above the top inset' });
                       }
-                      if (playfieldY + playfieldHeight - TEXT_BOTTOM_LOGICAL * scale > height - insets.bottom + 1e-9) {
+                      if (
+                        playfieldY + playfieldHeight - TEXT_BOTTOM_LOGICAL * scale >
+                        height - insets.bottom + 1e-9
+                      ) {
                         violations.push({ label, reason: 'bottom text is below the bottom inset' });
                       }
 
@@ -380,7 +554,12 @@ describe('classifyWindow/computeLayout agreement over the full invariant grid (�
                         toViewportRect(layout.leftButtonX, layout.controlRowY, buttonSize, insets),
                         toViewportRect(layout.rightButtonX, layout.controlRowY, buttonSize, insets),
                         toViewportRect(layout.throwButtonX, layout.controlRowY, buttonSize, insets),
-                        toViewportRect(layout.pauseButtonX, layout.pauseButtonY, PAUSE_SIZE_DP, insets),
+                        toViewportRect(
+                          layout.pauseButtonX,
+                          layout.pauseButtonY,
+                          PAUSE_SIZE_DP,
+                          insets,
+                        ),
                       ];
                       const pfLeft = playfieldX;
                       const pfRight = playfieldX + playfieldWidth;
@@ -396,7 +575,8 @@ describe('classifyWindow/computeLayout agreement over the full invariant grid (�
                             reason: `control rect [${rect.x},${rect.y},${rect.size}] is outside the full insets`,
                           });
                         }
-                        const overlapsPlayfieldX = rect.x < pfRight - 1e-9 && rect.x + rect.size > pfLeft + 1e-9;
+                        const overlapsPlayfieldX =
+                          rect.x < pfRight - 1e-9 && rect.x + rect.size > pfLeft + 1e-9;
                         if (overlapsPlayfieldX) {
                           violations.push({
                             label,
@@ -426,8 +606,20 @@ describe('classifyWindow/computeLayout - every §6.2.1 A12 worked-check row, bot
   // depend on swapControls (only the horizontal placement does - §6.2 A12), so this is
   // a loop over both swap settings for the same expected pfY.
   const rows: Array<[string, { width: number; height: number }, LayoutInsets, number, number]> = [
-    ['row 1: 640x360, gesture insets (t=24)', { width: 640, height: 360 }, LI(30, 30, 24, 32), 0.505, 26.77],
-    ['row 2: 640x360, measured gesture insets', { width: 640, height: 360 }, MEASURED_GESTURE_INSETS, 0.505, 28.87],
+    [
+      'row 1: 640x360, gesture insets (t=24)',
+      { width: 640, height: 360 },
+      LI(30, 30, 24, 32),
+      0.505,
+      26.77,
+    ],
+    [
+      'row 2: 640x360, measured gesture insets',
+      { width: 640, height: 360 },
+      MEASURED_GESTURE_INSETS,
+      0.505,
+      28.87,
+    ],
     [
       'row 3: 640x360, round-8 measured (29.7,29.7,28.2,32)',
       { width: 640, height: 360 },
@@ -435,8 +627,20 @@ describe('classifyWindow/computeLayout - every §6.2.1 A12 worked-check row, bot
       0.5058,
       28.65,
     ],
-    ['row 4: 640x360, three-button (0,48,24,0)', { width: 640, height: 360 }, LI(0, 48, 24, 0), 0.52, 34.96],
-    ['row 5: 640x360, three-button mirrored (48,0,24,0)', { width: 640, height: 360 }, LI(48, 0, 24, 0), 0.52, 34.96],
+    [
+      'row 4: 640x360, three-button (0,48,24,0)',
+      { width: 640, height: 360 },
+      LI(0, 48, 24, 0),
+      0.52,
+      34.96,
+    ],
+    [
+      'row 5: 640x360, three-button mirrored (48,0,24,0)',
+      { width: 640, height: 360 },
+      LI(48, 0, 24, 0),
+      0.52,
+      34.96,
+    ],
     [
       'row 6: 640x360, top cutout (30,30,30,32;cT=30)',
       { width: 640, height: 360 },
@@ -510,10 +714,12 @@ describe('classifyWindow/computeLayout - §6.2.1 A13 worked-check rows 21-24 (bo
       expect(layout.playfieldX).toBeCloseTo(swap ? 81 : 153, 3);
       expect(layout.playfieldY).toBeCloseTo(22.034, 3);
       // HUD text top >= t (24) and hint bottom <= H - b (320).
-      expect(layout.playfieldY + TEXT_TOP_LOGICAL * layout.scale).toBeGreaterThanOrEqual(24 - 0.001);
-      expect(layout.playfieldY + layout.playfieldHeight - TEXT_BOTTOM_LOGICAL * layout.scale).toBeLessThanOrEqual(
-        320 + 0.001,
+      expect(layout.playfieldY + TEXT_TOP_LOGICAL * layout.scale).toBeGreaterThanOrEqual(
+        24 - 0.001,
       );
+      expect(
+        layout.playfieldY + layout.playfieldHeight - TEXT_BOTTOM_LOGICAL * layout.scale,
+      ).toBeLessThanOrEqual(320 + 0.001);
       // Controls are #safe-layer relative: PAUSE at the top band edge + 16, bottom row ends at H - b.
       expect(layout.pauseButtonY).toBe(16);
       expect(layout.controlRowY).toBeCloseTo(368 - 24 - 48 - 64, 3);
@@ -531,7 +737,9 @@ describe('classifyWindow/computeLayout - §6.2.1 A13 worked-check rows 21-24 (bo
       expect(layout.scale).toBe(0.5);
       expect(layout.playfieldY).toBe(22);
       expect(layout.playfieldY + TEXT_TOP_LOGICAL * layout.scale).toBe(24);
-      expect(layout.playfieldY + layout.playfieldHeight - TEXT_BOTTOM_LOGICAL * layout.scale).toBe(315.5);
+      expect(layout.playfieldY + layout.playfieldHeight - TEXT_BOTTOM_LOGICAL * layout.scale).toBe(
+        315.5,
+      );
     });
 
     it(`row 24: 640x363 (0.5 dp under minH) is tooSmall ${suffix}`, () => {

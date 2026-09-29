@@ -27,7 +27,10 @@ export const MOVE_TRACK_VERTICAL_SLOP_DP = 12;
 
 function within(x: number, y: number, rect: DOMRectLike, verticalSlop: number): boolean {
   return (
-    x >= rect.left && x <= rect.right && y >= rect.top - verticalSlop && y <= rect.bottom + verticalSlop
+    x >= rect.left &&
+    x <= rect.right &&
+    y >= rect.top - verticalSlop &&
+    y <= rect.bottom + verticalSlop
   );
 }
 
