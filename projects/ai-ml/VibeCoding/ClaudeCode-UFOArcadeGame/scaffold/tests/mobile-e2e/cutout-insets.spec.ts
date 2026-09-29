@@ -314,3 +314,95 @@ test.describe('M2.3b (d): no art under a cutout', () => {
 // code-review-round9.md L2: the M2.10a (c) v1.6 boundary test existed here and in
 // too-small-window.spec.ts:235-249. Kept only in too-small-window.spec.ts, alongside
 // the rest of the M2.10a suite it belongs to.
+
+// Round-13 audit additions: M2.3b rules 1-2 stated positively (the playfield MAY use the
+// bands; it never sits in the side insets or over a control column; text also clears
+// the left/right insets). The (c)/(d) tests above cover only the "stay out" side.
+test.describe('M2.3b rules 1-2 audit additions', () => {
+  const ALL_CASES = [
+    'insets=30,30,24,32',
+    'insets=30,30,28.2,32',
+    'insets=29.7,29.7,28.2,32',
+    'insets=0,48,24,0',
+    'insets=48,0,24,0',
+  ];
+
+  for (const insetsQuery of ALL_CASES) {
+    test(`playfield stays out of the side insets and clear of every control (${insetsQuery})`, async ({ page }) => {
+      await page.setViewportSize({ width: 640, height: 360 });
+      await page.goto(`/?${insetsQuery}&e2e=1`);
+      await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeHidden();
+      await startRun(page);
+
+      const [insL, insR] = insetsQuery.replace('insets=', '').split(',').map(Number);
+      const canvas = (await page.locator('#game-canvas').boundingBox())!;
+      expect(canvas.x, 'playfield left edge outside the left inset').toBeGreaterThanOrEqual(insL - TOLERANCE);
+      expect(canvas.x + canvas.width, 'playfield right edge outside the right inset').toBeLessThanOrEqual(
+        640 - insR + TOLERANCE,
+      );
+      const boxes = await controlBoxes(page);
+      for (const [name, box] of Object.entries(boxes)) {
+        const overlapsX = box.x < canvas.x + canvas.width - TOLERANCE && box.x + box.width > canvas.x + TOLERANCE;
+        expect(overlapsX, `${name} must not overlap the playfield`).toBe(false);
+      }
+    });
+
+    test(`HUD and hint text also clear the left and right insets (${insetsQuery})`, async ({ page }) => {
+      await page.setViewportSize({ width: 640, height: 360 });
+      await page.goto(`/?${insetsQuery}&e2e=1`);
+      await startRun(page);
+      const [insL, insR] = insetsQuery.replace('insets=', '').split(',').map(Number);
+
+      const rects = await page.locator('.hud-panel, #control-text').evaluateAll((els) =>
+        els
+          .filter((el) => getComputedStyle(el).display !== 'none')
+          .map((el) => {
+            const r = el.getBoundingClientRect();
+            const cs = getComputedStyle(el);
+            return {
+              left: r.left + parseFloat(cs.borderLeftWidth) + parseFloat(cs.paddingLeft),
+              right: r.right - parseFloat(cs.borderRightWidth) - parseFloat(cs.paddingRight),
+            };
+          }),
+      );
+      expect(rects.length).toBeGreaterThan(0);
+      for (const r of rects) {
+        expect(r.left).toBeGreaterThanOrEqual(insL - TOLERANCE);
+        expect(r.right).toBeLessThanOrEqual(640 - insR + TOLERANCE);
+      }
+    });
+  }
+
+  test('with measured gesture insets the playfield really uses a gesture band (rule 1: art MAY extend there)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 640, height: 360 });
+    await page.goto('/?insets=30,30,28.2,32&e2e=1');
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeHidden();
+    const canvas = (await page.locator('#game-canvas').boundingBox())!;
+    // Fitting inside the full insets would leave 360 - 28.2 - 32 = 299.8 dp (< the
+    // 300 dp floor), so this window is playable only because art enters a band.
+    expect(canvas.height).toBeGreaterThanOrEqual(300 - TOLERANCE);
+    const intoTop = canvas.y < 28.2 - TOLERANCE;
+    const intoBottom = canvas.y + canvas.height > 360 - 32 + TOLERANCE;
+    expect(intoTop || intoBottom, 'playfield should extend into a gesture band at this size').toBe(true);
+  });
+
+  test('top and bottom cutouts together keep art between them in a tall-enough window', async ({ page }) => {
+    await page.setViewportSize({ width: 700, height: 420 });
+    await page.goto('/?insets=30,30,30,32&cutout=30,32&e2e=1');
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeHidden();
+    const canvas = (await page.locator('#game-canvas').boundingBox())!;
+    expect(canvas.y).toBeGreaterThanOrEqual(30 - TOLERANCE);
+    expect(canvas.y + canvas.height).toBeLessThanOrEqual(420 - 32 + TOLERANCE);
+  });
+
+  test('top and bottom cutouts that leave under 300 dp of height show the too-small prompt at 640x360', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 640, height: 360 });
+    // Cutouts limit the playfield height: 360 - 30 - 32 = 298 < 300 (0.5x floor).
+    await page.goto('/?insets=30,30,30,32&cutout=30,32&e2e=1');
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeVisible();
+  });
+});

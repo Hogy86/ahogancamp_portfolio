@@ -46,19 +46,19 @@ export default defineConfig({
       // page.setViewportSize() in every test, so the project-level viewport above is
       // immediately overridden - running it again per device-matrix project is pure
       // duplication (24 runs x 3 repeats), not extra coverage. It runs once, under
-      // '640x360' only. [A12] cutout-insets.spec.ts (§10.1 A12, M2.3b) does the same -
+      // '640x360' only. [A12] cutout-insets.spec.ts (§10.1 A12, M2.3b) and menu-insets.spec.ts (M2.3b rule 3, M2.3c) do the same -
       // every case is specifically about the 640x360 reference profile.
-      testIgnore: /(too-small-window|cutout-insets)\.spec\.ts$/,
+      testIgnore: /(too-small-window|cutout-insets|menu-insets)\.spec\.ts$/,
     },
     {
       name: '915x412',
       use: { ...devices['Desktop Chrome'], viewport: { width: 915, height: 412 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 },
-      testIgnore: /(too-small-window|cutout-insets)\.spec\.ts$/,
+      testIgnore: /(too-small-window|cutout-insets|menu-insets)\.spec\.ts$/,
     },
     {
       name: '1280x800',
       use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 },
-      testIgnore: /(too-small-window|cutout-insets)\.spec\.ts$/,
+      testIgnore: /(too-small-window|cutout-insets|menu-insets)\.spec\.ts$/,
     },
   ],
 });

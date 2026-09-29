@@ -397,3 +397,96 @@ an old Android version, invisible to a tester whose phone never showed the crash
 checklist item is needed. If any closed-test tester reports the app failing to open at
 all on an older Android phone, that would be the one signal to watch for — everything
 tested this round says it should not happen anymore.)*
+
+---
+
+# Round 4 - 2026-09-28 (mobile-lead-tester, step 10)
+
+**Verdict for this round: FAIL** (see `validation-report-round4.md`: F1 title menu overflows the real insets, F2 pixel7 640 x 360 plays instead of prompting, F3 question).
+**Build:** debug APK from the mirror `C:\Users\aaron\dev-build\shield-vs-robots` after `scripts/refresh-android-mirror.ps1` (parity passed). HEAD `ce5255c` plus uncommitted step-9 tests.
+**Method:** `adb`, plus WebView DevTools (CDP) reads for insets and element bounds. Screenshots: `docs/mobile/tests/screenshots/*_round4.png`. Raw evidence: `raw-output-round4.log`.
+
+## Fold procedure (decided and recorded - closes code-review-round9 L4)
+
+1. Boot `svr_api36_fold` (`-gpu host -no-window -no-audio -no-snapshot`).
+2. `adb shell wm size` must print only `Physical size: 1080x2340` (no `Override size`). Never set a `wm size` override on this AVD.
+3. `adb shell cmd device_state state 1` (CLOSED); check `dumpsys device_state` shows `CLOSED`.
+4. `am force-stop` then cold-start the app. The app's own window (CDP `innerWidth x innerHeight`) is **412 x 309 dp** = the M2.10a (a) profile.
+5. Cleanup: `adb shell cmd device_state state reset`, then `adb emu kill`.
+
+Unfolding (`state reset` = OPENED, or HALF_OPENED) does **not** resize the app window on this AVD (the display stays 1080 x 2340 and the landscape lock letterboxes it to 412 x 309), so M2.9 unfold cannot be tested here. That is a standing AVD limit, not an app defect.
+
+## Coverage vs. the required matrix - round 4
+
+| Row | Status | Notes |
+|---|---|---|
+| Small low-end phone (API 24 fallback) | DONE | `svr_api24_small`: Status ok, alive, focus MainActivity, 0 FATAL. `api24_small_fallback_round4.png`. |
+| Low-end 640 x 360 dp reference (M2.3b (e)) | **DONE, with F1** | Details below. |
+| Tall phone with cutout | DONE, with F2 on the 640 x 360 `wm size` run | `svr_api36_pixel7`. |
+| Tablet | DONE | `svr_api36_tablet`, host GPU. |
+| Foldable | DONE for M2.10a (a)/(d); unfold gap unchanged | fold procedure above. |
+| Both landscape directions | DONE | pixel7 (ROTATION_90 and 270, with 3-button nav), tablet (0 and 180). |
+| Gesture navigation | DONE | lowend, pixel7, tablet, fold ran in gesture mode. |
+| 3-button navigation | DONE, result depends on AVD shape | pixel7: side bar in both directions plays. lowend (natural landscape): bottom bar 48 dp gives the prompt (F3). `svr_api30_mid` runs 3-button by default (right bar 48) and plays. |
+| Full round / background / back | DONE (30 s of play per device, not a 10-level run) | |
+| Nothing clipped | **FAIL on the lowend title (F1)**; other captured screens fine | |
+| Smoothness | Not measured (unchanged); play felt normal on host GPU, slower on swiftshader | |
+
+## svr_api36_lowend_640x360 (API 36, 640 x 360 dp, 16:9, no cutout, gesture nav, `-gpu swiftshader_indirect`) - M2.3b (e)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Cold launch shows the title, no prompt | PASS | `m2_3b_lowend_title_round4.png` |
+| **Reported insets (GameShell -> #safe-layer)** | l = 30, r = 30, t = 24, b = 32 dp; cutout top/bottom 0; `--pf-scale` 0.505; canvas 404 x 303 at (150, 26.77) | raw log |
+| 30 s of play, controls, THROW, score | PASS: score 0 -> 1500 (lives dropped 3 -> 1 over the session), no crash | `m2_3b_lowend_playing_round4.png`, `_play_mid_`, `_play_30s_` |
+| HUD text, hint text, controls inside the real insets | PASS: HUD y >= 31.8, hint bottom 325.7 <= 328, left/right controls from x = 30, THROW right edge 610, PAUSE y 40-88 | raw log |
+| Pause menu inside insets | PASS (28.5 to 323.5) | `m2_3b_lowend_pause_round4.png` |
+| **Title menu inside insets** | **FAIL (F1)**: heading top 11 (< 24), Quit bottom 341 (> 328) | `m2_3b_lowend_title_round4.png` |
+| Back (pause -> resume, play -> pause), Home then relaunch -> Paused, Quit -> launcher | PASS | `m2_3b_lowend_back_from_pause_`, `_back_from_play_`, `_resume_after_home_round4.png` |
+| M2.10a (b) real shrink (`wm size 1200x720` = 600 x 360) during play, 10 s, `wm size reset` | PASS: prompt at 600 x 360, back to the pause menu, never auto-resumed (the first screenshot after reset was a stale frame, the second correct) | `m2_10a_lowend_shrunk_600x360_round4.png`, `m2_10a_lowend_restored_pause_menu_b_round4.png` |
+| Largest font (2.0), title | Fits in width, no prompt; column taller (Quit bottom 351, F1 worse) | `m2_11_lowend_largest_font_title_round4.png` |
+| 3-button nav | Prompt shown; insets t24 l0 r0 b48 (F3) | `m2_3b_lowend_3button_title_round4.png` |
+| Cleanup | gesture nav restored (mode 2), font 1.0, wm reset, 0 FATAL EXCEPTION | raw log |
+
+## svr_api36_pixel7 (API 36, WebView 133, `-gpu host`, real cutout)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Landscape insets (t, r, b, l) | 28.19, 29.71, 32, 51.81 dp; scale 0.60; title menu inside (Quit bottom 368.95 <= 380) | `api36_pixel7_title_round4.png` |
+| Full play, 30 s | PASS: score 1350, lives 2 | `api36_pixel7_playing_round4.png`, `_play_30s_` |
+| M2.10a (b): `wm size 1082x1575` (600 x 412) in play, wait 10 s, `wm size reset` | PASS: prompt <= 614 ms after the command, restore seen at the first poll, pause menu shown, Score 1350 / Lives 2 unchanged, no auto-resume | `m2_10a_pixel7_shrunk_600dp_round4.png`, `m2_10a_pixel7_restored_pause_menu_round4.png` |
+| M2.10a (c): `wm size 945x1680` (640 x 360 dp) | **F2**: no prompt, layout plays, THROW right edge 612.29 vs limit 610.29; PRD expects the prompt | `m2_10a_pixel7_640x360_playing_round4.png` |
+| Home -> relaunch -> Paused; Back (pause -> resume, play -> pause) | PASS | `api36_pixel7_resume_after_home_round4.png`, `_back_from_play_` |
+| 3-button nav, ROTATION_90 (bar right) and ROTATION_270 (bar left, via `adb emu rotate`) | PASS both: play at scale 0.643, controls inside the real insets | `api36_pixel7_3button_rot1_round4.png`, `_after_rotate_`, `_rot270_playing_` |
+| Largest font, title | PASS (h1 30-90, Quit bottom 379 <= 380) | `m2_11_pixel7_largest_font_title_round4.png` |
+| Cleanup | accelerometer_rotation 1, user_rotation deleted (was unset), wm size/density reset, nav 2, font 1.0 | raw log |
+
+## svr_api36_tablet (API 36, 1280 x 800 dp, `-gpu host`)
+
+PASS: title, Help, 25 s of play (score 1200), Back/Home/resume as on pixel7, both landscape directions (ROTATION_0 and 180 via `adb emu rotate`; portrait never entered), 0 FATAL. Screenshots `api36_tablet_*_round4.png`. Note: the first attempt on `-gpu swiftshader_indirect` showed a "System UI isn't responding" system dialog (emulator load), not an app fault; use `-gpu host` for this AVD.
+
+## svr_api36_fold (natural CLOSED, no override)
+
+PASS for M2.10a (a): cold launch shows only "Make the window larger to play." (CDP: 412 x 309, `#app-root` and `#safe-layer` hidden), 5 taps change nothing, Back sends the app to the launcher with the process alive, 0 FATAL. Launch TotalTime was 5476 ms on the first launch after install, 1944 and 1744 ms on later cold starts. (d): under font 2.0 the message stays on one line (20.8 px, x 61-352 of 412), not clipped. Screenshots: `m2_10a_fold_prompt_natural_round4.png`, `m2_10a_fold_after_taps_round4.png`, `m2_10a_fold_largest_font_round4.png`, `api36_fold_unfolded_title_round4.png`.
+
+## svr_api30_mid (API 30, WebView 83, 3-button by default, `-gpu host`)
+
+PASS: title, 25 s of play (score 800), Back play -> pause, Home -> relaunch Paused, 0 FATAL. Insets right 48, top 30.18. `api30_mid_*_round4.png`.
+
+## svr_api29_webview (API 28, WebView 69) and svr_api24_small (API 24)
+
+PASS: `Status: ok`, alive, focus MainActivity, fallback text "Please update Android System WebView from the Play Store." (API 28), 0 FATAL. `api28_webview69_fallback_round4.png`, `api24_small_fallback_round4.png`.
+
+## Known gaps (round 4)
+
+1. Fold AVD unfold cannot resize the window (M2.9 unfold untestable here).
+2. The natural-landscape 640 x 360 AVD cannot place a side nav bar; side-bar behavior comes from pixel7.
+3. 10-level full round, 15-minute session, frame rate: not measured (UAT and closed test).
+4. Pre-API-30 with a modern WebView: blocked on Play sign-in.
+
+## Plain-language checklist addendum for closed-test testers (round 4)
+
+- Small or older phone held sideways: does every button on the first screen (Start, How to play, Settings, Quit) sit fully on screen, with none touching the very top or bottom edge? Tell us the phone model if the bottom button is hard to tap because the home swipe triggers instead.
+- Do you ever see the message "Make the window larger to play." on your phone while it is full screen and held sideways? Tell us the phone model and whether you use 3-button or gesture navigation.
+- With the phone's text size set to the largest, do all words stay readable and inside the screen?
+- Press Back during play, then Home, then reopen the game: it should come back paused, never running by itself.

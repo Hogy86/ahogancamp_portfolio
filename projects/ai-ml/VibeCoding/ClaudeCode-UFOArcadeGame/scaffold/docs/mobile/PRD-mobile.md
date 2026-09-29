@@ -11,6 +11,7 @@
 *(Status updated 2026-09-25, v1.4: OQ-S1a (hero name "ShieldMan") DECIDED by the owner; a name/trademark check on "ShieldMan" is recommended before step 15; OQ-M11..OQ-M14 still PENDING.)*
 *(Status updated 2026-09-27, v1.5: PM clarification M2.10a (too-small window, any shape) added; no owner decision reopened or needed; OQ-M11..OQ-M14 still PENDING.)*
 *(Status updated 2026-09-28, v1.6: PM decision M2.3b (the playfield may extend under the top/bottom system-gesture bands; text and controls may not) so the 640 × 360 dp reference phone plays with real Android insets; no owner decision reopened or needed; OQ-M11..OQ-M14 still PENDING.)*
+*(Status updated 2026-09-28, v1.7: PM decision M2.3c (a three-button navigation bar kept along the bottom of a 360 dp tall window is a documented known limit that shows the M2.10a prompt; no new layout), from validation-report-round4 F3; no owner decision reopened or needed; OQ-M11..OQ-M14 still PENDING.)*
 (see §Pending Owner Decisions, OQ-M1..OQ-M14). Every pending decision has a
 default already written into the acceptance criteria below so downstream
 steps (ui-ux-designer round 1, solution-architect) can start. Any owner answer
@@ -107,6 +108,25 @@ dated notes. **Not owner-level:** it changes no game rule, cost or scope, and
 keeps OQ-M7 (a) (no new layout). It is Android screen fitting only (§0
 rule 2). Original text is kept; see §9.
 
+**Amendment 2026-09-28 (Draft v1.7) — three-button navigation bar at the
+bottom of a short window (validation-report-round4 F3, PM decision).** The
+round-4 device run switched the 640 × 360 dp reference emulator to
+three-button navigation (back / home / recent-apps buttons instead of
+swipes). That emulator's screen is landscape by nature, so Android kept the
+48 dp button bar along the bottom (insets t 24, l 0, r 0, b 48), and the app
+showed "Make the window larger to play." M2.3b (b) only covered a bar on the
+side, which is where phones put it in landscape (the Pixel 7 emulator plays
+in both directions). Decision, new **M2.3c**: a bottom bar is a bottom edge
+inset like any other; if the window is then too short, the M2.10a prompt is
+the **expected** result and a documented known limit, next to the M2.3b
+width limit. No layout is added and no floor, control or text rule is
+relaxed. Tests make the limit and its boundary explicit, and a tablet with a
+bottom bar must play. **Not owner-level:** it adds no feature, cost or scope
+and keeps OQ-M7 (a); the hardware it affects (a 640 × 360 dp screen that is
+landscape by nature, with button navigation) is essentially absent from the
+phone market. It is Android screen fitting only (§0 rule 2). Original text
+is kept; see §9.
+
 **What this document is — and is not.** The game itself (levels, enemies,
 shield bounce, power-ups, lives, score, pause options, bosses, countdown,
 Game Complete) is already fully defined by `docs/PRD.md` (F1-F10, NFR-1..10)
@@ -138,6 +158,7 @@ performance on low-end devices, and Google Play store/policy requirements.
 - `docs/mobile/market/play-store-research.md` §3-§4 — name/trademark check on "ShieldMan" being run by mobile-marketing-analyst (result pending; → OQ-S1a) *(added 2026-09-25, v1.4)*
 - `docs/mobile/tooling-setup-log.md` (2026-09-27 step-7 entry, "Fold-AVD window-size question"), `docs/mobile/tests/validation-report-round2.md` (svr_api36_fold row, known gaps), `docs/mobile/reviews/code-review-round7.md` I6 — too-small landscape window has no defined behavior (→ M2.10a) *(added 2026-09-27, v1.5)*
 - `docs/mobile/reviews/code-review-round8.md` E1: real gesture-navigation insets measured on `svr_api36_pixel7` (t ≈ 28.2, b = 32, sides ≈ 29.7 dp) make the 640 × 360 dp reference window miss the v1.5 floor (→ M2.3b, M2.10a and M2.12 v1.6 notes) *(added 2026-09-28, v1.6)*
+- `docs/mobile/tests/validation-report-round4.md` F3 (and its Part 1 note on the three-button row of `docs/mobile/tests/manual-only-criteria.md`): real three-button navigation on the natural-landscape `svr_api36_lowend_640x360` AVD keeps the bar at the bottom (insets t 24, l 0, r 0, b 48; `navigationBars sideHint=BOTTOM`) and shows the M2.10a prompt (→ M2.3c) *(added 2026-09-28, v1.7)*
 
 ---
 
@@ -436,6 +457,82 @@ them.
   test (step 16) asks testers to report any "Make the window larger to play."
   seen on a phone in full screen. If real devices show it, the options go to
   the owner then (§7 v1.6 note); the floor is not changed ad hoc.
+
+  **Amended 2026-09-28 (v1.7, validation-report-round4 F3) — M2.3c A
+  three-button navigation bar at the bottom of a short window: known
+  limit.** Background for the owner: with three-button navigation (back,
+  home and recent-apps buttons instead of swipes), a phone held sideways
+  moves the button bar to the **side** of the screen. That is the case
+  M2.3b (b) covers, and it plays. Devices whose screen is landscape by
+  nature (most tablets, some TV-style, in-car and kiosk devices) keep the
+  bar along the **bottom**, about 48 dp tall. On a window only 360 dp tall,
+  the top band (24 dp) and the bottom bar (48 dp) leave 288 dp for text,
+  controls and menus. The HUD text at the top of a 300 dp (0.5×) playfield
+  and the control hint at its bottom cannot both stay out of those bands,
+  so the game cannot meet its own rules there. Decision: accept this as a
+  known limit. Such a window shows the M2.10a prompt.
+  1. *Rule (unchanged).* A bottom navigation bar is a bottom edge inset
+     like any other (M2.3a: the larger of the cutout and system-gesture
+     inset, read at run time). Under M2.3b the playfield may lie under it
+     (art only; the bar is hidden during immersive play, M2.5). HUD/hint
+     text, controls and menus may not (M2.3b rules 2-3). When that leaves
+     too little height for a ≥ 0.5× playfield, the window is too small to
+     play (M2.10a), with M2.10a's text and behaviors 1-5.
+  2. *Where the line falls.* With a 24 dp top band and a 48 dp bottom bar,
+     a 640 dp wide window about **364 dp or taller** plays. The exact bound
+     is the `minH` formula in `docs/mobile/architecture/mobile-architecture.md`
+     §6.2.1 (A12 gives 363.5 dp). Tablets, foldable inner screens and
+     Chromebooks are hundreds of dp taller and are not affected.
+  3. *Menus on every playable window (clarification of M2.3b rule 3).* Rule
+     3 applies on **every** window that is not too small, so every menu
+     screen (title, Settings, Help, pause menu, Restart prompts, Game Over,
+     Game Complete) must fit inside the full insets at the **smallest** safe
+     height a playable window can have (`H − t − b`; about 292 dp under the
+     A12 floor with no cutout; the architecture doc states the exact
+     number), with the default font. M2.11 (largest system font) still
+     applies. This is not a new rule.
+  4. *Not changed.* M2.3b rules 1-4, tests (a)-(e) and its width limit; the
+     0.5× floor (M2.13); M3.1/M3.2 sizes and gaps; M2.6/M2.11 text rules;
+     M2.10a text and behaviors; OQ-M7 (a) (no new layout). No game rule
+     changes (§0 rule 2).
+  Acceptance (unit and Playwright tests use the insets fallback and both
+  control layouts (M3.13); (f3) and (f4) are on emulators):
+  (f1) **The limit is the expected result.** A 640 × 360 dp window with
+  insets (l, r, t, b) = (0, 0, 24, 48) and no cutout shows only "Make the
+  window larger to play." on every screen, with M2.10a behaviors 1-5 (a run
+  pauses; taps do nothing; Back leaves the app).
+  (f2) **A slightly taller window plays.** A 640 × 368 dp window with the
+  same insets shows no prompt; the playfield is ≥ 0.5×; ◀ ▶ THROW ≥ 56 dp,
+  PAUSE ≥ 48 dp, ≥ 8 dp between adjacent targets; every HUD/hint text box
+  has top ≥ 24 dp and bottom ≤ H − 48 dp; every control and every visible
+  element of each menu screen listed in rule 3 lies inside the full insets.
+  (f3) **Device record on the reference AVD.** `svr_api36_lowend_640x360`
+  in three-button navigation (real insets t 24, b 48): cold launch shows
+  the prompt within 5 s (screenshot); Back sends the app to the background;
+  0 FATAL in `adb logcat`. `docs/mobile/tests/device-matrix.md` records
+  this as **expected (M2.3c known limit)**, not as an M2.3b (b) or M2.10a
+  (c) failure, with the reported insets. M2.3b (b)'s real-device evidence
+  stays on a phone-shaped AVD (`svr_api36_pixel7`, bar on the side, both
+  landscape directions).
+  (f4) **A tablet with a bottom bar plays.** `svr_api36_tablet` in
+  three-button navigation, landscape: cold launch shows the title with no
+  prompt; Start and play 10 s. Record the reported insets and scale next to
+  a screenshot; the bottom bar (or taskbar) covers no HUD/hint text,
+  control or menu button.
+  (f5) **Closed-test watch.** The step-16 tester item for "Make the window
+  larger to play." (M2.3b known limit) also asks the tester's navigation
+  mode (swipe gestures or buttons) and, for buttons, whether the bar sits
+  at the side or the bottom when the phone is sideways. If any real phone
+  shows the prompt because its bar stays at the bottom, the options go to
+  the owner (§7 v1.7 note); nothing is relaxed ad hoc.
+  *Alternatives considered (rejected).* (i) Make it playable by moving or
+  hiding the control hint and tightening HUD margins when the bottom inset
+  is large: the height gap is small (about 3.5 dp), but every menu would
+  then also have to fit a 288 dp safe height, and it adds a second layout
+  path to build, review and test for hardware that is essentially absent.
+  (ii) Let text sit under the hidden bar: breaks M2.3 (the bar reappears
+  over the text on an edge swipe). (iii) Lower the 0.5× floor: already
+  rejected in v1.6 (M2.7 art legibility).
 - **M2.4 Controls never cover the playfield.** Touch controls sit outside the
   scaled playfield (in the side columns) on every screen ≥ 16:10. On screens
   squarer than that (e.g. 4:3 tablets), the playfield is scaled down until the
@@ -1213,6 +1310,25 @@ listed here only for traceability.)
 > testers actually hit it; the options would then be an Android
 > back-gesture exclusion area over the controls or a smaller-control layout.
 > OQ-M11..OQ-M14 remain pending.
+>
+> **Note — 2026-09-28 (v1.7).** M2.3c (a three-button navigation bar kept
+> along the bottom of a 360 dp tall window shows the M2.10a prompt; a
+> documented known limit) was decided by the PM to resolve
+> `docs/mobile/tests/validation-report-round4.md` F3. It is **not** an owner
+> question: it adds no feature, cost or scope, changes no game rule, keeps
+> every touch-target and text rule, and keeps OQ-M7 (a). Phones put the bar
+> on the side in landscape, which plays (M2.3b (b)); tablets and other
+> landscape-by-nature screens are far taller than 364 dp and play. It
+> becomes an owner question only if a closed-test tester's real phone shows
+> the prompt because its button bar stays at the bottom (M2.3c (f5)). The
+> options would then be: (a) an Android-only short-window variant that
+> moves the control hint off the playfield and compacts the menus to fit
+> about 288 dp (roughly a few days of design, build and test work, plus a
+> re-run of the step 8-12 gates); (b) keep the limit and name the affected
+> devices in the store notes (no cost, some players on those phones cannot
+> play). The PM would recommend (a) only if affected phones are a real
+> share of testers, otherwise (b).
+> OQ-M11..OQ-M14 remain pending.
 
 Each item: the issue, which doc/subagent it affects, options with
 consequences, the PM recommendation, and the **default already applied** in
@@ -1655,6 +1771,11 @@ block. Both platforms' gates re-run per §0 rule 3.
   existing "background art may extend under them" clause, and to OQ-M7 (a).
   It is Android screen fitting (§0 rule 2), not a shared game change, so the
   shared PRD is not amended.
+- *(Added 2026-09-28, v1.7.)* M2.3c traces to
+  `docs/mobile/tests/validation-report-round4.md` F3 (real three-button
+  insets on the natural-landscape reference AVD), to M2.3b and M2.10a, and
+  to OQ-M7 (a). It is Android screen fitting (§0 rule 2), not a shared game
+  change, so the shared PRD is not amended.
 - Market complaint patterns → requirements: ads → M11.5/OQ-M1; touch targets
   and cut-off HUD → M2.3-M2.7, M3.1-M3.2/OQ-M2; fire-button lag → M3.6,
   M10.1; crashes → M10.4, M10.7, MG1.
@@ -1681,6 +1802,7 @@ block. Both platforms' gates re-run per §0 rule 3.
 | 2026-09-25 (v1.4) | Owner decision OQ-S1a: *'change Vanguard name to "ShieldMan"'* (2026-09-25, given right after the "Shield vs Robots" decision) | header (+hero line, status, v1.4 block); Sources; §7 log, OQ-M3 note, new OQ-S1a; M2.4, M3.3/M3.3a, M9.1, M12.1, M12.3, M12.6 (+v1.4 blocks); M9.6 (+items 5-8); §8 | Hero renamed "Vanguard" → "ShieldMan" in all player-visible text; product name, "robots" and app ID placeholder unchanged. Risk note: close to Archie Comics' "The Shield" and Captain America — name/trademark check on "ShieldMan" recommended and made a precondition for step 15 (M9.6 item 8; mobile-marketing-analyst running it). Shared hero-name AC to be added to the shared PRD by the website product-manager; both pipelines' gates re-run. |
 | 2026-09-27 (v1.5) | Spec gap: `docs/mobile/tooling-setup-log.md` 2026-09-27 fold-AVD entry; `docs/mobile/tests/validation-report-round2.md` svr_api36_fold row; `docs/mobile/reviews/code-review-round7.md` I6 | header (status, v1.5 block); Sources; new M2.10a (under M2.10); M2.13 (+v1.5 note); M5 back table (+v1.5 note); §7 note; §8 | Any window that can't fit the M2.12 columns + a ≥ 0.5× playfield (≈ < 624 × 300 dp at nominal insets), of any shape, pauses the game and shows only "Make the window larger to play." Portrait-shaped windows keep M2.10's text. Enlarging it re-lays out within 1 s to the prior screen (a run returns on the pause menu, never auto-resumes). Back leaves the app. Emulator tests (a)-(d), including the fold AVD at 412 × 309 dp and the 640/600 dp boundary. PM decision within OQ-M7 (a), not owner-level. Android-only, no shared PRD change. |
 | 2026-09-28 (v1.6) | `docs/mobile/reviews/code-review-round8.md` **E1** (real gesture-nav insets on `svr_api36_pixel7`: t ≈ 28.2, b = 32, sides ≈ 29.7 dp; 640 × 360 dp window misses the v1.5 floor) | header (status, v1.6 block); Sources; new **M2.3b** (under M2.3a); M2.10a (+v1.6 note: definition, test (c)); M2.12 (+v1.6 note); §7 note; §8 | The **playfield** (non-interactive game art) may extend under the top and bottom **system-gesture** bands and the hidden status-bar area; its height is limited only by top/bottom **display-cutout** insets. HUD/hint **text**, touch controls and menu buttons stay inside the full `max(cutout, gesture)` insets on all four edges. Floor (0.5×), control sizes, text sizes and side-inset rule unchanged. Testable: a 16:9 640 × 360 dp phone with gesture navigation and a 24-28 dp status bar (insets 30, 30, 24-28.2, 32) plays at ≈ 0.505× with no prompt; three-button navigation plays; text/controls out of the bands; no art under a cutout; device evidence on a representative AVD. Known limit: width not relaxed (l + r ≤ 64 dp at 640 dp wide); side cutout or above-default back sensitivity still prompts — watched in the closed test. Rejected: lower floor (0.48×), smaller controls. PM decision within OQ-M7 (a), not owner-level. Android-only, no shared PRD change. |
+| 2026-09-28 (v1.7) | `docs/mobile/tests/validation-report-round4.md` **F3** (real three-button navigation on the natural-landscape `svr_api36_lowend_640x360` AVD: the bar stays at the bottom, insets t 24, l 0, r 0, b 48; the app shows the M2.10a prompt) | header (status, v1.7 block); Sources; new **M2.3c** (under M2.3b); §7 note; §8 | A three-button navigation bar is a bottom edge inset like any other. On a 640 × 360 dp window with a 48 dp bottom bar and a 24 dp top band, the HUD/hint text cannot stay out of both bands at a ≥ 0.5× playfield, so the M2.10a prompt is the **expected** result: a documented known limit next to the M2.3b width limit. Phones put the bar on the side in landscape (M2.3b (b), plays). Clarifies M2.3b rule 3: every menu screen fits inside the full insets on every playable window, down to the smallest playable safe height (≈ 292 dp; the architecture doc states it). Testable: (f1) 640 × 360 with (0, 0, 24, 48) → prompt with M2.10a behaviors; (f2) 640 × 368 with the same insets → plays, text top ≥ 24 and bottom ≤ H − 48, controls and all menu screens inside the insets; (f3) lowend AVD in three-button mode records the prompt as expected; (f4) tablet AVD in three-button mode plays; (f5) the closed-test item asks navigation mode and bar position. Rejected: moving/hiding the hint plus 288 dp menus (a second layout path for essentially absent hardware), text under the hidden bar, a lower floor. PM decision within OQ-M7 (a), not owner-level. Android-only, no shared PRD change. |
 
 Not changed (v1.3): OQ-M11..OQ-M14 remain pending (only OQ-M11's option (a)
 app ID text was updated); no original AC text was deleted — every v1.3
@@ -1729,6 +1851,29 @@ Follow-ups (each by the agent that owns the doc):
 - **mobile-product-manager** adds "report any 'Make the window larger to
   play.' shown on a phone in full screen" to the closed-test checklist
   (step 16).
+
+Not changed (v1.7): no original or v1.1-v1.6 text was deleted, and no owner
+decision was reopened or needed. M2.3b (rules, tests (a)-(e), width limit),
+M2.10a, the 0.5× floor, every touch-target and text rule, and OQ-M7 (a) are
+unchanged. No game rule changes; the website is unaffected (§0 rule 2).
+Follow-ups (each by the agent that owns the doc):
+- **mobile-solution-architect** (no formula change): adds worked-check rows
+  for (0, 0, 24, 48) at 640 × 360 (tooSmall, M2.3c known limit) and at
+  640 × 368 (playable) to §6.2.1, a §12 MR4 line for the bottom-bar limit,
+  and states the smallest safe height `H − t − b` a playable window can
+  have, which the menu screens must fit (M2.3c rule 3).
+- **mobile-junior-developer**: no code change for F3 itself. The F1 menu
+  fix must meet M2.3c rule 3 (menus inside the full insets at the smallest
+  playable safe height, not only at the reference insets).
+- **mobile-junior-tester** adds (f1) and (f2) to the unit/Playwright tables
+  (both control layouts) and the (f2) menu-screen check to the T2 menu
+  test, and updates the `manual-only-criteria.md` three-button row to "bar
+  on the side (phone: M2.3b (b)) or at the bottom (landscape-by-nature
+  device: M2.3c)".
+- **mobile-lead-tester** records (f3) and (f4) in
+  `docs/mobile/tests/device-matrix.md` (step 10).
+- **mobile-product-manager** extends the step-16 checklist item with the
+  (f5) questions.
 
 Not changed: owner decisions OQ-M1..OQ-M10 (final). v1.2 changes no
 existing AC text and decides no owner question; the architecture docs are

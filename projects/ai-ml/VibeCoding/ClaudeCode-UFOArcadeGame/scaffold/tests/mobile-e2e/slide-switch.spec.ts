@@ -291,7 +291,7 @@ async function runOneSlide(
   // it happens WHILE this specific gesture is still in flight, `leftPlaying`
   // (recorded from the same real-time frames as everything else) says so. That is
   // an interrupted DATA COLLECTION attempt, not a failed M3.3a assertion, so it is
-  // re-collected (bounded, 2 attempts) BEFORE any rule is checked - never a retry of
+  // re-collected (bounded, up to RUN_ONE_SLIDE_MAX_ATTEMPTS = 3 attempts) BEFORE any rule is checked - never a retry of
   // a rule assertion itself.
   let xLog: Array<[number, number]> = [];
   let pointerLog: Array<[number, string]> = [];

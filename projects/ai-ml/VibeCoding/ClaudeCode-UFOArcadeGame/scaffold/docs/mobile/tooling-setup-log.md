@@ -1941,3 +1941,100 @@ trip over without the hint.
 **Environment:** JAVA_HOME=C:\Program Files\Eclipse Adoptium\jdk-21.0.12.101-hotspot,
 ANDROID_HOME=C:\Users\aaron\Android\sdk.
 
+## 2026-09-28 — Step 7 round 13 (mobile-junior-developer): validation-report-round4 F1, F2, T1-T3 (PRD-mobile v1.7 M2.3b rule 3 / M2.3c)
+
+### F2 root cause: `window.innerWidth/innerHeight` is the VISUAL viewport, and it is wrong exactly when the window shrinks
+
+`screenFit.relayout()` read `window.innerWidth/innerHeight`. On Android WebView those
+are the visual viewport (page-scale dependent, whole pixels), not the layout viewport.
+The page has `<meta name="viewport" content="width=device-width, initial-scale=1.0">`
+with no `minimum-scale`, so when the window shrinks while the (transformed) `#app-root`
+from the previous, larger window is still laid out, WebView zooms the page OUT to fit
+the overflow. Measured on `svr_api36_pixel7` (API 36, WebView 133), `wm size 945x1680`
+(640 x 360 dp) applied live from the 915 x 412 window, via a MutationObserver/`resize`
+probe over CDP:
+
+| Moment | `innerWidth x innerHeight` | `documentElement.clientWidth`/`<html>` rect | visualViewport |
+|---|---|---|---|
+| at the `resize` event | **642 x 361** | 640 x 360 | 642.29 wide |
+| settled, prompt showing (old build) | **737 x 415** | 640 x 360 | scale 0.868 |
+
+Real insets l + r = 65.9 need W >= 641.9 for the 0.5x floor (B = 56), so the stale 642
+passed the too-small test: the layout was computed as W = 642 (`#safe-layer` inset l =
+36.19, r = 29.71, but `localW` = 576.1 instead of 574.1, hence canvas 400.1 wide and THROW
+right edge 2 dp inside the right inset). Whether it stayed that way depended on a later
+`edgeInsetsChanged` re-running the layout while the window had settled; one run in
+this session ended correctly by luck (the prompt showed), the report's run did not. A cold
+launch at the same size always showed the prompt (no overflow, so no zoom-out), which is why
+only the live `wm size` case diverged. Chromium at the same insets never reproduces it (no page
+zoom), which is why the Playwright test passed while the device did not.
+
+Fix (`src/platform/android/screenFit.ts`): the layout viewport is now read through
+`readLayoutViewport()` = `document.documentElement.getBoundingClientRect()` (`<html>` is
+`width/height: 100%`; never affected by page scale; keeps fractional dp). Nothing else in `src/` reads
+`innerWidth/innerHeight`. Verified on the device with the fixed APK: six live
+`wm size 945x1680` / `wm size reset` cycles, every one settled on the prompt at 640 x 360 (`#safe-layer`
+`visibility: hidden`, `.rotate-prompt` shown) and on the playable layout after the reset.
+Screenshot: `docs/mobile/tests/screenshots/f2_pixel7_640x360_live_wm_size_prompt_round5.png`. Note for UX round 2:
+while the prompt shows after a live shrink, `innerWidth` stays 737 (visual viewport, the hidden `#app-root`
+still overflows) - harmless, the prompt is `position: fixed` and covers the whole screen.
+
+Tests: `src/platform/android/screenFit.test.ts` (3 vitest cases: layout viewport vs a stubbed
+642 x 361 `innerWidth`, fractional keep, and `classifyWindow` = tooSmall where the old reading said playable);
+`too-small-window.spec.ts` "a transiently zoomed innerWidth/innerHeight (642x361) ..." (Chromium: the
+getters are overridden to 642 x 361 and `resize` dispatched; fails against the old `window.innerWidth` code,
+verified by reverting the one line).
+
+### F1: every menu screen inside the full insets (Android CSS only)
+
+`src/platform/android/android.css` (`src/style.css` unchanged): (1) every `.screen-overlay` (title, pause, confirm,
+Game Over, Game Complete, Help, Settings, Privacy - all children of `#safe-layer`, i.e. exactly the area inside the full
+insets) is `justify-content: flex-start; overflow-y: auto; touch-action: pan-y`, with `margin-top/bottom: auto` on
+its first/last child, so a column that fits stays centered and a column that does not fit scrolls INSIDE the insets
+instead of spilling equally into both gesture bands (`justify-content: safe center` needs Chromium 115; the WebView
+floor is 69). (2) `@media (max-height: 420px)`: gap 6 dp, heading 30 px, menu-list margin 0 / gap 6 dp, confirm-box padding
+8 x 16. 48 dp targets and >= 12 px text are unchanged. Title menu height went from 330 to 276 dp (safe height at
+30/30/24/32 is 304; smallest playable is about 291.5 per PRD M2.3c rule 3).
+
+Device evidence (`svr_api36_lowend_640x360`, real insets `#safe-layer` 30/30/24/32, allowed y in [24, 328], x in [30, 610]),
+content bounds of the top overlay measured over CDP:
+
+| Screen | Normal font: y range | Largest font (2.0): y range |
+|---|---|---|
+| Title | 37.75 - 314.25 | 30 - 322 |
+| How to play | 109.25 - 242.75 | 98.75 - 253.25 |
+| Settings | 77.25 - 274.75 | 72.25 - 279.75 |
+| Pause | 50.25 - 301.75 | 42.25 - 309.75 |
+| Restart Game confirm / Privacy | 102.25 - 249.75 / 36 - 316 | not run |
+
+All inside the insets, no scroll needed on this AVD even at font scale 2.0 (WebView's text zoom grows the text less than
+the CSS-only 2x the Playwright test uses; that test proves the scroll fallback: title/Settings/Help with 2x fonts
+stay inside the insets and every control is reachable). Screenshots: `docs/mobile/tests/screenshots/f1_lowend_*_round5.png`.
+No spec question arose, so nothing is blocked.
+
+### T1-T3 tests
+
+- T1 (`too-small-window.spec.ts`): "with asymmetric insets the wrapped message stays inside every inset" - 300 x 200
+  window, insets l 100 / r 20 / t 10 / b 40, so the message wraps and would cross the left inset if the prompt ignored insets.
+- T2 (`tests/mobile-e2e/menu-insets.spec.ts`, new; excluded from the other three device projects in
+  `playwright.mobile.config.ts` like `cutout-insets`): title, Settings, Privacy, Help, pause menu, Restart Game
+  confirmation, Game Over and Game Complete at 640 x 360 with 30/30/24/32, 30/30/28.2/32, 29.7/29.7/28.2/32,
+  24/24/0/24, 0/48/24/0, 48/0/24/0, the smallest playable safe height (0/0/30/38.4 = 291.6 dp), and 640 x 368 with 0/0/24/48,
+  each with both control layouts (16 walks); checks every visible element inside the insets, no scrolling at the default font,
+  buttons >= 48 dp, text >= 12 px. Also M2.3c (f1) (prompt at 640 x 360 / 0,0,24,48, Back leaves the app, a run pauses on shrink
+  from 640 x 368) and (f2) (plays; playfield >= 0.5x; control sizes/gaps; HUD/hint text top >= 24 and bottom <= H - 48; both
+  layouts), and 4 enlarged-font (2x, CSS-injected) scroll-reachability tests. Removing the F1 CSS block makes 17 of them
+  fail (verified). Game Over and Game Complete are injected with ScreenController's exact structure/classes (a run
+  needs about a minute to end and there is no test hook to set the state); the layout under test is pure CSS.
+- T3: the F2 rounding, above (vitest + Chromium).
+
+### Verification
+
+`check:secrets`, `typecheck`, `lint` exit 0; `npm run test` 529/529 (+3); `npm run build`, `build:android`,
+`check:android-styles` pass; Playwright `--repeat-each=3`, whole suite: 411 passed, 0 failed (4.8 m). Mirror refresh
+via `scripts/refresh-android-mirror.ps1`: parity passed (128 files); mirror `build:android`, `cap sync`,
+`gradlew.bat assembleDebug --no-daemon`: BUILD SUCCESSFUL (`app-debug.apk` 3,961,177 bytes). Devices: pixel7 and lowend
+AVDs booted with `-no-window -no-audio -no-snapshot`; `wm size`, `font_scale`, rotation settings restored to the values found
+(pixel7: wm none, font 1.0, accelerometer_rotation 1, user_rotation unset; lowend: wm none, font 1.0, user_rotation 0,
+accelerometer_rotation 1, navigation_mode 2); both emulators stopped.
+

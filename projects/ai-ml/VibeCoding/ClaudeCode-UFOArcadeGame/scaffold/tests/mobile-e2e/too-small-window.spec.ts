@@ -336,3 +336,145 @@ test.describe('Keyboard under the prompt (code-review-round8 I3; §12 MR20 regre
     await expect(page.getByRole('dialog', { name: 'Settings' })).toBeVisible();
   });
 });
+
+// Round-13 audit additions (M2.10a behaviors 1-4, v1.6 (2)). Each maps to a sentence
+// of the PRD text, not to how screenFit.ts implements it.
+test.describe('M2.10a audit additions: message placement, no game time, screens return as they were', () => {
+  const REAL_INSETS = 'insets=30,30,28.2,32';
+
+  test('the message sits fully inside the full edge insets (behavior 2)', async ({ page }) => {
+    await page.setViewportSize({ width: 600, height: 360 });
+    await page.goto(`/?${REAL_INSETS}&e2e=1`);
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeVisible();
+
+    const box = await page.locator(`${ROTATE_PROMPT_SELECTOR} p`).boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(30 - 0.5);
+    expect(box!.y).toBeGreaterThanOrEqual(28.2 - 0.5);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(600 - 30 + 0.5);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(360 - 32 + 0.5);
+    // The prompt itself covers the whole window (only background + message show).
+    const promptBox = await page.locator(ROTATE_PROMPT_SELECTOR).boundingBox();
+    expect(promptBox).toMatchObject({ x: 0, y: 0, width: 600, height: 360 });
+    // Message text is >= 12 sp equivalent (M2.6): 12 css px is the floor.
+    const fontPx = await page
+      .locator(`${ROTATE_PROMPT_SELECTOR} p`)
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(fontPx).toBeGreaterThanOrEqual(12);
+  });
+
+  test('with asymmetric insets the wrapped message stays inside every inset (behavior 2, T1)', async ({ page }) => {
+    // The window is narrow enough that the one-line message (about 250 dp wide) cannot
+    // fit between the insets, so it wraps; if the prompt ignored the insets the text
+    // block would be centred on the whole window and cross the 100 dp left inset.
+    const viewport = { width: 300, height: 200 };
+    const insets = { left: 100, right: 20, top: 10, bottom: 40 };
+    await page.setViewportSize(viewport);
+    await page.goto(`/?insets=${insets.left},${insets.right},${insets.top},${insets.bottom}&e2e=1`);
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeVisible();
+
+    const box = (await page.locator(`${ROTATE_PROMPT_SELECTOR} p`).boundingBox())!;
+    expect(box.x, 'message left edge inside the left inset').toBeGreaterThanOrEqual(insets.left - 0.5);
+    expect(box.y, 'message top edge inside the top inset').toBeGreaterThanOrEqual(insets.top - 0.5);
+    expect(box.x + box.width, 'message right edge inside the right inset').toBeLessThanOrEqual(
+      viewport.width - insets.right + 0.5,
+    );
+    expect(box.y + box.height, 'message bottom edge inside the bottom inset').toBeLessThanOrEqual(
+      viewport.height - insets.bottom + 0.5,
+    );
+    const lineHeight = await page
+      .locator(`${ROTATE_PROMPT_SELECTOR} p`)
+      .evaluate((el) => parseFloat(getComputedStyle(el).lineHeight) || parseFloat(getComputedStyle(el).fontSize) * 1.2);
+    expect(box.height, 'the message really wrapped onto several lines').toBeGreaterThan(lineHeight * 1.5);
+  });
+
+  test('no game time passes while the prompt shows, and the run returns paused and stays paused until Resume (M4.2, M4.3)', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 640, height: 360 });
+    await page.goto(`/?${REAL_INSETS}&e2e=1`);
+    await page.evaluate(() => localStorage.clear());
+    await page.reload();
+    await page.locator('[data-action="start"]').click();
+    await page.locator('[data-action="help-dismiss"]').click();
+    await expect(page.locator('.touch-button--throw')).toBeVisible();
+
+    await page.setViewportSize({ width: 600, height: 360 });
+    // M2.9: layout is redone (prompt shown, run paused) within 1 s.
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeVisible({ timeout: 1000 });
+    await expect.poll(async () => (await snapshot(page)).state, { timeout: 1000 }).toBe('PAUSED');
+    const frozen = await snapshot(page);
+
+    await page.waitForTimeout(1500);
+    const later = await snapshot(page);
+    expect(later.enemies, 'enemy positions must not advance while the prompt shows').toEqual(frozen.enemies);
+    expect(later.effects).toEqual(frozen.effects);
+    expect(later.score).toBe(frozen.score);
+
+    await page.setViewportSize({ width: 640, height: 360 });
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeHidden({ timeout: 1000 });
+    await page.waitForTimeout(700);
+    // Never resumes by itself.
+    expect((await snapshot(page)).state).toBe('PAUSED');
+    await expect(page.getByRole('button', { name: 'Resume' })).toBeVisible();
+
+    await page.getByRole('button', { name: 'Resume' }).click();
+    await expect.poll(async () => (await snapshot(page)).state).toBe('PLAYING');
+  });
+
+  test('the title screen comes back as it was after the window is enlarged again (M4.4)', async ({ page }) => {
+    await page.setViewportSize({ width: 600, height: 360 });
+    await page.goto(`/?${REAL_INSETS}&e2e=1`);
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeVisible();
+    await expect(page.locator('[data-action="start"]')).toBeHidden();
+
+    await page.setViewportSize({ width: 640, height: 360 });
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeHidden({ timeout: 1000 });
+    await expect(page.locator('[data-action="start"]')).toBeVisible();
+    expect((await snapshot(page)).state).toBe('TITLE');
+  });
+
+  test('an open Settings dialog comes back open after shrink and restore (M4.4)', async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 360 });
+    await page.goto(`/?${REAL_INSETS}&e2e=1`);
+    await page.locator('[data-action="settings"]').click();
+    const dialog = page.getByRole('dialog', { name: 'Settings' });
+    await expect(dialog).toBeVisible();
+
+    await page.setViewportSize({ width: 600, height: 360 });
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeVisible();
+    await expect(dialog).toBeHidden();
+
+    await page.setViewportSize({ width: 640, height: 360 });
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeHidden();
+    await expect(dialog).toBeVisible();
+  });
+
+  test('a side-inset width shortfall shows the prompt even at 640x360 (M2.3b known width limit)', async ({ page }) => {
+    await page.setViewportSize({ width: 640, height: 360 });
+    // l + r = 66 > 64: the width test is not relaxed by M2.3b.
+    await page.goto('/?insets=36.2,29.7,28.2,32&e2e=1');
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeVisible();
+    expect(await promptText(page)).toBe(TOO_SMALL_TEXT);
+  });
+
+  test('a transiently zoomed innerWidth/innerHeight (642x361) during a resize does not make a 640x360 window playable (validation round 4 F2)', async ({
+    page,
+  }) => {
+    // Measured on svr_api36_pixel7 during `wm size 945x1680`: at the `resize` event
+    // window.innerWidth/innerHeight were 642 x 361 while the layout viewport was
+    // already exactly 640 x 360. With the measured insets (l + r = 65.9) the width
+    // floor is 641.9 dp, so reading innerWidth made the window playable.
+    await page.setViewportSize({ width: 640, height: 360 });
+    await page.goto('/?insets=36.1905,29.7143,28.1905,32&e2e=1');
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeVisible();
+
+    await page.evaluate(() => {
+      Object.defineProperty(window, 'innerWidth', { configurable: true, get: () => 642 });
+      Object.defineProperty(window, 'innerHeight', { configurable: true, get: () => 361 });
+      window.dispatchEvent(new Event('resize'));
+    });
+    await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeVisible();
+    expect(await promptText(page)).toBe(TOO_SMALL_TEXT);
+  });
+});

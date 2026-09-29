@@ -63,6 +63,59 @@ html.platform-android .menu-item.selected {
   background: #05050a;
 }
 
+/* Validation round 4 F1 (PRD-mobile M2.3 / M2.3b rule 3): every menu, dialog and
+   shell overlay (title, pause, confirm, game over, game complete, Help, Settings,
+   Privacy) is a `.screen-overlay` filling `#safe-layer`, i.e. exactly the area inside
+   the full edge insets. The shared style.css centers its column with
+   `justify-content: center`, which on a short window lets an over-tall column spill
+   equally into BOTH the top and bottom gesture bands (640 x 360 dp with real insets:
+   the title's heading and Quit were 13 dp inside the bands). Here the container
+   instead scrolls when its content really is taller than the safe area (large font
+   scale, unusual insets), and the first/last child's `auto` margins keep the column
+   centered whenever it does fit - `justify-content: safe center` would do the same
+   in one line but needs Chromium 115, and the WebView floor is 69. `pan-y` re-enables
+   the vertical drag the html-level `touch-action: none` above would otherwise block;
+   taps on the buttons are unaffected. */
+html.platform-android .screen-overlay {
+  justify-content: flex-start;
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+html.platform-android .screen-overlay > :first-child {
+  margin-top: auto;
+}
+
+html.platform-android .screen-overlay > :last-child {
+  margin-bottom: auto;
+}
+
+/* Short landscape windows (a phone is 360-412 dp tall): tighter spacing so the whole
+   title menu (heading, best line, Start, How to play, Settings, Quit) fits in the
+   ~304 dp left after the gesture bands at 640 x 360 dp with normal font. Touch targets
+   stay 48 dp (`.menu-item` above) and text stays well above the 12 sp floor - only
+   gaps, margins and the heading size shrink. */
+@media (max-height: 420px) {
+  html.platform-android .screen-overlay {
+    gap: 6px;
+  }
+
+  html.platform-android .screen-overlay h1 {
+    font-size: 30px;
+    letter-spacing: 1px;
+    margin: 0;
+  }
+
+  html.platform-android .menu-list {
+    margin: 0;
+    gap: 6px;
+  }
+
+  html.platform-android .confirm-box {
+    padding: 8px 16px;
+  }
+}
+
 #safe-layer {
   position: fixed;
   z-index: 30;

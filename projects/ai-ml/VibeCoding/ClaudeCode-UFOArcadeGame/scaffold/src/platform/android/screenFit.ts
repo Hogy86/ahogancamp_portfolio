@@ -28,6 +28,23 @@ import type { TouchControls } from './TouchControls';
 
 const BACKING_STORE_SCALE_CAP = 3.2;
 
+/** Validation round 4 F2: the window size in CSS px (= dp) that every layout decision is
+ * made from. This is the LAYOUT viewport (the `<html>` box, which is `width/height:
+ * 100%`), not `window.innerWidth/innerHeight`: those report the VISUAL viewport,
+ * rounded to whole pixels, and Android WebView transiently reports a slightly zoomed
+ * one while the window is being resized. Measured on svr_api36_pixel7 during
+ * `wm size 945x1680` (640 x 360 dp): at the `resize` event innerWidth/innerHeight were
+ * 642 x 361 (visualViewport 642.29 wide) while the layout viewport was already exactly
+ * 640 x 360 - so the too-small check (l + r = 65.9 needs W >= 641.9) passed on the
+ * stale 642 and the game played with THROW 2 dp inside the right inset, until some
+ * later insets event happened to re-run the layout. The layout viewport is never
+ * affected by page scale, and `getBoundingClientRect` keeps its fractional part (a
+ * 411.43 dp window is not rounded to 411). */
+export function readLayoutViewport(doc: Document = document): { width: number; height: number } {
+  const rect = doc.documentElement.getBoundingClientRect();
+  return { width: rect.width, height: rect.height };
+}
+
 export interface ScreenFitCallbacks {
   onPause(): void;
   /** §6.2.1: `null` when the window is playable; otherwise which message RotatePrompt
@@ -119,7 +136,7 @@ export class ScreenFit {
   }
 
   private relayout(viewportSizeChanged: boolean): void {
-    const viewport = { width: window.innerWidth, height: window.innerHeight };
+    const viewport = readLayoutViewport();
     const viewportKey = `${viewport.width}x${viewport.height}`;
     const isNewSize = viewportKey !== this.lastViewportKey;
     this.lastViewportKey = viewportKey;
