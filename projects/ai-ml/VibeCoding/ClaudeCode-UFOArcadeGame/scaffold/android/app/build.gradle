@@ -141,11 +141,12 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 
-try {
-    def servicesJSON = file('google-services.json')
-    if (servicesJSON.text) {
-        apply plugin: 'com.google.gms.google-services'
-    }
-} catch(Exception e) {
-    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+// review-v2 V2-L4: the Capacitor template applied the Google Services plugin silently
+// whenever a google-services.json appeared. This app ships no Firebase/Google services
+// (Data safety answers and the privacy policy say so), so a stray config file must stop
+// the build instead of quietly changing it.
+if (file('google-services.json').exists()) {
+    throw new GradleException(
+        'android/app/google-services.json exists: adding Google services requires a security and Data safety review (docs/mobile/security/review-v2.md V2-L4). Remove the file.'
+    )
 }

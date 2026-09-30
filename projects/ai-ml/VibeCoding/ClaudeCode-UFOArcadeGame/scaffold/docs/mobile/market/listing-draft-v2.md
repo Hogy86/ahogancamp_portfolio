@@ -1,5 +1,14 @@
 # Play Store Listing Draft v2 — Shield vs Robots (hero "ShieldMan")
 
+> **Revision note (2026-09-29):** Applied `docs/mobile/security/review-v2.md`
+> findings V2-M2 and V2-L6.
+> - **V2-M2:** Deleted the "space invaders style" keyword (Section 4). Added
+>   "Space Invaders" (Taito) and "Galaga" (Bandai Namco) to the explicitly
+>   excluded list. Keywords now use generic genre terms only.
+> - **V2-L6:** In the full description body, "SHIELD VS ROBOTS" is now title
+>   case, "Shield vs Robots".
+> No other content changed.
+
 **Stage:** Mobile Pipeline Step 1 — Mobile Marketing Analyst (revision)
 **Date:** 2026-09-25
 **Author:** mobile-marketing-analyst subagent
@@ -76,7 +85,7 @@ left unmodified as the historical record of the pre-rename draft.
 ShieldMan is the last line of defense. The robots are coming in formation —
 and your only weapon is a shield that never runs out.
 
-SHIELD VS ROBOTS is a fast, free, no-ads retro arcade shooter built on the
+Shield vs Robots is a fast, free, no-ads retro arcade shooter built on the
 classic formation-shooter formula you already know — move, throw, survive —
 with a twist that makes every throw matter: your shield bounces.
 
@@ -140,6 +149,8 @@ robot.
   book publisher, film studio, or other third-party media franchise.") is
   **removed**. Only the single positive originality sentence remains:
   "ShieldMan and the robots are original characters created for this game."
+- **V2-L6 applied (2026-09-29):** the description body now uses title case
+  "Shield vs Robots" instead of all-caps "SHIELD VS ROBOTS".
 - No feature is described here that is not already confirmed in
   `docs/PRD.md`, `docs/PRD-addendum-v2.md`, or `docs/PRD-addendum-v3.md`
   (shield bounce/catch = F15/F16; 10 levels/boss every 5th = F5/F12; four
@@ -161,11 +172,11 @@ Grouped by intent, for use in the title/short description (already placed
 above), the full description's natural-language repetition, and Play
 Console's keyword-relevant metadata (developer-controlled fields, not a
 literal tag list, since Play ranks primarily off title/description text).
+Generic genre terms only; no third-party game names (V2-M2).
 
 **Primary (genre + mechanic — highest search volume, matches how
 comparable apps are found per `play-store-research.md` §1):**
 - arcade shooter
-- space invaders style
 - retro shooter
 - formation shooter
 - bouncing shield / shield throw
@@ -183,7 +194,12 @@ comparable apps are found per `play-store-research.md` §1):**
 **Branded (only the confirmed, cleared name — see name-check):**
 - Shield vs Robots
 
-**Explicitly excluded (per `play-store-research.md` §6.1-§6.4):**
+**Explicitly excluded (per `play-store-research.md` §6.1-§6.4 and
+`docs/mobile/security/review-v2.md` V2-M2):**
+- **"Space Invaders"** (Taito) and **"Galaga"** (Bandai Namco), and any
+  "space invaders style" / "galaga-like" phrasing, in any field. Third-party
+  game trademarks are not used as keywords; describe the genre with generic
+  terms only (arcade shooter, retro shooter, formation shooter).
 - **"Shield" used alone** as a standalone keyword/tag — search-collides
   with multiple same-genre competitors (Shield Shooter, Shield Breaker,
   ShieldGuard, Shield Up!, Shield Master, ShieldWall) and with the NVIDIA

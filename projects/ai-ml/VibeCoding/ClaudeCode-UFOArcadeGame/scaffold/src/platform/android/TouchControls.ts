@@ -7,11 +7,11 @@
 // - Stray gestures (M3.7): handled by android.css (touch-action: none etc.) and a
 //   `contextmenu` preventDefault here.
 
-import { createElement, setText } from '../../ui/dom';
+import { createElement } from '../../ui/dom';
 import type { InputSource } from '../../core/InputManager';
 import { classifyMovePointer, type MoveDirection, type MoveZoneRects } from './moveZone';
 import { CONTROL_GAP_DP, type Layout } from './layout';
-import { createArrowGlyph, createPauseGlyph } from './glyphs';
+import { createArrowGlyph, createPauseGlyph, createWordGlyph, setWordGlyph } from './glyphs';
 
 export class TouchInputSource implements InputSource {
   // §5.1 step 4 / L2: this reports left/right INDEPENDENTLY - InputManager is the only
@@ -76,15 +76,14 @@ interface TrackedMovePointer {
 // pictographic Unicode glyphs tried first rendered as nothing on this AVD's WebView, so
 // text glyphs were switched to ASCII; design-review-round3 F2 then found bare ASCII
 // punctuation (`<`, `>`, `II`) unreadable as icons. The arrows and pause bars are now
-// inline SVG shapes (glyphs.ts, no font involved); THROW keeps its word, and the
+// inline SVG shapes (glyphs.ts, no font involved); THROW keeps its word, drawn as fixed-width SVG text, and the
 // recharging state is the word WAIT (`...` was ambiguous).
 const THROW_GLYPH_READY = 'THROW';
 const THROW_GLYPH_NOT_READY = 'WAIT'; // shield is out, recharging - a different glyph, not just a dimmer one (NFR-9)
 
-function appendGlyph(button: HTMLElement, glyph: string | SVGSVGElement): HTMLElement {
+function appendGlyph(button: HTMLElement, glyph: SVGSVGElement): HTMLElement {
   const span = createElement('span', 'touch-glyph');
-  if (typeof glyph === 'string') setText(span, glyph);
-  else span.append(glyph);
+  span.append(glyph);
   span.setAttribute('aria-hidden', 'true');
   button.append(span);
   return span;
@@ -97,7 +96,7 @@ export class TouchControls {
   private readonly leftButton: HTMLElement;
   private readonly rightButton: HTMLElement;
   private readonly throwButton: HTMLButtonElement;
-  private readonly throwGlyph: HTMLElement;
+  private readonly throwWord: SVGSVGElement;
   private readonly pauseButton: HTMLButtonElement;
   private readonly movePointers = new Map<number, TrackedMovePointer>();
 
@@ -122,7 +121,8 @@ export class TouchControls {
       'touch-button touch-button--throw',
     ) as HTMLButtonElement;
     this.throwButton.setAttribute('aria-label', 'Throw shield');
-    this.throwGlyph = appendGlyph(this.throwButton, THROW_GLYPH_READY);
+    this.throwWord = createWordGlyph(THROW_GLYPH_READY);
+    appendGlyph(this.throwButton, this.throwWord);
 
     this.pauseButton = createElement(
       'button',
@@ -182,7 +182,7 @@ export class TouchControls {
   syncNotReadyState(): void {
     const notReady = this.getShieldInFlight();
     this.throwButton.classList.toggle('not-ready', notReady);
-    setText(this.throwGlyph, notReady ? THROW_GLYPH_NOT_READY : THROW_GLYPH_READY);
+    setWordGlyph(this.throwWord, notReady ? THROW_GLYPH_NOT_READY : THROW_GLYPH_READY);
   }
 
   private currentRects(): MoveZoneRects {

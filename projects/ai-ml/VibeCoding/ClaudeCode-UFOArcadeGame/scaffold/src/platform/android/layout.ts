@@ -115,9 +115,13 @@ const PAUSE_SIZE_DP = 48;
  * table and change-control rule (§12 MR21): a shared change moving this text closer
  * to the top edge must update this constant in the same change. */
 export const TEXT_TOP_LOGICAL = 4;
-/** §6.2/§6.5 Amendment A12: the nearest playfield text to the bottom edge
- * (`#control-text`'s content-box bottom, logical y 587 = 600 - 13). Same
- * change-control rule as `TEXT_TOP_LOGICAL` (§12 MR21). */
+/** §6.2/§6.5 Amendment A12: bound for the nearest playfield text to the bottom edge.
+ * 13 is the website/shared `#control-text` position (content-box bottom at logical
+ * y 587 = 600 - 13), kept as a conservative bound. On Android the hint sits higher, at
+ * `48 + 24/s + 5` logical px from the bottom (`android.css`, design-review-round3 B1).
+ * Lowering the Android offset below 8 logical px (the shared `bottom: 8px`) would need
+ * this constant to be reviewed. Same change-control rule as `TEXT_TOP_LOGICAL`
+ * (§12 MR21). */
 export const TEXT_BOTTOM_LOGICAL = 13;
 
 /** §6.2: tries button sizes largest-first, accepting the first that reaches the 0.5x

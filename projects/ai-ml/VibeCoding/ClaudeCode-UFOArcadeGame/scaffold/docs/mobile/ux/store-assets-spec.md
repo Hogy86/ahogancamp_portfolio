@@ -2,7 +2,7 @@
 
 **Author:** mobile-ui-ux-designer subagent
 **Stage:** Mobile Pipeline Step 3 (companion to `design-review-round1.md`)
-**Date:** 2026-09-25 (original); revised 2026-09-28 (see Revision history)
+**Date:** 2026-09-25 (original); revised 2026-09-28 and 2026-09-29 (see Revision history)
 **Grounds for every asset below:** `docs/mobile/market/listing-draft-v2.md` §5
 (screenshot storyline), `docs/mobile/PRD-mobile.md` v1.7 M9 (icon/splash,
 including the Marvel-avoidance rules in M9.6) and M12.4 (screenshot
@@ -21,6 +21,7 @@ artwork itself.
 |---|---|---|
 | 2026-09-25 | Original spec, written under the pre-rename product name "Vanguard vs. Sentinels", hero "Vanguard", enemies "Sentinels", grounded in `listing-draft.md` (v1). | Mobile Pipeline Step 3 |
 | 2026-09-28 | Rename applied to all live text: product "Shield vs Robots", hero "ShieldMan", enemies "robots". Title lockup changed from "VANGUARD VS. SENTINELS" to "SHIELD VS ROBOTS". Listing reference moved from `listing-draft.md` (v1, kept unmodified as history) to `listing-draft-v2.md`. Palette label "Vanguard blue/white" renamed "ShieldMan blue/white"; hex values unchanged. Marvel-avoidance (M9.6) added to the grounding and the cross-cutting constraints. No composition, dimension, or layer decisions changed. | `docs/PRD-addendum-v4.md` F22; `docs/mobile/PRD-mobile.md` v1.7 |
+| 2026-09-29 | Title lockup set in title case "Shield vs Robots" (no all-caps "SHIELD"). Screenshot 4 and feature graphic must not show the old ringed-"x" Permanent Multiplier token; capture only after the replacement glyph ships. | `docs/mobile/security/review-v2.md` V2-L6, V2-M3; `design-review-round5.md` |
 
 Open item carried from the listing: OQ-M15 (owner decision on the hero name
 "ShieldMan" and its Captain-America adjacency, `listing-draft-v2.md` §6). This
@@ -77,13 +78,14 @@ surfaces, but required for the listing.
   not concept art, to stay consistent with M12.4's "captured from the real
   Android build" rule for screenshots (same standard applies here for
   consistency, even though Play doesn't mandate it for the feature graphic).
-  Right side or bottom band: the title lockup "SHIELD VS ROBOTS" (matching
-  the store title "Shield vs Robots"; never truncated to "SHIELD" alone, per
-  `listing-draft-v2.md` §1) in a clean sans-serif matching the in-game HUD
-  font stack (system-ui, per `src/style.css`'s `system-ui-fallback` — no
-  licensed/hosted webfont, per ADR-0004), set against the `#05050a`
-  background color for continuity with icon/splash. Do not style the lockup
-  as "S.H.I.E.L.D." or add a "-Man" superhero-movie-style tagline
+  Right side or bottom band: the title lockup in **title case, "Shield vs
+  Robots"** (matching the store title exactly; never all-caps "SHIELD", which
+  echoes third-party marks per `review-v2.md` V2-L6; never truncated to
+  "Shield" alone, per `listing-draft-v2.md` §1) in a clean sans-serif matching
+  the in-game HUD font stack (system-ui, per `src/style.css`'s
+  `system-ui-fallback` — no licensed/hosted webfont, per ADR-0004), set against
+  the `#05050a` background color for continuity with icon/splash. Do not style
+  the lockup as "S.H.I.E.L.D." or add a "-Man" superhero-movie-style tagline
   (`listing-draft-v2.md` §4 exclusions).
 - **Do not** include store badges, "Free," "No Ads," or any call-to-action
   text baked into the image — Play overlays its own install UI over parts of
@@ -91,6 +93,9 @@ surfaces, but required for the listing.
 - No licensed IP, no red-white-blue star motif, no concentric-ring shield
   (NFR-10 / F9 AC4 / M9.6) — the feature graphic is the single most-viewed
   asset on the listing page, so this constraint matters most here.
+- **Do not show the old ringed-"x" Permanent Multiplier token** (V2-M3, see
+  `design-review-round5.md`). If a power-up is in frame, use a different one, or
+  capture after the replacement glyph ships.
 
 ## 4. Screenshots (phone — required; tablet — optional per OQ-M7 (a))
 
@@ -124,6 +129,11 @@ review's own F2/F3 findings before a real player ever sees the app.
 4. **Power-up catch moment.** A falling power-up icon mid-catch, HUD showing
    the active-effect indicator and permanent-multiplier readout (F7 AC10/11).
    Caption: "Catch it. Use it."
+   **Token rule (V2-M3):** the falling/caught token must NOT be the old
+   ringed-"x" Permanent Multiplier glyph. Use HIT_POWER, SPEED or SHIELD for
+   the catch, and capture the multiplier readout in the HUD only. Once the
+   replacement multiplier glyph has passed both gates (`design-review-round5.md`)
+   and a new build is captured, the multiplier token may be shown again.
 5. **Pause menu.** The pause overlay (Resume / Restart Level / Restart Game /
    Quit) with the PAUSE button visible in the corner it's actually rendered
    in. Caption: **"Leave the app mid-level and it pauses automatically — tap
@@ -161,9 +171,10 @@ whole spec exists to avoid.
   Avengers, X-Men or "Sentinels" terms or visual motifs, no "S.H.I.E.L.D."
   styling, no "patriot"/"captain"/"star-spangled"/"America(n)" wording, no
   red-white-blue concentric-star shield, no licensed likeness anywhere.
-- Names in every asset are exactly: product "Shield vs Robots", hero
-  "ShieldMan", enemies "robots" (plain noun). The old pre-rename names
-  appear only in the Revision history above.
+  This includes any "x inside a ring" shape (see V2-M3 above).
+- Names in every asset are exactly: product "Shield vs Robots" (title case,
+  never all-caps in lockups), hero "ShieldMan", enemies "robots" (plain noun).
+  The old pre-rename names appear only in the Revision history above.
 - Color palette drawn only from the confirmed game palette: ShieldMan blue
   `#2f6fed`, ShieldMan white `#f4f6fb`, background `#05050a`, enemy
   toughness grays, boss `#242428`/`#8a8a94`, accent amber `#ffd873` — no new

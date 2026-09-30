@@ -41,3 +41,46 @@ export function createPauseGlyph(): SVGSVGElement {
   svg.append(bar('5'), bar('13'));
   return svg;
 }
+
+// code-review-round15 M2: the THROW/WAIT label is SVG text with a fixed `textLength`, so
+// its width is the same at any system font scale. As CSS text, "THROW" at 13px bold was
+// 51.6 px wide at the default font and 66.3 px at the 130% WebView text-zoom cap, wider
+// than the 52 px content box of the 56dp button. 13 user units bold is the 12 sp floor.
+const WORD_VIEWBOX_WIDTH = 44;
+const WORD_VIEWBOX_HEIGHT = 20;
+const WORD_BASELINE_Y = 15;
+// Fixed advance widths (user units) per label: ~10% tighter than the natural 13px bold
+// width, and never wider than the viewBox.
+const WORD_TEXT_LENGTHS: Record<string, number> = { THROW: 44, WAIT: 32 };
+
+/** Sets the label of a glyph made by `createWordGlyph`, keeping its fixed width. */
+export function setWordGlyph(svg: SVGSVGElement, word: string): void {
+  const text = svg.querySelector('text');
+  if (!text) return;
+  text.textContent = word;
+  text.setAttribute('textLength', String(WORD_TEXT_LENGTHS[word] ?? WORD_VIEWBOX_WIDTH));
+}
+
+/** A short bold word drawn as SVG text of a fixed width (see the note above). */
+export function createWordGlyph(word: string): SVGSVGElement {
+  const svg = svgElement('svg', {
+    viewBox: `0 0 ${WORD_VIEWBOX_WIDTH} ${WORD_VIEWBOX_HEIGHT}`,
+    class: 'touch-glyph-svg touch-glyph-word',
+    focusable: 'false',
+    'aria-hidden': 'true',
+  });
+  svg.append(
+    svgElement('text', {
+      x: String(WORD_VIEWBOX_WIDTH / 2),
+      y: String(WORD_BASELINE_Y),
+      'text-anchor': 'middle',
+      'font-size': '13',
+      'font-weight': '700',
+      'font-family': 'inherit',
+      lengthAdjust: 'spacingAndGlyphs',
+      fill: 'currentColor',
+    }),
+  );
+  setWordGlyph(svg, word);
+  return svg;
+}

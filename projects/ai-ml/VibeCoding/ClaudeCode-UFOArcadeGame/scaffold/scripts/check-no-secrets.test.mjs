@@ -12,6 +12,9 @@ import {
   classifyTrackedPath,
   processFiles,
   S1_TEMPLATE_BASENAMES,
+  S7_KNOWN_DUMMY_VALUES,
+  S7_MAX_BYTES,
+  scanTextForSecrets,
 } from './check-no-secrets.mjs';
 
 // vitest (via `npm run test`/`npm test`) always runs with cwd = the `scaffold/`
@@ -103,7 +106,8 @@ LOG_LEVEL=info
   });
 
   it('(v) fails on a PEM private-key header (a: content pattern)', () => {
-    const failures = scanEnvTemplate('-----BEGIN PRIVATE KEY-----');
+    // Built from two pieces so this test file does not itself trip S7.
+    const failures = scanEnvTemplate('-----BEGIN ' + 'PRIVATE KEY-----');
     expect(failures).toHaveLength(1);
     expect(failures[0]).toContain('a:');
   });
@@ -146,21 +150,32 @@ LOG_LEVEL=info
 describe('S1_TEMPLATE_BASENAMES (Addendum 1 item 1/4(e))', () => {
   it('is frozen and has exactly the three documented basenames', () => {
     expect(Object.isFrozen(S1_TEMPLATE_BASENAMES)).toBe(true);
-    expect([...S1_TEMPLATE_BASENAMES].sort()).toEqual(['.env.example', '.env.sample', '.env.template']);
+    expect([...S1_TEMPLATE_BASENAMES].sort()).toEqual([
+      '.env.example',
+      '.env.sample',
+      '.env.template',
+    ]);
   });
 
-  it('round 3 L3: is actually immutable (a frozen array, not a frozen Set binding) - '
-    + 'mutation throws and the list is unchanged', () => {
-    // This module is ESM (always strict mode), so a mutating call on a frozen array
-    // throws a TypeError rather than silently no-op'ing. A `Set` would have let `.add()`
-    // succeed even after `Object.freeze()`, since freeze only locks the variable
-    // binding, not the Set's internal storage.
-    expect(() => S1_TEMPLATE_BASENAMES.push('.env.extra')).toThrow(TypeError);
-    expect([...S1_TEMPLATE_BASENAMES].sort()).toEqual(['.env.example', '.env.sample', '.env.template']);
-  });
+  it(
+    'round 3 L3: is actually immutable (a frozen array, not a frozen Set binding) - ' +
+      'mutation throws and the list is unchanged',
+    () => {
+      // This module is ESM (always strict mode), so a mutating call on a frozen array
+      // throws a TypeError rather than silently no-op'ing. A `Set` would have let `.add()`
+      // succeed even after `Object.freeze()`, since freeze only locks the variable
+      // binding, not the Set's internal storage.
+      expect(() => S1_TEMPLATE_BASENAMES.push('.env.extra')).toThrow(TypeError);
+      expect([...S1_TEMPLATE_BASENAMES].sort()).toEqual([
+        '.env.example',
+        '.env.sample',
+        '.env.template',
+      ]);
+    },
+  );
 });
 
-describe('classifyTrackedPath (Addendum 1 item 4(e)): exercises the SCRIPT\'S OWN S1 pathPattern/exemption set', () => {
+describe("classifyTrackedPath (Addendum 1 item 4(e)): exercises the SCRIPT'S OWN S1 pathPattern/exemption set", () => {
   it.each([
     ['.env.example', 's6-scan'],
     ['.env.sample', 's6-scan'],
@@ -241,12 +256,112 @@ describe('S4 regression: the real committed android/app/build.gradle', () => {
     // found first, so a future cwd/path regression fails LOUDLY here instead of
     // silently proving nothing.
     const absPath = path.join(SCAFFOLD_ROOT, relPath);
-    expect(existsSync(absPath), `expected ${absPath} to exist - is cwd the scaffold/ project root?`).toBe(true);
+    expect(
+      existsSync(absPath),
+      `expected ${absPath} to exist - is cwd the scaffold/ project root?`,
+    ).toBe(true);
 
     const readFile = (p) => readFileSync(p, 'utf8');
     const { failures } = processFiles(SCAFFOLD_ROOT, [relPath], readFile);
 
     const s4Failures = failures.filter((failure) => failure.startsWith('S4:'));
     expect(s4Failures).toEqual([]);
+  });
+});
+
+describe('S1 credential-file paths (review-v2 V2-L3, V2-L4)', () => {
+  it.each([
+    'terraform-deploy_accessKeys.csv',
+    'infra/my_AccessKeys (1).csv',
+    'credentials',
+    'aws/credentials.csv',
+    'infra/terraform.tfstate',
+    'infra/terraform.tfstate.backup',
+    'infra/terraform.tfvars',
+    'android/app/google-services.json',
+  ])('%s is an S1 failure', (relPath) => {
+    expect(classifyTrackedPath(relPath)).toBe('s1-fail');
+  });
+
+  it.each(['docs/credentials-policy.md', 'src/tfstate-notes.md', 'docs/accessKeys-guide.md'])(
+    '%s is not an S1 failure',
+    (relPath) => {
+      expect(classifyTrackedPath(relPath)).not.toBe('s1-fail');
+    },
+  );
+
+  it('processFiles reports S1 for a tracked credentials.csv without reading it', () => {
+    const readFile = () => {
+      throw new Error('must not be read');
+    };
+    const { failures } = processFiles('/repo', ['aws/credentials.csv'], readFile);
+    expect(failures).toEqual(['S1: aws/credentials.csv (key/secret file tracked)']);
+  });
+});
+
+describe('S7: S6a content patterns over every tracked text file (review-v2 V2-L3)', () => {
+  // Fixtures are assembled from pieces so this file does not itself trip S7.
+  const awsKey = 'AKIA' + '1234567890ABCDEF';
+  const pemHeader = '-----BEGIN ' + 'RSA PRIVATE KEY-----';
+  const githubToken = 'ghp_' + 'abcdefghijklmnopqrstuvwxyz0123';
+
+  // Maps the absolute path processFiles builds back to the fixture key, on any OS.
+  const run = (files) => {
+    const contentFor = (absPath) => {
+      const key = Object.keys(files).find((k) => absPath.endsWith(k.split('/').join(path.sep)));
+      return files[key];
+    };
+    return processFiles('/repo', Object.keys(files), contentFor, () => 100);
+  };
+
+  it('fails on an AWS key ID in an ordinary markdown file, with the file and line', () => {
+    const { failures } = run({ 'docs/notes.md': `line one\nkey: ${awsKey}\n` });
+    expect(failures).toEqual([
+      'S7: docs/notes.md:2 (secret-shaped content in a tracked text file)',
+    ]);
+  });
+
+  it('fails on a PEM header and a GitHub token in a source file (CRLF safe)', () => {
+    const { failures } = run({ 'src/a.ts': `// ${pemHeader}\r\nconst t = '${githubToken}';\r\n` });
+    expect(failures).toEqual([
+      'S7: src/a.ts:1 (secret-shaped content in a tracked text file)',
+      'S7: src/a.ts:2 (secret-shaped content in a tracked text file)',
+    ]);
+  });
+
+  it('runs alongside the line rules on a Gradle file', () => {
+    const { failures } = run({ 'android/app/build.gradle': `storePassword "x"\n// ${awsKey}\n` });
+    expect(failures.map((f) => f.split(':')[0])).toEqual(['S2', 'S7']);
+  });
+
+  it('passes clean text, the documented dummy values and CSS selectors like #sk-container-id-1', () => {
+    expect(S7_KNOWN_DUMMY_VALUES.length).toBeGreaterThan(0);
+    const dummies = S7_KNOWN_DUMMY_VALUES.join(' ');
+    const { failures } = run({
+      'a.md': `nothing here\n${dummies}\n`,
+      'b.html': '<style>#sk-container-id-1 div.sk-toggleable__content {color: black;}</style>',
+    });
+    expect(failures).toEqual([]);
+  });
+
+  it('skips files over the size limit without reading them', () => {
+    const readFile = () => {
+      throw new Error('must not be read');
+    };
+    const { failures } = processFiles('/repo', ['big.txt'], readFile, () => S7_MAX_BYTES + 1);
+    expect(failures).toEqual([]);
+  });
+
+  it('skips binary content (NUL byte) and unreadable files', () => {
+    expect(scanTextForSecrets(`\0${awsKey}`)).toEqual([]);
+    const unreadable = () => {
+      throw new Error('EACCES');
+    };
+    expect(processFiles('/repo', ['x.txt'], unreadable, () => 10).failures).toEqual([]);
+  });
+
+  it('an S1 template exemption file is still scanned by S6 only (no duplicate S7 line)', () => {
+    const { failures } = run({ '.env.example': `TOKEN=${awsKey}\n` });
+    expect(failures.every((f) => f.startsWith('S6:'))).toBe(true);
   });
 });

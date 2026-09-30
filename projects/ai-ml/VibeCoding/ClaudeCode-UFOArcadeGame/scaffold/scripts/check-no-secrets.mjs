@@ -4,7 +4,7 @@
 // WHOLE git repository, not just scaffold/ - `git ls-files -z` is run from the git
 // top-level (found via `git rev-parse --show-toplevel`, no PATH assumption beyond a
 // working `git` binary, which CI and this local run both have). Fails with the
-// offending file (and line, for the line-based rules) if any of rules S1-S6 match.
+// offending file (and line, for the line-based rules) if any of rules S1-S7 match.
 // Runs first in the `build` job, before `npm ci` (§10.3), and locally via
 // `npm run check:secrets`.
 //
@@ -16,7 +16,7 @@
 // the whole-repository/fail-closed-on-content guarantee (N3) is unchanged.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
@@ -28,15 +28,22 @@ import { pathToFileURL } from 'node:url';
 // otherwise, so `Object.isFrozen()` here actually reflects the exemption list's
 // immutability. Exported so a test can assert its exact membership instead of
 // re-declaring its own copy of this list and testing that copy.
-export const S1_TEMPLATE_BASENAMES = Object.freeze(['.env.example', '.env.sample', '.env.template']);
+export const S1_TEMPLATE_BASENAMES = Object.freeze([
+  '.env.example',
+  '.env.sample',
+  '.env.template',
+]);
 
 const RULES = [
   {
     id: 'S1',
     description: 'key/secret file tracked',
     // path matches, not content matches - checked against the repo-relative path itself.
+    // review-v2 V2-L3: also cloud-credential files (the AWS console's `*accessKeys*.csv`
+    // download, `credentials[.csv]`, Terraform state/vars) and a Firebase config
+    // (`google-services.json`, V2-L4: adding one needs a security + Data safety review).
     pathPattern:
-      /\.(jks|keystore|p12|pepk|pem|aab|apk)$|(^|\/)(keystore|key|signing)\.properties$|(^|\/)\.env(\.[^/]*)?$/i,
+      /\.(jks|keystore|p12|pepk|pem|aab|apk)$|(^|\/)(keystore|key|signing)\.properties$|(^|\/)\.env(\.[^/]*)?$|(^|\/)[^/]*accessKeys[^/]*\.csv$|(^|\/)credentials(\.csv)?$|\.tfstate(\.|$)|terraform\.tfvars$|(^|\/)google-services\.json$/i,
   },
   {
     id: 'S2',
@@ -80,6 +87,46 @@ const S6_CONTENT_PATTERNS = [
 const S6_SECRET_KEY_PATTERN =
   /(SECRET|PASSWORD|PASSWD|PASSPHRASE|TOKEN|API_?KEY|PRIVATE_?KEY|ACCESS_?KEY|CLIENT_?SECRET|CREDENTIAL|KEYSTORE|STORE_?PASS|KEY_?PASS|SIGNING)/i;
 const S6_KEY_VALUE_LINE = /^([A-Za-z_][A-Za-z0-9_.]*)\s*=\s*(.*)$/;
+
+// review-v2 V2-L3, rule S7: the S6a content patterns run over every tracked text file
+// under this size, so an AKIA key or PEM block pasted into any file (or a renamed
+// credential file) still fails. Larger files are assumed to be assets, not source.
+export const S7_MAX_BYTES = 1024 * 1024;
+
+// Documented dummy values that appear in this repo's own security docs and tests, and
+// so are not secrets. Exact strings only: a real key never equals one of these.
+export const S7_KNOWN_DUMMY_VALUES = Object.freeze([
+  'AKIAABCDEFGHIJKLMNOP',
+  'AKIAIOSFODNN7EXAMPLE',
+]);
+
+// scikit-learn's notebook HTML output has CSS names such as `#sk-container-id-1` and
+// `.sk-toggleable__label-arrow` with the shape of the `sk-` API-token pattern. They are
+// CSS selectors, or all letters with no digit (a real 20+ character key virtually always
+// has digits), so both are ignored by S7.
+const CSS_SK_SELECTOR = /[#.]sk-[A-Za-z0-9_-]+/g;
+const SK_WORD_WITHOUT_DIGITS = /\bsk-[A-Za-z_-]+(?![A-Za-z0-9_-])/g;
+
+function withoutKnownFalsePositives(line) {
+  let cleaned = line.replace(CSS_SK_SELECTOR, '').replace(SK_WORD_WITHOUT_DIGITS, '');
+  for (const dummy of S7_KNOWN_DUMMY_VALUES) cleaned = cleaned.split(dummy).join('');
+  return cleaned;
+}
+
+/** S7: returns "line (description)" strings for every line matching an S6a pattern.
+ * Pure over the text, so it is unit-tested with inline fixtures. Files containing a
+ * NUL byte are binary and yield nothing. */
+export function scanTextForSecrets(text) {
+  if (text.includes('\0')) return [];
+  const failures = [];
+  text.split(/\r?\n/).forEach((rawLine, index) => {
+    const line = withoutKnownFalsePositives(rawLine);
+    if (S6_CONTENT_PATTERNS.some((pattern) => pattern.test(line))) {
+      failures.push(`${index + 1} (secret-shaped content in a tracked text file)`);
+    }
+  });
+  return failures;
+}
 
 function stripSurroundingQuotes(value) {
   if (value.length >= 2) {
@@ -175,7 +222,12 @@ function listTrackedFiles(repoRoot) {
  * `fs.readFileSync`) so a test can simulate an unreadable exempt file without
  * touching the real filesystem, and so this function has no direct `git`/`fs`
  * dependency of its own beyond what its caller passes in. */
-export function processFiles(repoRoot, files, readFile = (absPath) => readFileSync(absPath, 'utf8')) {
+export function processFiles(
+  repoRoot,
+  files,
+  readFile = (absPath) => readFileSync(absPath, 'utf8'),
+  fileSize = (absPath) => statSync(absPath).size,
+) {
   const failures = [];
   const exemptionNotices = [];
 
@@ -204,18 +256,32 @@ export function processFiles(repoRoot, files, readFile = (absPath) => readFileSy
       if (s6Failures.length > 0) {
         for (const failure of s6Failures) failures.push(`S6: ${relPath}:${failure}`);
       } else {
-        exemptionNotices.push(`check-no-secrets: S1 template exemption, content scanned clean: ${relPath}`);
+        exemptionNotices.push(
+          `check-no-secrets: S1 template exemption, content scanned clean: ${relPath}`,
+        );
       }
       continue;
     }
 
+    // Every other tracked file: S2-S5 line rules (when the path matches one) plus S7
+    // over the whole text. Unreadable files (e.g. a tracked symlink to a missing
+    // target) and files over S7_MAX_BYTES are skipped - not this script's concern.
+    const absPath = path.join(repoRoot, relPath);
+    let size;
+    try {
+      size = fileSize(absPath);
+    } catch {
+      continue;
+    }
+    if (size > S7_MAX_BYTES) continue;
+    let content;
+    try {
+      content = readFile(absPath);
+    } catch {
+      continue;
+    }
+
     if (kind === 'line-rules') {
-      let content;
-      try {
-        content = readFile(path.join(repoRoot, relPath));
-      } catch {
-        continue; // e.g. a tracked symlink to a missing target - not this script's concern.
-      }
       const lines = content.split(/\r?\n/);
       const lineRules = RULES.slice(1).filter((rule) => rule.filePattern.test(relPath));
       for (const rule of lineRules) {
@@ -226,6 +292,8 @@ export function processFiles(repoRoot, files, readFile = (absPath) => readFileSy
         });
       }
     }
+
+    for (const failure of scanTextForSecrets(content)) failures.push(`S7: ${relPath}:${failure}`);
   }
 
   return { failures, exemptionNotices };

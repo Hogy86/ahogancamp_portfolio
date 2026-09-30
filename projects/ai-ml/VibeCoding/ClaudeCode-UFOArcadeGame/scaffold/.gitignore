@@ -33,3 +33,6 @@ signing.properties
 .env.*
 playwright-report/
 test-results/
+
+# review-v2 V2-L4 / V2-L3: Firebase config; adding one needs a security + Data safety review.
+google-services.json
