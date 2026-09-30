@@ -15,7 +15,7 @@
 
 ### 1.1 Conditions from security pass 2
 
-Verify these items from `docs/mobile/security/review-v2.md` conditions C1-C10 are complete and recorded in `docs/mobile/release/submission-checklist.md`:
+Verify these items from `docs/mobile/security/review-v2.md` conditions C1-C11 are complete and recorded in `docs/mobile/release/submission-checklist.md`:
 
 - ✓ **C1:** OQ-M11 decided: account type, public developer name, contact email, app ID confirmed or updated.
 - ✓ **C2:** OQ-M12 decided: Play App Signing enrolled, upload key generated and backed up.
@@ -24,6 +24,10 @@ Verify these items from `docs/mobile/security/review-v2.md` conditions C1-C10 ar
 - ✓ **C5:** OQ-M15 (ShieldMan name check) decided and recorded in PRD-mobile §7.
 - ✓ **C6:** V2-M2 (trademark keywords removed from listing).
 - ✓ **C7:** V2-M3 (permanent multiplier glyph ruled on per design review).
+- ✓ **C8:** Privacy text final; hosted URL loads over HTTPS; all three hashes equal.
+- ✓ **C9:** V2-L2 release evidence plus live re-check of targetSdk, closed-test rule, and User Data policy wording.
+- ✓ **C10:** Play Console answers transcribed and entered exactly.
+- ✓ **C11:** No changed build promoted to production without CI and a C9 re-run (due at step 17).
 
 If any condition is OPEN, stop and route back to mobile-product-manager before proceeding.
 
@@ -52,7 +56,7 @@ git rev-parse --short HEAD
 The upload key must be generated and stored outside this repository and outside OneDrive, per M-ADR-0011 (Decision 1-3).
 
 **Location:** `%USERPROFILE%\.android-signing\vvs\`  
-**Rationale:** This folder is outside OneDrive (which would sync passwords to the cloud). Gradle's signing contract in `android/app/build.gradle` refuses to build if any key material is found under the repo or OneDrive. Storing the key outside keeps builds secure and fail-closed.
+**Rationale:** This folder is outside OneDrive (which would sync passwords to the cloud). Gradle's signing contract in `android/app/build.gradle` rejects the configured `signing.properties` or `storeFile` path if that path is under the project root, the git top-level, or any `onedrive` path. Storing the key outside keeps builds secure and fail-closed.
 
 **Steps:**
 
@@ -75,7 +79,39 @@ icacls "$env:USERPROFILE\.android-signing\vvs"
 # Expected: only your username with "(OI)(CI)(F)"
 ```
 
-3. **Generate the key using `keytool` (part of JDK 21), with no password flags:**
+3. **Verify OneDrive does not sync the profile root:**
+
+Before creating the keystore, confirm that your profile folder is not synced to OneDrive. OneDrive Known Folder Move covers Desktop, Documents, and Pictures only. Verify:
+
+```powershell
+# Check if OneDrive paths exist and where they point:
+$env:OneDrive
+$env:OneDriveConsumer
+$env:OneDriveCommercial
+
+# None of these should be a prefix of $env:USERPROFILE\.android-signing
+# Example check (the paths should not match):
+$signingDir = "$env:USERPROFILE\.android-signing"
+if ($env:OneDrive -and $signingDir -like "$env:OneDrive*") { Write-Host "ERROR: signingDir is under OneDrive" }
+if ($env:OneDriveConsumer -and $signingDir -like "$env:OneDriveConsumer*") { Write-Host "ERROR: signingDir is under OneDriveConsumer" }
+if ($env:OneDriveCommercial -and $signingDir -like "$env:OneDriveCommercial*") { Write-Host "ERROR: signingDir is under OneDriveCommercial" }
+
+# Also verify OneDrive settings:
+# Settings → Accounts → Backup → "Manage backup"
+# Only Desktop, Documents, and Pictures should be enabled.
+```
+
+4. **Verify GRADLE_USER_HOME is not in OneDrive:**
+
+The `GRADLE_USER_HOME` environment variable must not point into OneDrive. If it is not set, the default is `~/.gradle`, which is in your profile. Verify:
+
+```powershell
+$env:GRADLE_USER_HOME
+# If set, ensure it is not under OneDrive
+# If empty or not set, that is safe (default ~/.gradle is fine outside OneDrive sync).
+```
+
+5. **Generate the key using `keytool` (part of JDK 21), with no password flags:**
 
 **Important:** Do NOT use `-keypass` or `-storepass` flags on the command line. Let `keytool` prompt you for the passwords instead, so they never appear in PowerShell history.
 
@@ -99,24 +135,25 @@ Example (replace with your own details):
 
 The command will prompt you:
 ```
-Enter keystore password: [type a strong password, 32+ characters, random, NO shell metacharacters]
+Enter keystore password: [type a strong password, 32+ characters, random, letters and digits only (no \)]
 Re-enter keystore password: [repeat it]
-Enter key password for <shield-vs-robots-upload>: [usually the same; press Enter to use keystore password]
 ```
 
-**Record both passwords in your password manager immediately after** (see step 5 below).
+**Important:** JDK 21 creates PKCS12 keystores by default. In PKCS12, keytool will not ask for a key password; set `keyPassword` equal to `storePassword`.
 
-4. **Verify the key was created:**
+**Record both passwords in your password manager immediately after** (see step 7 below).
+
+6. **Verify the key was created:**
 
 ```powershell
 ls "$env:USERPROFILE\.android-signing\vvs\"
 # Expected: shield-vs-robots-upload.jks exists
 ```
 
-5. **Backup the key and passwords to your password manager:**
+7. **Backup the key and passwords to your password manager:**
 
    - Attach the `.jks` file to a password manager entry (1Password, Bitwarden, LastPass, etc.).
-   - Store the **keystore password** and **key password** as separate fields in the same entry.
+   - Store the **keystore password** and **key password** as separate fields in the same entry (both equal for PKCS12).
    - Label the entry: "Shield vs Robots upload key and keystore password".
    - **Do NOT use OneDrive, Google Drive, or email for backups.** Password managers are the approved method per M-ADR-0011 (Decision 1).
 
@@ -128,45 +165,47 @@ The file must live in the same secure folder (not in the repo):
 # Create the file at:
 # $env:USERPROFILE\.android-signing\vvs\signing.properties
 
-# Contents:
-storeFile=C:\Users\<your_username>\.android-signing\vvs\shield-vs-robots-upload.jks
+# Contents (use forward slashes, not backslashes):
+storeFile=C:/Users/<your_username>/.android-signing/vvs/shield-vs-robots-upload.jks
 storePassword=<your keystore password from password manager>
 keyAlias=shield-vs-robots-upload
-keyPassword=<your key password from password manager>
+keyPassword=<your keystore password from password manager>
 ```
 
 Example (with fake passwords; replace with your own):
 
 ```
-storeFile=C:\Users\aaron\.android-signing\vvs\shield-vs-robots-upload.jks
+storeFile=C:/Users/aaron/.android-signing/vvs/shield-vs-robots-upload.jks
 storePassword=MySecureKeyPass123MySecureKeyPass456
 keyAlias=shield-vs-robots-upload
 keyPassword=MySecureKeyPass123MySecureKeyPass456
 ```
 
-**Critical:** This file is NOT in `.gitignore` — it is not in the repo. It lives outside OneDrive. Never copy it into the repository or into any OneDrive-synced folder.
+**Why forward slashes?** Java's `Properties.load()` treats `\` as an escape character. A backslash before most characters is silently dropped, corrupting the path. Forward slashes work on Windows (Java path APIs accept them) and never trigger escape processing. Doubled backslashes (`C:\\Users\\...`) are an alternative, but forward slashes are clearer.
+
+**Critical:** `.gitignore` covers `signing.properties` as a backstop, but it must never be placed in the repository or any OneDrive-synced folder. It lives outside both.
 
 ### 2.3 Set the signing.properties path (environment variable or Gradle property)
 
 Gradle needs to find the `signing.properties` file. Choose one method:
 
-**Option A: Set the environment variable (recommended for CI and one-off builds):**
+**Option A: Set the environment variable (recommended for one-off local builds):**
 
 ```powershell
-$env:VVS_SIGNING_PROPERTIES = "$env:USERPROFILE\.android-signing\vvs\signing.properties"
+$env:VVS_SIGNING_PROPERTIES = "$env:USERPROFILE/.android-signing/vvs/signing.properties"
 ```
 
-Then build (see §3.2 below). The environment variable persists for the current PowerShell session only; set it again in a new session.
+Then build (see §3.2 below). The environment variable persists for the current PowerShell session only; set it again in a new session. Use forward slashes.
 
 **Option B: Set it in your user Gradle properties (persists across sessions):**
 
 Edit or create `%USERPROFILE%\.gradle\gradle.properties` and add:
 
 ```
-vvsSigningProperties=C:\Users\<your_username>\.android-signing\vvs\signing.properties
+vvsSigningProperties=C:/Users/<your_username>/.android-signing/vvs/signing.properties
 ```
 
-Use the full path. This file holds a **path only**, never a password or secret.
+Use the full path with forward slashes. This file holds a **path only**, never a password or secret. This option is not recommended for CI (M-ADR-0011 decision 5): CI never signs, and GitHub Actions secrets are a forbidden place for signing values.
 
 ### 2.4 Play App Signing enrollment
 
@@ -233,7 +272,7 @@ cd android
 
 ```powershell
 # Check file size (should be several MB, typically 5-15 MB for this game):
-ls -la android/app/build/outputs/bundle/release/app-release.aab | Format-Table Length
+(Get-Item android/app/build/outputs/bundle/release/app-release.aab).Length
 
 # Get the SHA-256 hash (to be recorded in submission-checklist.md):
 (Get-FileHash android/app/build/outputs/bundle/release/app-release.aab -Algorithm SHA256).Hash
@@ -295,14 +334,14 @@ Start the app on the emulator/device and verify:
 
 4. **No network errors:** check logcat for errors.
    ```powershell
-   adb logcat | grep -E "(net::ERR_|FATAL EXCEPTION|ClassNotFoundException)"
+   adb logcat -d | Select-String -Pattern 'net::ERR_|FATAL EXCEPTION|ClassNotFoundException'
    # Expected: no matches
    ```
 
 5. **Manifest is correct:** run the manifest checker on the signed bundle.
    ```powershell
    # Dump the manifest from the bundle:
-   java -jar bundletool.jar dump manifest --bundle=app-release.aab > manifest.xml
+   java -jar bundletool.jar dump manifest --bundle=android/app/build/outputs/bundle/release/app-release.aab > manifest.xml
    
    # Then run the checker:
    node scripts/check-android-manifest.mjs --variant release --manifest-xml manifest.xml
@@ -404,13 +443,15 @@ Once approved:
 
 **Rule (from CLAUDE.md §One codebase):** The Play Store version can lag the website version.
 
+**Privacy policy change rule (from mobile-architecture.md §8.7):** A material change to `public/privacy.html` requires an Android release. No release means the Play Store version still serves the prior privacy policy file.
+
 **Why:** Releases are bundled in a `.aab` and must pass Play's review (24-48 hours). The website deploys on every `master` commit (seconds).
 
 **Typical scenario:**
-- Website: v1.3 (deployed immediately).
-- Play Store: v1.2 (released 2 weeks ago, still rolling out, or awaiting review).
+- Website: v1.3 (deployed immediately, privacy policy updated).
+- Play Store: v1.2 (released 2 weeks ago, still rolling out, or awaiting review, privacy policy from v1.2).
 
-**This is expected and not a parity violation.** Both versions are built from the same `src/` and share game rules; the lag is purely in release timing.
+**This is expected and not a parity violation.** Both versions are built from the same `src/` and share game rules; the lag is purely in release timing. A privacy policy change always ships in a new release.
 
 **Player communication:** if you need to explain the lag, you can note:
 - "Latest version on website" in the listing's short description.
@@ -426,7 +467,7 @@ Record all the following in `docs/mobile/release/submission-checklist.md` before
 
 - [ ] Commit SHA (short): ____________________
 - [ ] Tree clean (`git status`): Yes / No
-- [ ] All conditions C1-C10 from review-v2 complete: Yes / No
+- [ ] All conditions C1-C11 from review-v2 complete: Yes / No
 
 ### Build
 
@@ -443,6 +484,30 @@ Record all the following in `docs/mobile/release/submission-checklist.md` before
 - [ ] WebView debugging off (chrome://inspect): PASS / FAIL
 - [ ] No network errors in logcat: PASS / FAIL
 - [ ] Manifest check passed: PASS / FAIL
+
+### Privacy policy (C8, C9, C10, C11)
+
+- [ ] Hosted URL (`public/privacy.html` on GitHub Pages): loads over HTTPS
+- [ ] Repo copy SHA-256 (from `public/privacy.html`): ____________________
+- [ ] Hosted copy SHA-256 (downloaded from `https://hogy86.github.io/ahogancamp_portfolio/privacy.html`): ____________________
+- [ ] App-bundled SHA-256 (from `base/assets/public/privacy.html` in AAB): ____________________
+- [ ] All three SHA-256 hashes equal (repo, hosted, and bundled versions match): Yes / No
+- [ ] C9 live policy re-check: Date checked ______, targetSdk requirement confirmed ______
+
+To extract and hash the files:
+```powershell
+# Repo copy
+(Get-FileHash public/privacy.html -Algorithm SHA256).Hash
+
+# Hosted copy (C8: must load over HTTPS)
+Invoke-WebRequest -Uri "https://hogy86.github.io/ahogancamp_portfolio/privacy.html" -OutFile "$env:TEMP\privacy-hosted.html"
+(Get-FileHash "$env:TEMP\privacy-hosted.html" -Algorithm SHA256).Hash
+
+# AAB copy (tar ships with Windows 10+; Expand-Archive rejects .aab)
+mkdir "$env:TEMP\aab-x" -Force | Out-Null
+tar -xf android/app/build/outputs/bundle/release/app-release.aab -C "$env:TEMP\aab-x" base/assets/public/privacy.html
+(Get-FileHash "$env:TEMP\aab-x\base\assets\public\privacy.html" -Algorithm SHA256).Hash
+```
 
 ### Play Console
 
@@ -473,6 +538,17 @@ Record all the following in `docs/mobile/release/submission-checklist.md` before
 4. Verify the keystore file exists at `%USERPROFILE%\.android-signing\vvs\shield-vs-robots-upload.jks`.
 5. Delete the mirror's `.gradle` folder and rebuild: `rm -r C:\Users\<owner>\dev-build\shield-vs-robots\.gradle`.
 
+### "Error says the keystore is inside the repo, but it isn't"
+
+**Cause:** Backslashes in `signing.properties` are being escape-processed by Java's `Properties.load()`.
+
+**Fix:** Check `signing.properties` for single backslashes. Use forward slashes instead:
+```
+storeFile=C:/Users/<user>/.android-signing/vvs/shield-vs-robots-upload.jks
+```
+
+Doubled backslashes (`C:\\Users\\...`) are the alternative.
+
 ### "Unknown windowLayoutInDisplayCutoutMode"
 
 **Cause:** Gradle built from an older branch that lacks the API-version split.
@@ -494,7 +570,7 @@ See Play's error message in the console for details.
 ## Sources
 
 - `docs/mobile/PRD-mobile.md` § Platform baseline, signing requirements.
-- `docs/mobile/architecture/mobile-architecture.md` § §3 (build layout), §7.5 (signing contract).
+- `docs/mobile/architecture/mobile-architecture.md` § §3 (build layout), §7.5 (signing contract), §8.7 (privacy policy rules).
 - `docs/mobile/architecture/adr/0011-release-signing-contract.md` — signing key storage, ACL, environment variable setup.
-- `docs/mobile/security/review-v2.md` § §6 (Play Console answers), conditions C1-C10.
+- `docs/mobile/security/review-v2.md` § §6 (Play Console answers), conditions C1-C11.
 - `.claude/CLAUDE.md` § Mobile Pipeline (gate structure, version lag rule).
