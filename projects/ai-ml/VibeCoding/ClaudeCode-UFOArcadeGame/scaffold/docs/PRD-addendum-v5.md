@@ -8,6 +8,18 @@
 art-only change inside the existing, owner-approved IP rule (NFR-10 / F9 AC4,
 tightened by v4 F22 AC8). No game rule, number, timing or text changes.
 
+**Revision 2026-09-29 (r1)** — fixes `docs/mobile/reviews/code-review-round16.md`
+**D6** (the addendum contradicted itself). The F11 AC8 amendment required
+"each glyph" to meet F23 AC1-AC6, but AC3 bounded every glyph point to
+±0.45r while the existing `HIT_POWER`, `SPEED` and `SHIELD` glyphs reach
+±0.5r (`src/render/shapes.ts` ~301-326) and Out of Scope forbids changing
+them. Changes: AC1 and AC3 now state explicitly that they apply to the
+`PERMANENT_MULTIPLIER` glyph only; the F11 AC8 amendment now requires of all
+four glyphs only what they can meet unchanged (no crossing strokes per AC7,
+same color and line width, AC6 distinguishability); AC1's "no pair of
+diagonal strokes forming an 'X' or '+'" is reworded to "no two strokes cross
+(no 'X' or '+' shape)". No scope, behavior or owner-facing change.
+
 **What this addendum does.** It adds **F23**, which replaces the icon drawn
 inside the **Permanent Hit-Power Multiplier** power-up token. Today the token
 is the shared amber ring with a diagonal "x" inside it. Two crossing diagonal
@@ -104,17 +116,18 @@ explicit so it can be tested.
 | Where | Old text (quoted) | v5 text |
 |---|---|---|
 | `docs/PRD.md` F7, power-up types list | "**Permanent Hit-Power Multiplier** — current hit power ×1.8, stacks, permanent for the rest of the run." | "**Permanent Hit-Power Multiplier** — current hit power ×1.8, stacks, permanent for the rest of the run. Its token is the shared amber ring with a non-crossing glyph (recommended: three ascending vertical bars), never an "x" or any crossing-stroke shape (F23)." |
-| `docs/PRD-addendum-v2.md` F11 AC8 | "each has a distinct icon/shape, differentiated by more than color alone (non-color-only per NFR-9)." | "each has a distinct icon/shape, differentiated by more than color alone (non-color-only per NFR-9), **and each glyph also meets F23 AC1-AC6** (no crossing strokes, no emblem-like shapes; all four distinguishable at 24px diameter)." The rest of F11 AC8 (identify a drop's type while falling, before the catch) is unchanged. |
+| `docs/PRD-addendum-v2.md` F11 AC8 | "each has a distinct icon/shape, differentiated by more than color alone (non-color-only per NFR-9)." | "each has a distinct icon/shape, differentiated by more than color alone (non-color-only per NFR-9), **and all four glyphs have no crossing strokes (F23 AC1's rule, applied to every type per F23 AC7), are stroked in `LEVEL_INTRO_TEXT_COLOR` at `lineWidth` 2, and stay distinguishable at 24px diameter (F23 AC6)**." The ±0.45r point bound (F23 AC3) and the shape rules (F23 AC4/AC5) apply to the `PERMANENT_MULTIPLIER` glyph only; the existing `HIT_POWER`, `SPEED` and `SHIELD` glyphs (which reach ±0.5r) are unchanged (see Out of Scope). The rest of F11 AC8 (identify a drop's type while falling, before the catch) is unchanged. |
 | `docs/PRD-addendum-v4.md` F22 AC8 | "(a) The word "Shield" is **never** styled as **S.H.I.E.L.D.** … (b) **No shield** anywhere in the product … uses a **red/white/blue star design** …" | Items (a) and (b) unchanged. **Added (c):** "No token, icon, HUD element, logo, splash or store asset shows an "X" emblem: two crossing diagonal strokes inside or over a circle or ring, or any X-shaped mark used as a badge. A plain "×" multiplication sign in running text (for example the HUD readout "Power ×3.24", F7 AC10) is text, not an emblem, and is allowed." |
 | `docs/PRD.md` NFR-10 (as amended by v4 F22) | "ShieldMan/robots original designs only, plus F22 AC8-AC10." | "ShieldMan/robots original designs only, plus F22 AC8(a)-(c) (v5), AC9-AC10, and F23." Hard requirement, not contingent (unchanged). |
 
 **Acceptance Criteria (website; Android equivalents in §Cross-platform
 consistency):**
 
-1. **No crossing strokes.** The `PERMANENT_MULTIPLIER` glyph contains no two
-   stroke segments that cross (intersect at a point that is not a shared
-   endpoint of both). It contains no pair of diagonal strokes forming an "X"
-   or "+" of any size. *Test:* a unit test draws the token into a recording
+1. **No crossing strokes (`PERMANENT_MULTIPLIER` glyph).** In the
+   `PERMANENT_MULTIPLIER` glyph, no two strokes cross (no "X" or "+" shape of
+   any size): no two stroke segments intersect at a point that is not a
+   shared endpoint of both. (AC7 runs the same check on the other three
+   glyphs, which already pass it unchanged.) *Test:* a unit test draws the token into a recording
    2D-context stub (or equivalent path capture) and asserts, for every pair
    of glyph segments (the ring arc excluded), that they do not cross.
 2. **Ring and disc unchanged.** The multiplier token's disc and ring are drawn
@@ -123,12 +136,14 @@ consistency):**
    `LEVEL_INTRO_TEXT_COLOR` (`#ffd873`) at `lineWidth` 2. *Test:* the same
    recording stub shows identical arc/fill/stroke calls for all four types
    before the glyph strokes.
-3. **Glyph style matches the family.** Glyph strokes use
-   `LEVEL_INTRO_TEXT_COLOR` at `lineWidth` 2 (the same as the other three
-   glyphs). No new color is introduced. Every glyph point lies within
+3. **Glyph style matches the family (`PERMANENT_MULTIPLIER` glyph).** The
+   `PERMANENT_MULTIPLIER` glyph strokes use `LEVEL_INTRO_TEXT_COLOR` at
+   `lineWidth` 2 (the same as the other three glyphs). No new color is
+   introduced. Every point of the `PERMANENT_MULTIPLIER` glyph lies within
    ±0.45 × radius of the token center on both axes, so the glyph stays clear
-   of the ring. *Test:* recorded stroke style and line width, and a bound
-   check on every recorded path point.
+   of the ring. This bound does not apply to the `HIT_POWER`, `SPEED` and
+   `SHIELD` glyphs, which reach ±0.5r today and are out of scope. *Test:* recorded stroke style and line width, and a bound
+   check on every recorded point of the `PERMANENT_MULTIPLIER` glyph.
 4. **Recommended shape (default).** Unless ui-ux-designer or
    mobile-ui-ux-designer records an equivalent in a design review (AC5), the
    glyph is **three vertical bars**:

@@ -142,17 +142,17 @@ cd $ANDROID_HOME
 Create a high-end phone profile (for primary development):
 
 ```powershell
-avdmanager create avd -n svr_api36_pixel7 ^
-  -k "system-images;android-36;google_apis;x86_64" ^
+avdmanager create avd -n svr_api36_pixel7 `
+  -k "system-images;android-36;google_apis;x86_64" `
   -d pixel
 ```
 
 Create a low-end reference profile (640×360 dp landscape):
 
 ```powershell
-avdmanager create avd -n svr_api24_small ^
-  -k "system-images;android-24;google_apis;x86_64" ^
-  -d "Nexus 5"
+avdmanager create avd -n svr_api36_lowend_640x360 `
+  -k "system-images;android-36;google_apis;x86_64" `
+  -d "Generic 640x360"
 ```
 
 List your AVDs:
@@ -179,33 +179,23 @@ npx cap sync android
 Then, **in the mirror** (`C:\Users\<your_username>\dev-build\shield-vs-robots`), build the Android debug APK:
 
 ```powershell
-cd C:\Users\<your_username>\dev-build\shield-vs-robots
-gradlew assembleDebug
+cd C:\Users\<your_username>\dev-build\shield-vs-robots\android
+.\gradlew.bat assembleDebug
 ```
 
-Or use the npm script (which calls Gradle internally):
-
-```powershell
-npm run android:debug
-```
-
-The built APK is at: `android/app/build/outputs/apk/debug/app-debug.apk`
+The built APK is at: `app/build/outputs/apk/debug/app-debug.apk`
 
 ### 4.2 Build for release (unsigned)
 
 In the mirror:
 
 ```powershell
-cd C:\Users\<your_username>\dev-build\shield-vs-robots
-gradlew assembleRelease -PvvsCiUnsignedRelease=true -Dorg.gradle.java.home=$env:JAVA_HOME
-```
-
-Or:
-
-```powershell
+cd C:\Users\<your_username>\dev-build\shield-vs-robots\android
 $env:CI = "true"
-gradlew assembleRelease
+.\gradlew.bat assembleRelease -PvvsCiUnsignedRelease=true
 ```
+
+**Important:** Both `CI=true` AND `-PvvsCiUnsignedRelease=true` must be set together, or the build will fail.
 
 ### 4.3 The build mirror
 
@@ -218,14 +208,16 @@ gradlew assembleRelease
 Use the provided PowerShell script:
 
 ```powershell
-C:\Users\<your_username>\dev-build\scripts\refresh-android-mirror.ps1
+powershell.exe -NoProfile -File "<repo>\scripts\refresh-android-mirror.ps1"
 ```
+
+Replace `<repo>` with your actual scaffold repository root.
 
 This script:
 - Stops any stray Node processes that reference the mirror path.
 - Clears old Gradle build artifacts from the mirror.
 - Mirrors the repository into `C:\Users\<your_username>\dev-build\shield-vs-robots` via `robocopy /MIR`, excluding node_modules, .git, and build outputs.
-- Runs `npm ci` in the mirror to install locked dependencies.
+- Performs a parity check to ensure the mirror matches the repo.
 
 **Never edit files directly in the mirror.** Always edit in the repository, then refresh the mirror before building.
 
@@ -290,13 +282,13 @@ npm run check:secrets # Detect committed secrets
 
 ### 6.2 End-to-end tests (Playwright, phone emulation)
 
-Tests run in Chromium with mobile device emulation (touch, viewport sizes):
+Tests run in Chromium with mobile device emulation. Four viewport profiles are tested: 640x360 (low-end phone), 800x360 (mid-range), 915x412 (tall phone), and 1280x800 (tablet).
 
 ```powershell
 npm run test:e2e:mobile
 ```
 
-This runs all specs in `tests/mobile-e2e/` against four device profiles (API 36 phone, API 30 mid-range, API 24 small, tablet). No real emulator needed; these tests verify the web bundle directly.
+This runs all specs in `tests/mobile-e2e/` against four device profiles (viewports). No real emulator needed; these tests verify the web bundle directly.
 
 ### 6.3 Full CI check (as it runs in GitHub Actions)
 
@@ -372,7 +364,7 @@ adb install android/app/build/outputs/apk/debug/app-debug.apk
 This usually means the mirror has stale Gradle artifacts. Refresh it:
 
 ```powershell
-C:\Users\<your_username>\dev-build\scripts\refresh-android-mirror.ps1
+powershell.exe -NoProfile -File "<repo>\scripts\refresh-android-mirror.ps1"
 ```
 
 ### JAVA_HOME or ANDROID_HOME not set

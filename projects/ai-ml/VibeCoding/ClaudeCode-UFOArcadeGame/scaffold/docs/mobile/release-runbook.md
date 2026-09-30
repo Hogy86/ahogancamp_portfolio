@@ -49,80 +49,126 @@ git rev-parse --short HEAD
 
 ### 2.1 Generate the upload key (outside repo and OneDrive)
 
-The upload key must be generated and stored outside this repository and outside OneDrive.
+The upload key must be generated and stored outside this repository and outside OneDrive, per M-ADR-0011 (Decision 1-3).
 
-**Location:** `C:\Users\<owner>\.android-signing\vvs\`  
-**Rationale:** Gradle's signing contract in `android/app/build.gradle` (lines 16-33) refuses to build if any key material is found under the repo, OneDrive, or git root. Storing the key outside all three keeps builds secure and fail-closed.
+**Location:** `%USERPROFILE%\.android-signing\vvs\`  
+**Rationale:** This folder is outside OneDrive (which would sync passwords to the cloud). Gradle's signing contract in `android/app/build.gradle` refuses to build if any key material is found under the repo or OneDrive. Storing the key outside keeps builds secure and fail-closed.
 
 **Steps:**
 
-1. Create the key directory:
+1. **Create the key directory:**
 
 ```powershell
 New-Item -ItemType Directory -Path "$env:USERPROFILE\.android-signing\vvs" -Force
 ```
 
-2. Generate the key using `keytool` (part of JDK 21):
+2. **Restrict the folder's ACL (owner-only):**
 
 ```powershell
-# Replace <your_password> with a strong password (32+ characters, random, NO shell metacharacters).
-# Record the password in your password manager before running this command.
+icacls "$env:USERPROFILE\.android-signing\vvs" /inheritance:r /grant:r "${env:USERNAME}:(OI)(CI)F"
+```
 
-& "$env:JAVA_HOME\bin\keytool.exe" -genkey -v -keystore "$env:USERPROFILE\.android-signing\vvs\shield-vs-robots-upload.jks" `
+This sets the NTFS permissions so only your account can read/write the folder. Verify:
+
+```powershell
+icacls "$env:USERPROFILE\.android-signing\vvs"
+# Expected: only your username with "(OI)(CI)(F)"
+```
+
+3. **Generate the key using `keytool` (part of JDK 21), with no password flags:**
+
+**Important:** Do NOT use `-keypass` or `-storepass` flags on the command line. Let `keytool` prompt you for the passwords instead, so they never appear in PowerShell history.
+
+```powershell
+& "$env:JAVA_HOME\bin\keytool.exe" -genkeypair -v `
+  -keystore "$env:USERPROFILE\.android-signing\vvs\shield-vs-robots-upload.jks" `
   -keyalg RSA -keysize 2048 -validity 10950 `
   -alias shield-vs-robots-upload `
-  -keypass <your_password> `
-  -storepass <your_password> `
   -dname "CN=<Your Name>, OU=<Your Company/Personal>, O=<Organization>, L=<City>, ST=<State>, C=<Country Code>"
 ```
 
-Example (with fake data; replace with your own):
+Example (replace with your own details):
 
 ```powershell
-& "$env:JAVA_HOME\bin\keytool.exe" -genkey -v -keystore "$env:USERPROFILE\.android-signing\vvs\shield-vs-robots-upload.jks" `
+& "$env:JAVA_HOME\bin\keytool.exe" -genkeypair -v `
+  -keystore "$env:USERPROFILE\.android-signing\vvs\shield-vs-robots-upload.jks" `
   -keyalg RSA -keysize 2048 -validity 10950 `
   -alias shield-vs-robots-upload `
-  -keypass MySecureKeyPass123!@#$ `
-  -storepass MySecureKeyPass123!@#$ `
   -dname "CN=Aaron Hogancamp, O=Personal, C=US"
 ```
 
-3. Verify the key was created:
+The command will prompt you:
+```
+Enter keystore password: [type a strong password, 32+ characters, random, NO shell metacharacters]
+Re-enter keystore password: [repeat it]
+Enter key password for <shield-vs-robots-upload>: [usually the same; press Enter to use keystore password]
+```
+
+**Record both passwords in your password manager immediately after** (see step 5 below).
+
+4. **Verify the key was created:**
 
 ```powershell
 ls "$env:USERPROFILE\.android-signing\vvs\"
 # Expected: shield-vs-robots-upload.jks exists
 ```
 
-4. **Backup the key and password:**
-   - Copy `shield-vs-robots-upload.jks` to an **external USB drive or encrypted cloud backup** (not OneDrive).
-   - Store the password in your password manager (1Password, Bitwarden, etc.) with the note "Shield vs Robots upload key password".
+5. **Backup the key and passwords to your password manager:**
 
-5. Create the signing properties file (do not commit; in `.gitignore`):
+   - Attach the `.jks` file to a password manager entry (1Password, Bitwarden, LastPass, etc.).
+   - Store the **keystore password** and **key password** as separate fields in the same entry.
+   - Label the entry: "Shield vs Robots upload key and keystore password".
+   - **Do NOT use OneDrive, Google Drive, or email for backups.** Password managers are the approved method per M-ADR-0011 (Decision 1).
+
+### 2.2 Create the signing.properties file
+
+The file must live in the same secure folder (not in the repo):
 
 ```powershell
-# In the repo root, create (but do NOT commit) this file:
-# vvs-signing.properties
+# Create the file at:
+# $env:USERPROFILE\.android-signing\vvs\signing.properties
 
 # Contents:
 storeFile=C:\Users\<your_username>\.android-signing\vvs\shield-vs-robots-upload.jks
-storePassword=<your_password>
+storePassword=<your keystore password from password manager>
 keyAlias=shield-vs-robots-upload
-keyPassword=<your_password>
+keyPassword=<your key password from password manager>
 ```
 
-Example:
+Example (with fake passwords; replace with your own):
 
 ```
 storeFile=C:\Users\aaron\.android-signing\vvs\shield-vs-robots-upload.jks
-storePassword=MySecureKeyPass123!@#$
+storePassword=MySecureKeyPass123MySecureKeyPass456
 keyAlias=shield-vs-robots-upload
-keyPassword=MySecureKeyPass123!@#$
+keyPassword=MySecureKeyPass123MySecureKeyPass456
 ```
 
-**Critical:** This file is in `.gitignore` and must NEVER be committed. `check-no-secrets.mjs` will catch it if it is.
+**Critical:** This file is NOT in `.gitignore` — it is not in the repo. It lives outside OneDrive. Never copy it into the repository or into any OneDrive-synced folder.
 
-### 2.2 Play App Signing enrollment
+### 2.3 Set the signing.properties path (environment variable or Gradle property)
+
+Gradle needs to find the `signing.properties` file. Choose one method:
+
+**Option A: Set the environment variable (recommended for CI and one-off builds):**
+
+```powershell
+$env:VVS_SIGNING_PROPERTIES = "$env:USERPROFILE\.android-signing\vvs\signing.properties"
+```
+
+Then build (see §3.2 below). The environment variable persists for the current PowerShell session only; set it again in a new session.
+
+**Option B: Set it in your user Gradle properties (persists across sessions):**
+
+Edit or create `%USERPROFILE%\.gradle\gradle.properties` and add:
+
+```
+vvsSigningProperties=C:\Users\<your_username>\.android-signing\vvs\signing.properties
+```
+
+Use the full path. This file holds a **path only**, never a password or secret.
+
+### 2.4 Play App Signing enrollment
 
 Shield vs Robots must use **Google Play App Signing**, which means:
 
@@ -143,22 +189,24 @@ No action is needed here if it is already enrolled.
 
 ### 3.1 Refresh the build mirror
 
-Before every build, refresh the mirror outside OneDrive to ensure you have the latest committed code:
+Before every build, refresh the mirror outside OneDrive to ensure you have the latest committed code. The mirror is a disposable copy maintained at `C:\Users\<owner>\dev-build\shield-vs-robots` per M-ADR-0011 (Amendment A9).
 
 ```powershell
-# Run the mirror-refresh script:
-C:\Users\<owner>\dev-build\scripts\refresh-android-mirror.ps1
-
-# This script:
-# 1. Stops stray Node processes that reference the mirror.
-# 2. Clears old Gradle artifacts.
-# 3. Mirrors the repo into C:\Users\<owner>\dev-build\shield-vs-robots via robocopy.
-# 4. Runs 'npm ci' to install locked dependencies.
-
-# The script outputs a "Parity check passed" line. Record it in submission-checklist.md.
+# Run the mirror-refresh script from the repository:
+powershell.exe -NoProfile -File "<repo>\scripts\refresh-android-mirror.ps1"
 ```
 
-If the script does not exist yet, create it from the procedure in `docs/mobile/tooling-setup-log.md` (§2026-09-27 round 3 entry).
+Replace `<repo>` with your actual scaffold repository root (e.g., `C:\Users\aaron\OneDrive\Documents\GitHub\ahogancamp_portfolio\projects\ai-ml\VibeCoding\ClaudeCode-UFOArcadeGame\scaffold`).
+
+The script:
+- Stops stray Node processes that reference the mirror.
+- Clears old Gradle build artifacts from the mirror.
+- Mirrors the repository into the mirror path via robocopy.
+- Performs a parity check to verify the mirror matches the repo.
+
+Expected output: "Parity check passed: NNN file(s) are identical." Record this in submission-checklist.md.
+
+If the script does not exist, it is the one canonical copy at `<repo>/scripts/refresh-android-mirror.ps1`; never recreate it.
 
 ### 3.2 Build the AAB (Android App Bundle)
 
@@ -172,10 +220,8 @@ npm run build:android
 npx cap sync android
 
 # Then build the signed bundle:
-# (Requires vvs-signing.properties in the repo root; Gradle will find it)
-gradlew bundleRelease --no-daemon
-
-# Or, use a Gradle wrapper wrapper if available:
+# (Requires VVS_SIGNING_PROPERTIES env var or vvsSigningProperties in ~/.gradle/gradle.properties)
+cd android
 .\gradlew.bat bundleRelease --no-daemon
 ```
 
@@ -209,20 +255,20 @@ Before uploading, run the release-build smoke tests on the emulator:
 
 ### 4.1 Install the bundle on a device/emulator
 
-Use `bundletool` to convert the bundle to APK(s) and install:
+Use `bundletool` (a Java jar) to convert the bundle to APK(s) and install:
+
+**Get bundletool:**
+
+Download from https://github.com/google/bundletool/releases (the latest `.jar` file).
+
+**Create APKs from the bundle and install:**
 
 ```powershell
-# Download bundletool if you don't have it:
-# https://developer.android.com/studio/command-line/bundletool
-# (Or use Google's version: $ go install github.com/google/bundletool/cmd/bundletool@latest)
+cd C:\Users\<owner>\dev-build\shield-vs-robots
 
-# Create APKs from the bundle (for your emulator's configuration):
-java -jar bundletool.jar build-apks --bundle=android/app/build/outputs/bundle/release/app-release.aab ^
+# For a running emulator, use connected-device mode:
+java -jar bundletool.jar build-apks --bundle=android/app/build/outputs/bundle/release/app-release.aab `
   --output=app-release.apks --connected-device
-
-# Or for a specific device (use this for emulator):
-java -jar bundletool.jar build-apks --bundle=android/app/build/outputs/bundle/release/app-release.aab ^
-  --output=app-release.apks --device-id=<emulator-device-id>
 
 # Then install:
 java -jar bundletool.jar install-apks --apks=app-release.apks
@@ -255,12 +301,11 @@ Start the app on the emulator/device and verify:
 
 5. **Manifest is correct:** run the manifest checker on the signed bundle.
    ```powershell
-   # Extract the release APK from the bundle first, or use bundletool to dump the manifest:
-   java -jar bundletool.jar dump manifest --bundle=app-release.aab
+   # Dump the manifest from the bundle:
+   java -jar bundletool.jar dump manifest --bundle=app-release.aab > manifest.xml
    
-   # Then run:
-   $env:AAPT2_PATH = "C:\Users\<owner>\Android\sdk\build-tools\36.0.0\aapt2.exe"
-   node scripts/check-android-manifest.mjs --variant release
+   # Then run the checker:
+   node scripts/check-android-manifest.mjs --variant release --manifest-xml manifest.xml
    ```
 
 **Record the results in submission-checklist.md** (per review-v2 conditions C9 and V2-L2).
@@ -272,21 +317,16 @@ Start the app on the emulator/device and verify:
 Generate player-facing release notes (500 characters max for Play Store display):
 
 1. Create `docs/mobile/release/release-notes-v1.md` if this is the first release.
-2. Write the notes covering:
-   - Main game features (shield, enemies, levels).
-   - What's new (if not first release).
-   - Control/gameplay highlights.
-   - **Limit to 500 characters for Play Store's short description.**
+2. Write the "What's new" section covering the release (500 characters max).
+3. Listing text comes only from `docs/mobile/market/listing-draft-v2.md` — do not invent new copy here.
 
-Example for v1.0:
+Example for v1.0 (238 characters, fits the 500-char limit):
 
 ```
 Shield vs Robots: an arcade game where you throw a bouncing shield to defeat 
 waves of robots. Catch power-ups, face bosses, and beat your best score. 
 10 levels, no ads, no account needed. Free and fully offline.
 ```
-
-(This is 238 characters; typical range is 150–300 for good readability on Play.)
 
 ---
 
@@ -301,9 +341,9 @@ Go to **Google Play Console** → **Shield vs Robots** → **Testing** → **Clo
 3. Add the signed `.aab`:
    - Upload `android/app/build/outputs/bundle/release/app-release.aab`.
    - Play Console validates it and shows device compatibility.
-4. **Data safety:** confirm the answers from `docs/mobile/security/review-v2.md` §6 (they should match what you entered at step 14).
+4. **Data safety:** confirm the answers from `docs/mobile/security/review-v2.md` §6 (they should match what you entered at step 15).
 5. **Store listing:** confirm the short description, long description, and screenshots.
-6. **Release notes:** paste the notes from §5.
+6. **Release notes:** paste the "What's new" notes from §5 (up to 500 characters).
 
 ### 6.2 Validate and release to closed test
 
@@ -427,11 +467,11 @@ Record all the following in `docs/mobile/release/submission-checklist.md` before
 **Cause:** Signing properties are missing or invalid.
 
 **Fix:**
-1. Verify `vvs-signing.properties` exists in the mirror's repo root.
-2. Verify the file has all four lines (storeFile, storePassword, keyAlias, keyPassword).
-3. Verify the keystore file exists at `C:\Users\<owner>\.android-signing\vvs\shield-vs-robots-upload.jks`.
-4. Verify the password is correct.
-5. Delete the mirror's `.gradle` folder and rebuild: `rm -r C:\Users\<owner>\dev-build\shield-vs-robots\android\.gradle` (Windows: `rmdir /s .gradle`).
+1. Verify `VVS_SIGNING_PROPERTIES` env var is set (check: `echo $env:VVS_SIGNING_PROPERTIES`), or `vvsSigningProperties` is in `%USERPROFILE%\.gradle\gradle.properties`.
+2. Verify the path points to the external `signing.properties` file (not in repo or OneDrive).
+3. Verify the file has all four lines: `storeFile`, `storePassword`, `keyAlias`, `keyPassword`.
+4. Verify the keystore file exists at `%USERPROFILE%\.android-signing\vvs\shield-vs-robots-upload.jks`.
+5. Delete the mirror's `.gradle` folder and rebuild: `rm -r C:\Users\<owner>\dev-build\shield-vs-robots\.gradle`.
 
 ### "Unknown windowLayoutInDisplayCutoutMode"
 
@@ -455,5 +495,6 @@ See Play's error message in the console for details.
 
 - `docs/mobile/PRD-mobile.md` § Platform baseline, signing requirements.
 - `docs/mobile/architecture/mobile-architecture.md` § §3 (build layout), §7.5 (signing contract).
+- `docs/mobile/architecture/adr/0011-release-signing-contract.md` — signing key storage, ACL, environment variable setup.
 - `docs/mobile/security/review-v2.md` § §6 (Play Console answers), conditions C1-C10.
 - `.claude/CLAUDE.md` § Mobile Pipeline (gate structure, version lag rule).
