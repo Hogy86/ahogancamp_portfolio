@@ -331,6 +331,14 @@ export function drawPowerUp(
   ctx.restore();
 }
 
+/** Knuckle dome spans (x0, x1) as fractions of the glyph radius, left to right. */
+const FIST_KNUCKLES = [
+  [-0.26, -0.1],
+  [-0.1, 0.06],
+  [0.06, 0.22],
+  [0.22, 0.38],
+] as const;
+
 /** Fist seen from the front, thumb tucked on the left: four round knuckle domes on the top
  * edge, a flat base (no wrist), drawn as one filled outline. Each dome is a bezier with
  * vertical end tangents, so the knuckles read as round bumps separated by sharp valleys
@@ -340,12 +348,7 @@ function drawFistGlyph(ctx: CanvasRenderingContext2D, r: number): void {
   const domeControlY = -0.347 * r;
   ctx.beginPath();
   ctx.moveTo(-0.26 * r, valleyY);
-  for (const [x0, x1] of [
-    [-0.26, -0.1],
-    [-0.1, 0.06],
-    [0.06, 0.22],
-    [0.22, 0.38],
-  ] as const) {
+  for (const [x0, x1] of FIST_KNUCKLES) {
     ctx.bezierCurveTo(x0 * r, domeControlY, x1 * r, domeControlY, x1 * r, valleyY);
   }
   ctx.lineTo(0.38 * r, 0.3 * r);

@@ -194,6 +194,9 @@ export const androidPlatform: Platform = {
     // go through one delegated click listener, attached to the common ancestor of the
     // game-screen overlay, the shell overlays and the touch controls (§5.4) - the web
     // platform attaches none, so web behavior is unchanged (OQ-M10 (a)).
+    // UAT O5 (M3.7): a long-press anywhere on the game surface (not only the touch
+    // controls, which cancel it themselves) must not raise the WebView's context menu.
+    screenFit.clickRoot.addEventListener('contextmenu', (event) => event.preventDefault());
     screenFit.clickRoot.addEventListener('click', (event) => {
       // H1 (F19 AC9 platform mapping, §5.4 victoryTap): on Game Complete, ANY tap on
       // the game surface - not only a `data-action` target - holds/advances the

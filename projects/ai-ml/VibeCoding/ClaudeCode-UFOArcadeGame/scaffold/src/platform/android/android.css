@@ -140,7 +140,7 @@ html.platform-android #shell-overlay-root > .screen-overlay {
 /* design-review-round3 F5: one gap between every title/pause/end-screen row. The shared
    `.menu-list` adds a 16px top margin on top of the overlay's 12px gap, which left a
    much larger gap between Start and How to play than between the buttons below it
-   (the short-window media query below already evens them at 6px). */
+   (the short-window media query below already evens them at 8px). */
 html.platform-android .menu-list {
   margin: 0;
   gap: 12px;
@@ -179,24 +179,36 @@ html.platform-android .screen-overlay > :last-child {
    stay 48 dp (`.menu-item` above) and text stays well above the 12 sp floor - only
    gaps, margins and the heading size shrink. */
 @media (max-height: 420px) {
+  /* UAT F2 (M3.1): 8 dp, not 6 - the title's Start button is a direct child of the
+     overlay, so this gap (not .menu-list's) separates it from How to play. */
   html.platform-android .screen-overlay {
-    gap: 6px;
+    gap: 8px;
   }
 
   html.platform-android .screen-overlay h1 {
     font-size: 30px;
+    /* UAT F2: 8 dp gaps add 10 dp to the title column (293 dp at 291.5 available);
+       the default 1.33 line height (40 dp) -> 1.2 (36 dp) pays for it. */
+    line-height: 1.2;
     letter-spacing: 1px;
     margin: 0;
   }
 
   html.platform-android .menu-list {
     margin: 0;
-    gap: 6px;
+    gap: 8px;
   }
 
   html.platform-android .confirm-box {
     padding: 8px 16px;
   }
+}
+
+/* UAT F1 (M3.1/M3.8): Confirm and Cancel are inline buttons with no gap in the shared
+   markup, so they touched. Confirm discards the run: keep >= 8 dp between them, side by
+   side (4 dp margin each) and, when a large font makes them wrap, stacked (8 dp above). */
+html.platform-android .confirm-box .menu-item {
+  margin: 8px 4px 0;
 }
 
 html.platform-android #safe-layer {
