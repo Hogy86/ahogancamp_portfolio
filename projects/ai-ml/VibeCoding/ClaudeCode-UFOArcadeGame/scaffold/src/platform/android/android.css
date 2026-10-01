@@ -317,8 +317,9 @@ html.platform-android .touch-glyph-svg {
    as SVG text (glyphs.ts createWordGlyph): 13 user units bold (the 12 sp floor,
    design-review-round4 L1) at a fixed `textLength` of 44 (32 for WAIT). As CSS text it
    measured 51.6 px at the default font and 66.3 px at the 130% text-zoom cap, wider than
-   the 52 px content box of the smallest (56dp, 2px border) button (code-review-round15
-   M2); this fixed 44 px box fits it at any font scale. */
+   the 52 px padding box of the smallest (56dp, 2px border) button (code-review-round15
+   M2). This fixed 44 px box fits the padding box at any font scale; it overflows the
+   button's 40 px content box (default `padding: 1px 6px`) by 2 px per side, which is fine. */
 html.platform-android .touch-glyph-word {
   width: 44px;
   height: 20px;

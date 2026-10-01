@@ -184,6 +184,16 @@ jobs:
 
       - run: npm run test:e2e:mobile
 
+      # code-review-round16 L5: a one-off failure has no retries to hide behind, so keep the
+      # trace and screenshot Playwright wrote (see playwright.mobile.config.ts) for diagnosis.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-mobile-results
+          path: projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeGame/scaffold/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
   deploy:
     needs: [build, android-build, mobile-e2e]
     if: github.event_name != 'pull_request'

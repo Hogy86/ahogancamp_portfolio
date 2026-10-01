@@ -100,15 +100,15 @@ export const S7_KNOWN_DUMMY_VALUES = Object.freeze([
   'AKIAIOSFODNN7EXAMPLE',
 ]);
 
-// scikit-learn's notebook HTML output has CSS names such as `#sk-container-id-1` and
-// `.sk-toggleable__label-arrow` with the shape of the `sk-` API-token pattern. They are
-// CSS selectors, or all letters with no digit (a real 20+ character key virtually always
-// has digits), so both are ignored by S7.
-const CSS_SK_SELECTOR = /[#.]sk-[A-Za-z0-9_-]+/g;
+// scikit-learn's notebook HTML output has CSS names such as `.sk-toggleable__label-arrow`
+// with the shape of the `sk-` API-token pattern. They are all letters with no digit (a real
+// 20+ character key virtually always has digits), so only digit-free `sk-` words are ignored
+// by S7. There is deliberately no broader CSS-selector exception: a `#sk-proj-...` or
+// `.sk-...` key that contains digits must still fail (code-review-round16 L1).
 const SK_WORD_WITHOUT_DIGITS = /\bsk-[A-Za-z_-]+(?![A-Za-z0-9_-])/g;
 
 function withoutKnownFalsePositives(line) {
-  let cleaned = line.replace(CSS_SK_SELECTOR, '').replace(SK_WORD_WITHOUT_DIGITS, '');
+  let cleaned = line.replace(SK_WORD_WITHOUT_DIGITS, '');
   for (const dummy of S7_KNOWN_DUMMY_VALUES) cleaned = cleaned.split(dummy).join('');
   return cleaned;
 }

@@ -45,12 +45,14 @@ export function createPauseGlyph(): SVGSVGElement {
 // code-review-round15 M2: the THROW/WAIT label is SVG text with a fixed `textLength`, so
 // its width is the same at any system font scale. As CSS text, "THROW" at 13px bold was
 // 51.6 px wide at the default font and 66.3 px at the 130% WebView text-zoom cap, wider
-// than the 52 px content box of the 56dp button. 13 user units bold is the 12 sp floor.
+// than the 52 px padding box of the 56dp button (56 - 2 x 2 px border; the default
+// `padding: 1px 6px` leaves a 40 px content box, which the 44 px SVG overflows by 2 px per
+// side while staying inside the padding box). 13 user units bold is the 12 sp floor.
 const WORD_VIEWBOX_WIDTH = 44;
 const WORD_VIEWBOX_HEIGHT = 20;
 const WORD_BASELINE_Y = 15;
-// Fixed advance widths (user units) per label: ~10% tighter than the natural 13px bold
-// width, and never wider than the viewBox.
+// Fixed advance widths (user units) per label: about 15% tighter for THROW (51.6 -> 44 px)
+// and about 7% for WAIT than the natural 13px bold width, and never wider than the viewBox.
 const WORD_TEXT_LENGTHS: Record<string, number> = { THROW: 44, WAIT: 32 };
 
 /** Sets the label of a glyph made by `createWordGlyph`, keeping its fixed width. */

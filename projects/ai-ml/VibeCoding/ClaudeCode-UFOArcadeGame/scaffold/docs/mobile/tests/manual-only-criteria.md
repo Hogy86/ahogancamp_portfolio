@@ -167,6 +167,18 @@ visual/legal review rounds, as noted per item below.
 
 ---
 
+## F23 — Power-up token glyphs (docs/PRD-addendum-v5.md r3)
+
+| AC | Why manual-only |
+|---|---|
+| AC6(b) (the four glyphs stay distinguishable in a grayscale view at real token size, so identity is not color-only) | Legibility at 12-20 px is a human visual judgment. `src/render/powerUpGlyphs.test.ts` proves the geometric signatures differ (AC6(a)) but cannot say a person can tell them apart. Reviewer compares `docs/mobile/tests/screenshots/f23_tokens_24px_gray.png` and `f23_tokens_2x_gray.png`, then repeats on the emulator and a real low-end phone. → mobile-ui-ux-designer round 2 and device-matrix. |
+| AC4.2(d) (the rabbit is original art, with no licensed or trademark-adjacent character likeness) | An IP/legal and visual judgment, not a code property. → mobile-ui-ux-designer and mobile-security-compliance-reviewer pass 2. |
+| Q-v5-1 / AC4.3 (owner ruling on the plain-circle Shield glyph and its IP risk) | An owner decision recorded by mobile-product-manager, not testable. |
+| AC4.4 / AC7 exception (the Multiplier "X", owner-accepted risk C7 in M9.6) | The geometry and the "no other X in src" search are automated (`powerUpGlyphs.test.ts`); whether the accepted risk is still acceptable at Play review is an owner/legal call. |
+| Tokens on a real Android WebView (rendering at device pixel ratios, falling-token motion) | No `?e2e=1` hook can spawn a power-up in the headless suite (the hook is read-only), and drops depend on gameplay. The same shared `drawPowerUp` is unit-tested; seeing it in the installed build is a device-matrix check (UAT screenshots). |
+
+---
+
 ## Test map (everything else — has an automated test)
 
 | Area | Automated in |
@@ -191,4 +203,5 @@ visual/legal review rounds, as noted per item below.
 | M9.1/F22 (rename: no old player-facing text anywhere, including canvas-drawn text like the danger warning - no dedicated `CanvasRenderer.test.ts` exists, so the built-bundle scan is this string's only coverage) | `tests/mobile-e2e/rename-audit.spec.ts` (scans the built `dist-android` JS, which embeds every `fillText` literal), `src/ui/ScreenController.test.ts` |
 | M11.1/M11.2 (no network requests; manifest permission allowlist), M11.4a (privacy overlay flow, 2-tap, airplane-safe) | `tests/mobile-e2e/smoke.spec.ts`, `controls-behavior.spec.ts`, `scripts/check-android-manifest.test.mjs` |
 | F20 (saved best score: fail-closed, commit rules, mid-run save) | `src/persistence/bestScore.test.ts` |
+| F23 AC1-AC4, AC6(a), AC7 (glyph geometry at r = 12 and 20, ring/disc identical, single-X source search) | `src/render/powerUpGlyphs.test.ts` |
 | F21 (Restart Level score rollback) | `src/core/GameStateMachine.test.ts`, `src/core/world.test.ts` |

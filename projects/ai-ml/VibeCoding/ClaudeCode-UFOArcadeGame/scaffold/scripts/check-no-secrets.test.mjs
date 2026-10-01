@@ -334,7 +334,7 @@ describe('S7: S6a content patterns over every tracked text file (review-v2 V2-L3
     expect(failures.map((f) => f.split(':')[0])).toEqual(['S2', 'S7']);
   });
 
-  it('passes clean text, the documented dummy values and CSS selectors like #sk-container-id-1', () => {
+  it('passes clean text, the documented dummy values and CSS names like .sk-toggleable__content and short ids like #sk-container-id-1', () => {
     expect(S7_KNOWN_DUMMY_VALUES.length).toBeGreaterThan(0);
     const dummies = S7_KNOWN_DUMMY_VALUES.join(' ');
     const { failures } = run({
@@ -342,6 +342,20 @@ describe('S7: S6a content patterns over every tracked text file (review-v2 V2-L3
       'b.html': '<style>#sk-container-id-1 div.sk-toggleable__content {color: black;}</style>',
     });
     expect(failures).toEqual([]);
+  });
+
+  it('still fails on an sk- key with digits after a # comment marker or a dot (round16 L1)', () => {
+    const key = 'sk-proj-' + 'Ab3dEf6hIj9lMn2pQr5tUv8x';
+    const { failures } = run({
+      'a.py': `#${key}
+`,
+      'b.md': `see .${key} for details
+`,
+    });
+    expect(failures).toEqual([
+      'S7: a.py:1 (secret-shaped content in a tracked text file)',
+      'S7: b.md:1 (secret-shaped content in a tracked text file)',
+    ]);
   });
 
   it('skips files over the size limit without reading them', () => {

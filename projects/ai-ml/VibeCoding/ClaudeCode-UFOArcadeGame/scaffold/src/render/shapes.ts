@@ -276,7 +276,9 @@ export function drawSentinel(
 
 /** Power-up icons: each type is a distinct shape (not color-only), consistent with
  * the HUD readout describing the same type by name/text. Distinguishable while still
- * falling, before the catch collision (F11 AC8). */
+ * falling, before the catch collision (F11 AC8). Shared ring + disc for all four types;
+ * only the glyph inside differs (PRD addendum v5 F23). All glyph coordinates are fractions
+ * of `radius` and stay within +-0.45 of the center (F23 AC3(d)). */
 export function drawPowerUp(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -301,36 +303,22 @@ export function drawPowerUp(
 
   switch (type) {
     case 'HIT_POWER':
-      // Upward chevron/arrow glyph.
-      ctx.beginPath();
-      ctx.moveTo(-radius * 0.5, radius * 0.3);
-      ctx.lineTo(0, -radius * 0.5);
-      ctx.lineTo(radius * 0.5, radius * 0.3);
-      ctx.stroke();
+      // PRD addendum v5 F23 AC4.1: filled fist, four knuckle bumps on top, no forearm.
+      drawFistGlyph(ctx, radius);
       break;
     case 'SPEED':
-      // Two forward-slanted speed lines.
-      ctx.beginPath();
-      ctx.moveTo(-radius * 0.5, -radius * 0.3);
-      ctx.lineTo(radius * 0.2, -radius * 0.3);
-      ctx.moveTo(-radius * 0.5, radius * 0.1);
-      ctx.lineTo(radius * 0.4, radius * 0.1);
-      ctx.stroke();
+      // PRD addendum v5 F23 AC4.2: filled side-view rabbit (whole body, two upright ears).
+      drawRabbitGlyph(ctx, radius);
       break;
     case 'SHIELD':
-      // Small kite glyph - a distinct icon shape, independent of the player shield's
-      // current circular art (F14) so it stays visually distinguishable from the other
-      // three power-up glyphs.
+      // PRD addendum v5 F23 AC4.3: one small stroked circle, clear dark gap to the ring.
       ctx.beginPath();
-      ctx.moveTo(0, -radius * 0.5);
-      ctx.lineTo(radius * 0.4, 0);
-      ctx.lineTo(0, radius * 0.5);
-      ctx.lineTo(-radius * 0.4, 0);
-      ctx.closePath();
+      ctx.arc(0, 0, radius * 0.34, 0, Math.PI * 2);
       ctx.stroke();
       break;
     case 'PERMANENT_MULTIPLIER':
-      // "x" glyph for the permanent multiplier.
+      // PRD addendum v5 F23 AC4.4: capital "X" (two crossing diagonals). This is the one
+      // "X" allowed by v4 F22 AC8(c); review-v2 V2-M3 risk-accepted by owner 2026-09-30.
       ctx.beginPath();
       ctx.moveTo(-radius * 0.35, -radius * 0.35);
       ctx.lineTo(radius * 0.35, radius * 0.35);
@@ -341,6 +329,59 @@ export function drawPowerUp(
   }
 
   ctx.restore();
+}
+
+/** Fist seen from the front, thumb tucked on the left: four round knuckle domes on the top
+ * edge, a flat base (no wrist), drawn as one filled outline. Each dome is a bezier with
+ * vertical end tangents, so the knuckles read as round bumps separated by sharp valleys
+ * even at 24px. */
+function drawFistGlyph(ctx: CanvasRenderingContext2D, r: number): void {
+  const valleyY = -0.2 * r;
+  const domeControlY = -0.347 * r;
+  ctx.beginPath();
+  ctx.moveTo(-0.26 * r, valleyY);
+  for (const [x0, x1] of [
+    [-0.26, -0.1],
+    [-0.1, 0.06],
+    [0.06, 0.22],
+    [0.22, 0.38],
+  ] as const) {
+    ctx.bezierCurveTo(x0 * r, domeControlY, x1 * r, domeControlY, x1 * r, valleyY);
+  }
+  ctx.lineTo(0.38 * r, 0.3 * r);
+  ctx.quadraticCurveTo(0.38 * r, 0.38 * r, 0.3 * r, 0.38 * r);
+  ctx.lineTo(-0.18 * r, 0.38 * r);
+  ctx.quadraticCurveTo(-0.26 * r, 0.38 * r, -0.26 * r, 0.3 * r);
+  ctx.quadraticCurveTo(-0.44 * r, 0.26 * r, -0.42 * r, 0.12 * r); // thumb
+  ctx.quadraticCurveTo(-0.4 * r, 0.02 * r, -0.26 * r, 0.02 * r);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** Rabbit in side view facing right, crouched on four legs (hind foot, front foot), with a
+ * rounded back, a small tail, a pointed nose and two tall, slightly curved ears leaning
+ * back. One filled outline, no eye cut-out, no accessories (F23 AC4.2(d) IP rules). */
+function drawRabbitGlyph(ctx: CanvasRenderingContext2D, r: number): void {
+  ctx.beginPath();
+  ctx.moveTo(-0.34 * r, 0.3 * r); // hind foot, back
+  ctx.lineTo(-0.1 * r, 0.3 * r); // hind foot, front
+  ctx.lineTo(-0.04 * r, 0.19 * r); // belly between the legs
+  ctx.lineTo(0.16 * r, 0.19 * r);
+  ctx.lineTo(0.22 * r, 0.3 * r); // front foot, back
+  ctx.lineTo(0.4 * r, 0.3 * r); // front foot, toe
+  ctx.lineTo(0.34 * r, 0.14 * r); // chest
+  ctx.quadraticCurveTo(0.44 * r, 0.1 * r, 0.44 * r, -0.02 * r); // chin to nose
+  ctx.quadraticCurveTo(0.42 * r, -0.1 * r, 0.32 * r, -0.12 * r); // forehead, front ear base
+  ctx.quadraticCurveTo(0.3 * r, -0.3 * r, 0.23 * r, -0.44 * r); // front ear, leading edge
+  ctx.quadraticCurveTo(0.2 * r, -0.3 * r, 0.18 * r, -0.12 * r); // front ear, trailing edge
+  ctx.quadraticCurveTo(0.14 * r, -0.3 * r, 0.05 * r, -0.42 * r); // rear ear, leading edge
+  ctx.quadraticCurveTo(0.05 * r, -0.28 * r, 0.04 * r, -0.14 * r); // rear ear, trailing edge
+  ctx.quadraticCurveTo(-0.12 * r, -0.26 * r, -0.3 * r, -0.08 * r); // rounded back
+  ctx.lineTo(-0.44 * r, -0.02 * r); // tail
+  ctx.lineTo(-0.44 * r, 0.06 * r);
+  ctx.quadraticCurveTo(-0.42 * r, 0.3 * r, -0.34 * r, 0.3 * r); // rump
+  ctx.closePath();
+  ctx.fill();
 }
 
 /** Rendering-only tuning: how long an individual firework particle burst stays visible

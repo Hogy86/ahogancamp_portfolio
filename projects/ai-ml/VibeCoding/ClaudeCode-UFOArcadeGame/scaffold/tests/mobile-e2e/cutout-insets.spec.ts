@@ -10,7 +10,12 @@ import { test, expect, type Page, type CDPSession } from '@playwright/test';
 declare global {
   interface Window {
     __vvsTest?: {
-      snapshot: () => { state: string; player: { x: number }; shields: unknown[]; levelIntroRemaining: number };
+      snapshot: () => {
+        state: string;
+        player: { x: number };
+        shields: unknown[];
+        levelIntroRemaining: number;
+      };
     };
   }
 }
@@ -36,7 +41,9 @@ async function startRun(page: Page): Promise<void> {
 }
 
 async function waitForLevelIntroToClear(page: Page): Promise<void> {
-  await expect.poll(async () => (await snapshot(page)).levelIntroRemaining, 'levelIntroRemaining').toBe(0);
+  await expect
+    .poll(async () => (await snapshot(page)).levelIntroRemaining, 'levelIntroRemaining')
+    .toBe(0);
 }
 
 async function centerOf(page: Page, selector: string): Promise<{ x: number; y: number }> {
@@ -84,12 +91,18 @@ function assertControlsInsideInsets(
   for (const [name, box] of Object.entries(boxes)) {
     expect(box.x, `${name} left edge inside the left inset`).toBeGreaterThanOrEqual(safeLeft - 0.5);
     expect(box.y, `${name} top edge inside the top inset`).toBeGreaterThanOrEqual(safeTop - 0.5);
-    expect(box.x + box.width, `${name} right edge inside the right inset`).toBeLessThanOrEqual(safeRight + 0.5);
-    expect(box.y + box.height, `${name} bottom edge inside the bottom inset`).toBeLessThanOrEqual(safeBottom + 0.5);
+    expect(box.x + box.width, `${name} right edge inside the right inset`).toBeLessThanOrEqual(
+      safeRight + 0.5,
+    );
+    expect(box.y + box.height, `${name} bottom edge inside the bottom inset`).toBeLessThanOrEqual(
+      safeBottom + 0.5,
+    );
   }
 }
 
-async function controlBoxes(page: Page): Promise<Record<string, { x: number; y: number; width: number; height: number }>> {
+async function controlBoxes(
+  page: Page,
+): Promise<Record<string, { x: number; y: number; width: number; height: number }>> {
   const boxes: Record<string, { x: number; y: number; width: number; height: number }> = {};
   for (const [name, selector] of Object.entries(CONTROL_SELECTORS)) {
     const box = await page.locator(selector).boundingBox();
@@ -102,7 +115,9 @@ async function controlBoxes(page: Page): Promise<Record<string, { x: number; y: 
 // L2 (b) (code-review-round9.md): (a) and (b) must apply the same control-size/gap
 // checks - factored here once so neither can silently drift out of sync with the
 // other again.
-function assertControlSizes(boxes: Record<string, { x: number; y: number; width: number; height: number }>): void {
+function assertControlSizes(
+  boxes: Record<string, { x: number; y: number; width: number; height: number }>,
+): void {
   expect(boxes.left.width).toBeGreaterThanOrEqual(56);
   expect(boxes.right.width).toBeGreaterThanOrEqual(56);
   expect(boxes.throw.width).toBeGreaterThanOrEqual(56);
@@ -120,7 +135,10 @@ function assertControlSizes(boxes: Record<string, { x: number; y: number; width:
 async function toggleSwap(page: Page): Promise<void> {
   await page.locator('[data-action="settings"]').click();
   await page.locator('[data-action="settings-swap"]').click();
-  await page.getByRole('dialog', { name: 'Settings' }).locator('[data-action="overlay-close"]').click();
+  await page
+    .getByRole('dialog', { name: 'Settings' })
+    .locator('[data-action="overlay-close"]')
+    .click();
 }
 
 const REFERENCE_CASES: Array<[string, string, boolean]> = [
@@ -154,11 +172,16 @@ test.describe('M2.3b (a): the reference phone plays', () => {
       await page.waitForTimeout(500);
       const during = await snapshot(page);
       await touchUp(client);
-      expect(during.player.x, "holding the right control did not increase player x").toBeGreaterThan(before.player.x);
+      expect(
+        during.player.x,
+        'holding the right control did not increase player x',
+      ).toBeGreaterThan(before.player.x);
 
       const { x: tx, y: ty } = await centerOf(page, CONTROL_SELECTORS.throw);
       await tap(client, tx, ty);
-      await expect.poll(async () => (await snapshot(page)).shields.length, 'shields after THROW').toBe(1);
+      await expect
+        .poll(async () => (await snapshot(page)).shields.length, 'shields after THROW')
+        .toBe(1);
 
       const [insL, insR, insT, insB] = insetsQuery.replace('insets=', '').split(',').map(Number);
       // L1: `insets` is the physical device inset regardless of swap - swap mirrors
@@ -208,7 +231,11 @@ test.describe('M2.3b (b): three-button navigation plays', () => {
       const [insL, insR, insT, insB] = insetsQuery.replace('insets=', '').split(',').map(Number);
       const boxes = await controlBoxes(page);
       assertControlSizes(boxes);
-      assertControlsInsideInsets(boxes, { width: 640, height: 360 }, { left: insL, right: insR, top: insT, bottom: insB });
+      assertControlsInsideInsets(
+        boxes,
+        { width: 640, height: 360 },
+        { left: insL, right: insR, top: insT, bottom: insB },
+      );
 
       const canvasBox = await page.locator('#game-canvas').boundingBox();
       expect(canvasBox!.width).toBeGreaterThanOrEqual(400);
@@ -261,18 +288,23 @@ test.describe('M2.3b (c): text and controls stay out of the bands', () => {
           }),
       );
       for (const top of hudTops) {
-        expect(top, '.hud-panel content-box top must be >= t').toBeGreaterThanOrEqual(insT - TOLERANCE);
+        expect(top, '.hud-panel content-box top must be >= t').toBeGreaterThanOrEqual(
+          insT - TOLERANCE,
+        );
       }
 
       const controlTextBottom = await contentBoxBottom(page, '#control-text');
-      expect(controlTextBottom, '#control-text content-box bottom must be <= H - b').toBeLessThanOrEqual(
-        360 - insB + TOLERANCE,
-      );
+      expect(
+        controlTextBottom,
+        '#control-text content-box bottom must be <= H - b',
+      ).toBeLessThanOrEqual(360 - insB + TOLERANCE);
 
       const canvasBox = await page.locator('#game-canvas').boundingBox();
       expect(canvasBox).not.toBeNull();
       const s = canvasBox!.height / 600;
-      expect(canvasBox!.y + 4 * s, 'canvas warning text top must be >= t').toBeGreaterThanOrEqual(insT - TOLERANCE);
+      expect(canvasBox!.y + 4 * s, 'canvas warning text top must be >= t').toBeGreaterThanOrEqual(
+        insT - TOLERANCE,
+      );
 
       const boxes = await controlBoxes(page);
       assertControlsInsideInsets(boxes, { width: 640, height: 360 }, insets);
@@ -281,10 +313,13 @@ test.describe('M2.3b (c): text and controls stay out of the bands', () => {
       // to the test output" - not the repo. Writing into `docs/mobile/tests/
       // screenshots/` overwrote the committed step-7/step-10 evidence on every local
       // run, CI run and `--repeat-each` repeat (and raced across parallel workers).
-      await testInfo.attach(`m2_3b_c_${insetsQuery.replace(/[.,=]/g, '_')}${swap ? '_swapped' : ''}`, {
-        body: await page.screenshot(),
-        contentType: 'image/png',
-      });
+      await testInfo.attach(
+        `m2_3b_c_${insetsQuery.replace(/[.,=]/g, '_')}${swap ? '_swapped' : ''}`,
+        {
+          body: await page.screenshot(),
+          contentType: 'image/png',
+        },
+      );
     });
   }
 });
@@ -328,7 +363,9 @@ test.describe('M2.3b rules 1-2 audit additions', () => {
   ];
 
   for (const insetsQuery of ALL_CASES) {
-    test(`playfield stays out of the side insets and clear of every control (${insetsQuery})`, async ({ page }) => {
+    test(`playfield stays out of the side insets and clear of every control (${insetsQuery})`, async ({
+      page,
+    }) => {
       await page.setViewportSize({ width: 640, height: 360 });
       await page.goto(`/?${insetsQuery}&e2e=1`);
       await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeHidden();
@@ -336,18 +373,24 @@ test.describe('M2.3b rules 1-2 audit additions', () => {
 
       const [insL, insR] = insetsQuery.replace('insets=', '').split(',').map(Number);
       const canvas = (await page.locator('#game-canvas').boundingBox())!;
-      expect(canvas.x, 'playfield left edge outside the left inset').toBeGreaterThanOrEqual(insL - TOLERANCE);
-      expect(canvas.x + canvas.width, 'playfield right edge outside the right inset').toBeLessThanOrEqual(
-        640 - insR + TOLERANCE,
+      expect(canvas.x, 'playfield left edge outside the left inset').toBeGreaterThanOrEqual(
+        insL - TOLERANCE,
       );
+      expect(
+        canvas.x + canvas.width,
+        'playfield right edge outside the right inset',
+      ).toBeLessThanOrEqual(640 - insR + TOLERANCE);
       const boxes = await controlBoxes(page);
       for (const [name, box] of Object.entries(boxes)) {
-        const overlapsX = box.x < canvas.x + canvas.width - TOLERANCE && box.x + box.width > canvas.x + TOLERANCE;
+        const overlapsX =
+          box.x < canvas.x + canvas.width - TOLERANCE && box.x + box.width > canvas.x + TOLERANCE;
         expect(overlapsX, `${name} must not overlap the playfield`).toBe(false);
       }
     });
 
-    test(`HUD and hint text also clear the left and right insets (${insetsQuery})`, async ({ page }) => {
+    test(`HUD and hint text also clear the left and right insets (${insetsQuery})`, async ({
+      page,
+    }) => {
       await page.setViewportSize({ width: 640, height: 360 });
       await page.goto(`/?${insetsQuery}&e2e=1`);
       await startRun(page);
@@ -379,22 +422,44 @@ test.describe('M2.3b rules 1-2 audit additions', () => {
     await page.setViewportSize({ width: 640, height: 360 });
     await page.goto('/?insets=30,30,28.2,32&e2e=1');
     await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeHidden();
-    const canvas = (await page.locator('#game-canvas').boundingBox())!;
+    // Wait for the post-inset fit: a pre-fit canvas (y = 0, height 360) would satisfy every
+    // assertion below, so poll until the canvas has moved off the pre-fit box.
+    const canvasBox = async () => (await page.locator('#game-canvas').boundingBox())!;
+    await expect
+      .poll(async () => {
+        const c = await canvasBox();
+        return c.y !== 0 || c.height !== 360;
+      }, 'canvas should be re-fitted by the measured insets')
+      .toBe(true);
     // Fitting inside the full insets would leave 360 - 28.2 - 32 = 299.8 dp (< the
     // 300 dp floor), so this window is playable only because art enters a band.
-    expect(canvas.height).toBeGreaterThanOrEqual(300 - TOLERANCE);
-    const intoTop = canvas.y < 28.2 - TOLERANCE;
-    const intoBottom = canvas.y + canvas.height > 360 - 32 + TOLERANCE;
-    expect(intoTop || intoBottom, 'playfield should extend into a gesture band at this size').toBe(true);
+    await expect
+      .poll(async () => (await canvasBox()).height)
+      .toBeGreaterThanOrEqual(300 - TOLERANCE);
+    await expect
+      .poll(async () => {
+        const canvas = await canvasBox();
+        return canvas.y < 28.2 - TOLERANCE || canvas.y + canvas.height > 360 - 32 + TOLERANCE;
+      }, 'playfield should extend into a gesture band at this size')
+      .toBe(true);
   });
 
-  test('top and bottom cutouts together keep art between them in a tall-enough window', async ({ page }) => {
+  test('top and bottom cutouts together keep art between them in a tall-enough window', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 700, height: 420 });
     await page.goto('/?insets=30,30,30,32&cutout=30,32&e2e=1');
     await expect(page.locator(ROTATE_PROMPT_SELECTOR)).toBeHidden();
-    const canvas = (await page.locator('#game-canvas').boundingBox())!;
-    expect(canvas.y).toBeGreaterThanOrEqual(30 - TOLERANCE);
-    expect(canvas.y + canvas.height).toBeLessThanOrEqual(420 - 32 + TOLERANCE);
+    // The prompt is hidden before the native insets arrive and the first fit runs, so poll
+    // the canvas instead of reading it once (a one-off read saw the pre-inset y of 24).
+    const canvasBox = async () => (await page.locator('#game-canvas').boundingBox())!;
+    await expect.poll(async () => (await canvasBox()).y).toBeGreaterThanOrEqual(30 - TOLERANCE);
+    await expect
+      .poll(async () => {
+        const canvas = await canvasBox();
+        return canvas.y + canvas.height;
+      })
+      .toBeLessThanOrEqual(420 - 32 + TOLERANCE);
   });
 
   test('top and bottom cutouts that leave under 300 dp of height show the too-small prompt at 640x360', async ({

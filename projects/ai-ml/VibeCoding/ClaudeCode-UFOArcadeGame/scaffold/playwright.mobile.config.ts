@@ -27,6 +27,9 @@ export default defineConfig({
     hasTouch: true,
     isMobile: true,
     deviceScaleFactor: 2,
+    // code-review-round16 L5: evidence for CI failures; no retries are configured on purpose.
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   // §10.1: the four device-matrix landscape profiles from mobile-architecture.md §6.4.
   // M4: `devices['Desktop Chrome']` sets `hasTouch: false, isMobile: false,
@@ -37,11 +40,23 @@ export default defineConfig({
   projects: [
     {
       name: '640x360',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 640, height: 360 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 640, height: 360 },
+        hasTouch: true,
+        isMobile: true,
+        deviceScaleFactor: 2,
+      },
     },
     {
       name: '800x360',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 800, height: 360 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 800, height: 360 },
+        hasTouch: true,
+        isMobile: true,
+        deviceScaleFactor: 2,
+      },
       // code-review-round8 S3: too-small-window.spec.ts sets its own viewport(s) via
       // page.setViewportSize() in every test, so the project-level viewport above is
       // immediately overridden - running it again per device-matrix project is pure
@@ -52,12 +67,24 @@ export default defineConfig({
     },
     {
       name: '915x412',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 915, height: 412 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 915, height: 412 },
+        hasTouch: true,
+        isMobile: true,
+        deviceScaleFactor: 2,
+      },
       testIgnore: /(too-small-window|cutout-insets|menu-insets)\.spec\.ts$/,
     },
     {
       name: '1280x800',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1280, height: 800 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 800 },
+        hasTouch: true,
+        isMobile: true,
+        deviceScaleFactor: 2,
+      },
       testIgnore: /(too-small-window|cutout-insets|menu-insets)\.spec\.ts$/,
     },
   ],

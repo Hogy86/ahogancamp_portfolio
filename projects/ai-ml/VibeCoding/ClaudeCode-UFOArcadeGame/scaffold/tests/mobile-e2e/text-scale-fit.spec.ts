@@ -48,6 +48,9 @@ async function applyFontScale(page: Page, factor: number): Promise<void> {
         font-size: calc(max(15px, calc(12px / var(--pf-scale, 1))) * ${factor}) !important;
       }
       html.platform-android .touch-button { font-size: ${20 * factor}px !important; }
+      /* The THROW/WAIT <text> carries its own font-size attribute (13), which beats the
+         inherited button size, so scale the element itself (code-review-round16 L3). */
+      html.platform-android .touch-glyph-word text { font-size: ${13 * factor}px !important; }
     `,
   });
 }
@@ -129,15 +132,26 @@ for (const insets of INSET_QUERIES) {
       );
       const throwButton = page.locator('.touch-button--throw');
       const label = throwButton.locator('text');
+      const svg = throwButton.locator('.touch-glyph-word');
 
       const assertFits = async (word: string): Promise<void> => {
         await expect(label).toHaveText(word);
         const button = (await throwButton.boundingBox())!;
         const text = (await label.boundingBox())!;
+        const box = (await svg.boundingBox())!;
+        // Guard against a vacuous x1.3 case: the label really is scaled.
+        const fontSize = await label.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+        expect(fontSize, `${word} computed font-size`).toBeCloseTo(13 * factor, 1);
         const border = 2;
         expect(text.x, `${word} left edge`).toBeGreaterThanOrEqual(button.x + border);
         expect(text.x + text.width, `${word} right edge`).toBeLessThanOrEqual(
           button.x + button.width - border,
+        );
+        // The SVG clips overflow, so vertical overflow would be silent.
+        expect(text.height, `${word} height vs svg`).toBeLessThanOrEqual(box.height);
+        expect(text.y, `${word} top edge`).toBeGreaterThanOrEqual(box.y - 0.5);
+        expect(text.y + text.height, `${word} bottom edge`).toBeLessThanOrEqual(
+          box.y + box.height + 0.5,
         );
       };
 
