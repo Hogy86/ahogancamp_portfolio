@@ -12,6 +12,7 @@
 *(Status updated 2026-09-27, v1.5: PM clarification M2.10a (too-small window, any shape) added; no owner decision reopened or needed; OQ-M11..OQ-M14 still PENDING.)*
 *(Status updated 2026-09-28, v1.6: PM decision M2.3b (the playfield may extend under the top/bottom system-gesture bands; text and controls may not) so the 640 × 360 dp reference phone plays with real Android insets; no owner decision reopened or needed; OQ-M11..OQ-M14 still PENDING.)*
 *(Status updated 2026-09-28, v1.7: PM decision M2.3c (a three-button navigation bar kept along the bottom of a 360 dp tall window is a documented known limit that shows the M2.10a prompt; no new layout), from validation-report-round4 F3; no owner decision reopened or needed; OQ-M11..OQ-M14 still PENDING.)*
+*(Status updated 2026-09-30, v1.8: owner-accepted risk recorded under M9.6 (review-v2 condition C7): the Permanent Multiplier power-up token keeps a capital "X" by owner choice ("I'll take the risk", 2026-09-30 19:53 UTC); M9.6 item 2 clarified for the circle Shield token; no other AC changed; no change to the status of OQ-M11..OQ-M14 in this version.)*
 (see §Pending Owner Decisions, OQ-M1..OQ-M14). Every pending decision has a
 default already written into the acceptance criteria below so downstream
 steps (ui-ux-designer round 1, solution-architect) can start. Any owner answer
@@ -127,6 +128,25 @@ landscape by nature, with button navigation) is essentially absent from the
 phone market. It is Android screen fitting only (§0 rule 2). Original text
 is kept; see §9.
 
+**Amendment 2026-09-30 (Draft v1.8) — owner-accepted risk: the "X" on
+the Permanent Multiplier token; the circle Shield token (review-v2
+addendum 4, condition C7).** The shared PRD addendum
+`docs/PRD-addendum-v5.md` r3 (F23) records that the owner chose the four
+power-up icons on 2026-09-30 (fist, rabbit, circle, capital X) and, after
+being told that a bold X inside the round token is essentially the X-Men
+logo shape, replied "I'll take the risk".
+`docs/mobile/security/review-v2-addendum4.md` then closed finding V2-M3 as
+**risk-accepted by the owner (not fixed)**, ruled the circle Shield icon
+acceptable under binding limits, and required this document to carry the
+record (findings A4-M1, A4-L1, A4-L3). v1.8 adds one dated note under
+**M9.6**. M9.6 items 1-8 are kept as written. The note adds one narrow
+exception to item 3 / item 4 (the Multiplier token glyph only) and one
+clarification of item 2 (the circle Shield token). **This is an owner
+decision, recorded here; it is not a PM decision.** No game rule, control,
+layout or other AC changes. The glyphs themselves are a shared art change
+owned by `docs/PRD-addendum-v5.md` (both pipelines' gates, §0 rule 3).
+See §9.
+
 **What this document is — and is not.** The game itself (levels, enemies,
 shield bounce, power-ups, lives, score, pause options, bosses, countdown,
 Game Complete) is already fully defined by `docs/PRD.md` (F1-F10, NFR-1..10)
@@ -159,6 +179,9 @@ performance on low-end devices, and Google Play store/policy requirements.
 - `docs/mobile/tooling-setup-log.md` (2026-09-27 step-7 entry, "Fold-AVD window-size question"), `docs/mobile/tests/validation-report-round2.md` (svr_api36_fold row, known gaps), `docs/mobile/reviews/code-review-round7.md` I6 — too-small landscape window has no defined behavior (→ M2.10a) *(added 2026-09-27, v1.5)*
 - `docs/mobile/reviews/code-review-round8.md` E1: real gesture-navigation insets measured on `svr_api36_pixel7` (t ≈ 28.2, b = 32, sides ≈ 29.7 dp) make the 640 × 360 dp reference window miss the v1.5 floor (→ M2.3b, M2.10a and M2.12 v1.6 notes) *(added 2026-09-28, v1.6)*
 - `docs/mobile/tests/validation-report-round4.md` F3 (and its Part 1 note on the three-button row of `docs/mobile/tests/manual-only-criteria.md`): real three-button navigation on the natural-landscape `svr_api36_lowend_640x360` AVD keeps the bar at the bottom (insets t 24, l 0, r 0, b 48; `navigationBars sideHint=BOTTOM`) and shows the M2.10a prompt (→ M2.3c) *(added 2026-09-28, v1.7)*
+- `docs/PRD-addendum-v5.md` r3 — F23 power-up glyphs (fist, rabbit, circle, capital X); the verbatim record of the owner's three messages of 2026-09-30 (19:48, 19:52, 19:53 UTC) and the owner-accepted-risk record; Q-v5-1 (→ M9.6 v1.8 note) *(added 2026-09-30, v1.8)*
+- `docs/mobile/security/review-v2.md` — V2-M3 (the ringed "x" against M9.6 item 3) and condition C7 (→ M9.6 v1.8 note) *(added 2026-09-30, v1.8)*
+- `docs/mobile/security/review-v2-addendum4.md` — V2-M3 closed as risk-accepted by the owner; §1.4 circle ruling with five binding limits; findings A4-M1, A4-L1, A4-L3; C7 reworded (→ M9.6 v1.8 note) *(added 2026-09-30, v1.8)*
 
 ---
 
@@ -1072,6 +1095,133 @@ Traces to: UC6; F9 AC4 / NFR-10 (original art); `play-store-research.md` §3
      raises it with the owner (Job 0) before any upload; the release engineer
      does not upload until this check is recorded.
 
+  **Amended 2026-09-30 (v1.8; review-v2 addendum 4 A4-M1, A4-L1, A4-L3;
+  condition C7) — owner-accepted risk: the "X" on the Permanent Multiplier
+  token; item 2 clarified for the circle Shield token.** Items 1-8 above are
+  kept as written and still apply. This note adds one narrow exception to
+  items 3 and 4 and one clarification of item 2. It is the record that
+  review-v2 condition **C7** asks for.
+
+  **C7.1 What the owner said (2026-09-30, UTC).** The owner (Aaron) wrote
+  three messages to the main session in the project thread. They are copied
+  here word for word from the record in `docs/PRD-addendum-v5.md` r3
+  (§"Revision 2026-09-30 (r3)"). mobile-product-manager cannot see the
+  project thread, so that record is the source.
+  - 19:48 UTC:
+    > "Make the picture of a powerup look like a fist or an up arrow. Make
+    > speed increase look like a rabbit or like "<-->". Make a shield look like
+    > a circle shape or a wall "---"."
+  - 19:52 UTC (after r2's choices):
+    > "Do a fist, rabbit and circle. The Multiplier should be a capital X."
+  - 19:53 UTC:
+    > "I'll take the risk"
+
+  *What he was told before "I'll take the risk"* (as recorded in
+  `docs/PRD-addendum-v5.md` r3): the main session told him that a bold X
+  inside the round token is essentially the X-Men logo shape, which is why
+  `docs/mobile/security/review-v2.md` V2-M3 asked to remove the old "x".
+
+  *Consequence stated to the owner (A4-L3).* The 19:53 record shows that the
+  owner was told about the shape, not about what could happen to his Play
+  account. On 2026-09-30, in the project-thread update that accompanies this
+  note, the main session states the consequence to the owner in plain words:
+  Google Play could reject the app, remove it, or put a strike on his new
+  personal developer account. This is **stated to the owner**. It is not a
+  new question and not a new approval, and no reply is needed. It confirms
+  the 19:53 acceptance and does not reopen it. If the owner changes his mind,
+  C7.6 applies.
+
+  *Delivery record (review-v2 addendum 5, A5-L1).* The update stating the
+  consequence (C7.1) and the circle ruling (C7.5) was posted to the owner in
+  the project thread at 2026-10-01 01:49 UTC (the evening of 2026-09-30 in
+  the owner’s time zone). As of 2026-10-01 01:58 UTC the owner had not
+  replied; no reply is required.
+
+  **C7.2 The risk, in plain words.** A capital X inside a round ring is the
+  basic shape of the X-Men emblem. Keeping it could lead to:
+  - Google Play rejecting the app for an intellectual-property (IP) problem
+    when it is submitted;
+  - Google Play removing the app later, after a complaint from the rights
+    holder;
+  - a policy strike against the owner's new personal developer account
+    (strikes count against the account, not only this app);
+  - a trademark complaint against the website, which draws the same token.
+  The reviewer rates the shape "borderline": the token is 24 px, one amber
+  colour, with thin strokes that do not touch the ring. Nobody in this
+  pipeline can clear a trademark. This is a policy-risk judgment, not legal
+  advice.
+
+  **C7.3 Exception to items 3 and 4.** The glyph on the
+  `PERMANENT_MULTIPLIER` power-up token (a capital X, `docs/PRD-addendum-v5.md`
+  F23 AC4.4) is an **owner-accepted exception** to item 3 ("no 'X' emblem").
+  It is **not** a hit under item 4 ("Any hit is a FAIL"). Its status is
+  **"risk-accepted"**. It is never to be described as "cleared" or
+  "approved" in any doc, checklist or Play Console answer. Review-v2 V2-M3
+  is closed as risk-accepted by the owner, not as fixed. Everything else in
+  item 3 stays in force: any other X emblem, any "mutant" wording and any
+  giant purple/magenta humanoid robot is still a hit and still a FAIL.
+
+  **C7.4 Limits of the exception (binding).**
+  - The X stays exactly two amber strokes, 2 px wide, running between
+    (±a, ±a) with **a ≤ 0.4r** (r = the token radius; a = 0.35r today). The
+    strokes never touch the ring.
+  - No X appears in the app icon, the adaptive icon (including its
+    monochrome layer), the splash, the title or logo, the feature graphic,
+    **any** store screenshot, or the listing text (title, descriptions,
+    captions, tags).
+  - A plain "×" in running text (the HUD readout "Power ×N") is text, not an
+    emblem, and stays allowed (`docs/PRD-addendum-v5.md` F23 AC7).
+
+  **C7.5 Item 2 clarified: the circle Shield token (answers Q-v5-1).** Item
+  2's "no concentric-ring shield" is about the **shield art** (the shield
+  ShieldMan throws, and the icon). That art is unchanged: a plain avatar-blue
+  disc (M9.3 / F14). The "Indestructible Shield" power-up token is one amber
+  circle outline inside the amber ring that all four tokens share.
+  `docs/mobile/security/review-v2-addendum4.md` §1.4 ruled it **not a hit**
+  under item 2, on five binding limits:
+  1. One amber stroked circle only: no fill, star, dot or second inner ring;
+     no red, white or blue; no alternating bands. The unit test "SHIELD is
+     exactly one full circle and nothing else" must stay.
+  2. Its radius stays within 0.25r-0.35r (0.34r today).
+  3. The Shield token appears in **no** store asset: not screenshot 4, not
+     the feature graphic, not the icon, not a tablet screenshot. This is
+     permanent.
+  4. The glyph is never enlarged into a HUD badge, logo, splash or title
+     element.
+  5. Fallback: if a complaint arrives or a later reviewer disagrees, the
+     Shield token becomes the wall bar (`docs/PRD-addendum-v5.md` r2 AC4.3,
+     already specified).
+  Open question **Q-v5-1** in `docs/PRD-addendum-v5.md` is answered by
+  review-v2 addendum 4: the circle is kept.
+  *Stated to the owner (A4-L1).* Q-v5-1 was not raised with the owner on
+  2026-09-30 before the ruling. In the same project-thread update as C7.1,
+  the main session states to the owner that the circle Shield icon was
+  reviewed, judged acceptable with these limits, is kept out of store art,
+  and has the wall bar as its fallback. No decision is needed from him
+  unless he prefers the wall.
+
+  **C7.6 Reversal.** If any complaint arrives (Google Play, a rights holder,
+  or anyone else), or if the owner changes his mind, the Multiplier token
+  switches to the three ascending bars of `docs/PRD-addendum-v5.md` r2
+  (AC4.4). That is a new F23 revision. As a shared art change it goes
+  through both pipelines' gates before either version ships (§0 rule 3).
+
+  **C7.7 References.** `docs/PRD-addendum-v5.md` r3 (F23 AC4.3, AC4.4, AC7,
+  AC9; the owner-accepted-risk record; Q-v5-1);
+  `docs/mobile/security/review-v2.md` V2-M3 and condition C7;
+  `docs/mobile/security/review-v2-addendum4.md` (§1.4, §2.1, A4-M1, A4-L1,
+  A4-L3, C7 as reworded).
+
+  *How items 4 and C7 are checked from v1.8 on.* mobile-ui-ux-designer and
+  mobile-security-compliance-reviewer check items 1-8 as before, with C7.3
+  as the only exception, and check that the C7.4 and C7.5 limits hold. At
+  step 15 the release engineer records that every store screenshot, the
+  feature graphic and the 512 icon were checked by eye and show no X token
+  and no circle token (C7 part (d)). C7 stays **open** until the reviewer
+  delta-checks this note and the matching `store-assets-spec.md` and
+  `listing-draft-v2.md` lines (addendum 5). No store screenshot or feature
+  graphic is captured before then.
+
 ### M10 — Performance and stability on low-end devices
 Traces to: NFR-1, NFR-2, NFR-3; F12 AC5, F15 AC9, F19 (NFR notes v2);
 `play-store-research.md` §1 pattern 4 (crashes); MG1-MG3. **P0.**
@@ -1329,6 +1479,23 @@ listed here only for traceability.)
 > play). The PM would recommend (a) only if affected phones are a real
 > share of testers, otherwise (b).
 > OQ-M11..OQ-M14 remain pending.
+>
+> **Owner decision log — 2026-09-30 (v1.8).** Shared art change
+> `docs/PRD-addendum-v5.md` F23 r3. The owner chose the four power-up icons
+> (fist, rabbit, circle, capital X) and, told that a bold X inside the round
+> token is essentially the X-Men logo shape, answered: *"I'll take the risk"*
+> (19:53 UTC). All three of his messages are quoted in full in the M9.6
+> v1.8 note (C7.1). Recorded there: the Multiplier-token X is an
+> owner-accepted exception to M9.6 item 3, with limits; review-v2 V2-M3 is
+> closed as risk-accepted, not fixed. **Stated to the owner, not asked:** on
+> 2026-09-30 the main session's thread update that accompanies the v1.8 note
+> tells him (1) the consequence in plain words (possible Play rejection,
+> removal, or a strike on his new personal developer account) and (2) that
+> the circle Shield icon was reviewed, judged acceptable with limits, is
+> kept out of store art, and falls back to the wall bar. Neither is a new
+> approval, and no reply is needed. If he changes his mind, the fallback is
+> the r2 bars (Multiplier) or the wall bar (Shield), as a new F23 revision
+> through both pipelines.
 
 Each item: the issue, which doc/subagent it affects, options with
 consequences, the PM recommendation, and the **default already applied** in
@@ -1776,6 +1943,13 @@ block. Both platforms' gates re-run per §0 rule 3.
   insets on the natural-landscape reference AVD), to M2.3b and M2.10a, and
   to OQ-M7 (a). It is Android screen fitting (§0 rule 2), not a shared game
   change, so the shared PRD is not amended.
+- *(Added 2026-09-30, v1.8.)* The M9.6 v1.8 note (C7.1-C7.7) traces to
+  the owner's three messages of 2026-09-30 as recorded in
+  `docs/PRD-addendum-v5.md` r3, to `docs/mobile/security/review-v2.md` V2-M3
+  and C7, and to `docs/mobile/security/review-v2-addendum4.md` (A4-M1,
+  A4-L1, A4-L3, §1.4). The glyphs are a shared art change owned by
+  `docs/PRD-addendum-v5.md` F23; this document only records the Android
+  policy side (M9.6).
 - Market complaint patterns → requirements: ads → M11.5/OQ-M1; touch targets
   and cut-off HUD → M2.3-M2.7, M3.1-M3.2/OQ-M2; fire-button lag → M3.6,
   M10.1; crashes → M10.4, M10.7, MG1.
@@ -1803,6 +1977,7 @@ block. Both platforms' gates re-run per §0 rule 3.
 | 2026-09-27 (v1.5) | Spec gap: `docs/mobile/tooling-setup-log.md` 2026-09-27 fold-AVD entry; `docs/mobile/tests/validation-report-round2.md` svr_api36_fold row; `docs/mobile/reviews/code-review-round7.md` I6 | header (status, v1.5 block); Sources; new M2.10a (under M2.10); M2.13 (+v1.5 note); M5 back table (+v1.5 note); §7 note; §8 | Any window that can't fit the M2.12 columns + a ≥ 0.5× playfield (≈ < 624 × 300 dp at nominal insets), of any shape, pauses the game and shows only "Make the window larger to play." Portrait-shaped windows keep M2.10's text. Enlarging it re-lays out within 1 s to the prior screen (a run returns on the pause menu, never auto-resumes). Back leaves the app. Emulator tests (a)-(d), including the fold AVD at 412 × 309 dp and the 640/600 dp boundary. PM decision within OQ-M7 (a), not owner-level. Android-only, no shared PRD change. |
 | 2026-09-28 (v1.6) | `docs/mobile/reviews/code-review-round8.md` **E1** (real gesture-nav insets on `svr_api36_pixel7`: t ≈ 28.2, b = 32, sides ≈ 29.7 dp; 640 × 360 dp window misses the v1.5 floor) | header (status, v1.6 block); Sources; new **M2.3b** (under M2.3a); M2.10a (+v1.6 note: definition, test (c)); M2.12 (+v1.6 note); §7 note; §8 | The **playfield** (non-interactive game art) may extend under the top and bottom **system-gesture** bands and the hidden status-bar area; its height is limited only by top/bottom **display-cutout** insets. HUD/hint **text**, touch controls and menu buttons stay inside the full `max(cutout, gesture)` insets on all four edges. Floor (0.5×), control sizes, text sizes and side-inset rule unchanged. Testable: a 16:9 640 × 360 dp phone with gesture navigation and a 24-28 dp status bar (insets 30, 30, 24-28.2, 32) plays at ≈ 0.505× with no prompt; three-button navigation plays; text/controls out of the bands; no art under a cutout; device evidence on a representative AVD. Known limit: width not relaxed (l + r ≤ 64 dp at 640 dp wide); side cutout or above-default back sensitivity still prompts — watched in the closed test. Rejected: lower floor (0.48×), smaller controls. PM decision within OQ-M7 (a), not owner-level. Android-only, no shared PRD change. |
 | 2026-09-28 (v1.7) | `docs/mobile/tests/validation-report-round4.md` **F3** (real three-button navigation on the natural-landscape `svr_api36_lowend_640x360` AVD: the bar stays at the bottom, insets t 24, l 0, r 0, b 48; the app shows the M2.10a prompt) | header (status, v1.7 block); Sources; new **M2.3c** (under M2.3b); §7 note; §8 | A three-button navigation bar is a bottom edge inset like any other. On a 640 × 360 dp window with a 48 dp bottom bar and a 24 dp top band, the HUD/hint text cannot stay out of both bands at a ≥ 0.5× playfield, so the M2.10a prompt is the **expected** result: a documented known limit next to the M2.3b width limit. Phones put the bar on the side in landscape (M2.3b (b), plays). Clarifies M2.3b rule 3: every menu screen fits inside the full insets on every playable window, down to the smallest playable safe height (≈ 292 dp; the architecture doc states it). Testable: (f1) 640 × 360 with (0, 0, 24, 48) → prompt with M2.10a behaviors; (f2) 640 × 368 with the same insets → plays, text top ≥ 24 and bottom ≤ H − 48, controls and all menu screens inside the insets; (f3) lowend AVD in three-button mode records the prompt as expected; (f4) tablet AVD in three-button mode plays; (f5) the closed-test item asks navigation mode and bar position. Rejected: moving/hiding the hint plus 288 dp menus (a second layout path for essentially absent hardware), text under the hidden bar, a lower floor. PM decision within OQ-M7 (a), not owner-level. Android-only, no shared PRD change. |
+| 2026-09-30 (v1.8) | `docs/mobile/security/review-v2-addendum4.md` **A4-M1**, **A4-L1**, **A4-L3** (condition C7); owner messages of 2026-09-30 19:48, 19:52 and 19:53 UTC ("I'll take the risk") as recorded in `docs/PRD-addendum-v5.md` r3 | header (status, v1.8 block); Sources; M9.6 (+v1.8 note C7.1-C7.7; items 1-8 kept); §7 log; §8 | **Owner decision recorded, not a PM decision.** The capital X on the `PERMANENT_MULTIPLIER` power-up token (F23 AC4.4) is an owner-accepted exception to M9.6 item 3 and not a hit under item 4; its status is "risk-accepted", never "cleared" or "approved". Risk in plain words: possible Play IP rejection, removal or a strike on a new personal developer account, or a trademark complaint against the website. Limits: two 2 px amber strokes, a ≤ 0.4r, never touching the ring; no X in the icon, adaptive icon, splash, title or logo, feature graphic, any store screenshot, or listing text. Item 2 clarified: the circle Shield token is not a hit, on five binding limits (one amber stroked circle only; radius 0.25r-0.35r; in no store asset; never enlarged into a badge, logo, splash or title element; wall bar as fallback); Q-v5-1 is answered by review-v2 addendum 4. Reversal: on any complaint or an owner change of mind, the r2 bars as a new F23 revision through both pipelines. The consequence and the circle ruling are stated to the owner by the main session in the thread update of 2026-09-30 (not a new approval). |
 
 Not changed (v1.3): OQ-M11..OQ-M14 remain pending (only OQ-M11's option (a)
 app ID text was updated); no original AC text was deleted — every v1.3
@@ -1874,6 +2049,29 @@ Follow-ups (each by the agent that owns the doc):
   `docs/mobile/tests/device-matrix.md` (step 10).
 - **mobile-product-manager** extends the step-16 checklist item with the
   (f5) questions.
+
+Not changed (v1.8): no original or v1.1-v1.7 text was deleted. M9.6 items
+1-8 keep their wording; the v1.8 note is an added, dated block. No game
+rule, control, layout, text or other AC changes. The glyph shapes are
+specified only in `docs/PRD-addendum-v5.md` F23, not here. C7 stays open
+until the reviewer's delta check (addendum 5).
+Follow-ups (each by the agent that owns the doc; all from
+`docs/mobile/security/review-v2-addendum4.md`):
+- **mobile-ui-ux-designer** updates `docs/mobile/ux/store-assets-spec.md`
+  (feature graphic and screenshot 4: fist or rabbit only; never the
+  Multiplier token, never the Shield token; delete "may be shown again")
+  (A4-M1).
+- **mobile-marketing-analyst** adds the same token rule to
+  `docs/mobile/market/listing-draft-v2.md` §5 screenshot 4 (A4-M1).
+- **mobile-technical-writer** corrects the C7 line and adds the by-eye
+  checkbox in `docs/mobile/release-runbook.md` (A4-L2).
+- **mobile-security-compliance-reviewer** delta-checks those lines and this
+  note, files only (addendum 5); C7 closes then.
+- **mobile-release-engineer** records the by-eye check of every store
+  screenshot, the feature graphic and the 512 icon in
+  `docs/mobile/release/submission-checklist.md` at step 15 (C7 part (d)).
+- **main session** sends the owner the thread update described in C7.1 and
+  C7.5.
 
 Not changed: owner decisions OQ-M1..OQ-M10 (final). v1.2 changes no
 existing AC text and decides no owner question; the architecture docs are

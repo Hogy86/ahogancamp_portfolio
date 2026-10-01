@@ -2,7 +2,7 @@
 
 **Author:** mobile-ui-ux-designer subagent
 **Stage:** Mobile Pipeline Step 3 (companion to `design-review-round1.md`)
-**Date:** 2026-09-25 (original); revised 2026-09-28 and 2026-09-29 (see Revision history)
+**Date:** 2026-09-25 (original); revised 2026-09-28, 2026-09-29 and 2026-09-30 (see Revision history)
 **Grounds for every asset below:** `docs/mobile/market/listing-draft-v2.md` §5
 (screenshot storyline), `docs/mobile/PRD-mobile.md` v1.7 M9 (icon/splash,
 including the Marvel-avoidance rules in M9.6) and M12.4 (screenshot
@@ -22,6 +22,7 @@ artwork itself.
 | 2026-09-25 | Original spec, written under the pre-rename product name "Vanguard vs. Sentinels", hero "Vanguard", enemies "Sentinels", grounded in `listing-draft.md` (v1). | Mobile Pipeline Step 3 |
 | 2026-09-28 | Rename applied to all live text: product "Shield vs Robots", hero "ShieldMan", enemies "robots". Title lockup changed from "VANGUARD VS. SENTINELS" to "SHIELD VS ROBOTS". Listing reference moved from `listing-draft.md` (v1, kept unmodified as history) to `listing-draft-v2.md`. Palette label "Vanguard blue/white" renamed "ShieldMan blue/white"; hex values unchanged. Marvel-avoidance (M9.6) added to the grounding and the cross-cutting constraints. No composition, dimension, or layer decisions changed. | `docs/PRD-addendum-v4.md` F22; `docs/mobile/PRD-mobile.md` v1.7 |
 | 2026-09-29 | Title lockup set in title case "Shield vs Robots" (no all-caps "SHIELD"). Screenshot 4 and feature graphic must not show the old ringed-"x" Permanent Multiplier token; capture only after the replacement glyph ships. | `docs/mobile/security/review-v2.md` V2-L6, V2-M3; `design-review-round5.md` |
+| 2026-09-30 | Feature graphic and screenshot 4 token rule tightened: fist (Hit Power) or rabbit (Speed) only; no Multiplier (X) token and no Shield (circle) token in any store asset. "May be shown again" sentence removed (no replacement glyph exists). Cross-cutting constraint extended to cover any circle-in-ring token. | `docs/mobile/security/review-v2-addendum4.md` A4-M1, C7 |
 
 Open item carried from the listing: OQ-M15 (owner decision on the hero name
 "ShieldMan" and its Captain-America adjacency, `listing-draft-v2.md` §6). This
@@ -93,9 +94,9 @@ surfaces, but required for the listing.
 - No licensed IP, no red-white-blue star motif, no concentric-ring shield
   (NFR-10 / F9 AC4 / M9.6) — the feature graphic is the single most-viewed
   asset on the listing page, so this constraint matters most here.
-- **Do not show the old ringed-"x" Permanent Multiplier token** (V2-M3, see
-  `design-review-round5.md`). If a power-up is in frame, use a different one, or
-  capture after the replacement glyph ships.
+- **No Multiplier (X) token and no Shield (circle) token in the feature graphic.**
+  If a power-up is in frame it is the fist or the rabbit (V2-M3;
+  `review-v2-addendum4.md` A4-M1).
 
 ## 4. Screenshots (phone — required; tablet — optional per OQ-M7 (a))
 
@@ -129,11 +130,9 @@ review's own F2/F3 findings before a real player ever sees the app.
 4. **Power-up catch moment.** A falling power-up icon mid-catch, HUD showing
    the active-effect indicator and permanent-multiplier readout (F7 AC10/11).
    Caption: "Catch it. Use it."
-   **Token rule (V2-M3):** the falling/caught token must NOT be the old
-   ringed-"x" Permanent Multiplier glyph. Use HIT_POWER, SPEED or SHIELD for
-   the catch, and capture the multiplier readout in the HUD only. Once the
-   replacement multiplier glyph has passed both gates (`design-review-round5.md`)
-   and a new build is captured, the multiplier token may be shown again.
+   **Token rule (V2-M3, review-v2 addendum 4 A4-M1):** the caught token is
+   Hit Power (fist) or Speed (rabbit) only. Never the Multiplier token and
+   never the Shield token. The multiplier appears only as the HUD text readout.
 5. **Pause menu.** The pause overlay (Resume / Restart Level / Restart Game /
    Quit) with the PAUSE button visible in the corner it's actually rendered
    in. Caption: **"Leave the app mid-level and it pauses automatically — tap
@@ -171,7 +170,8 @@ whole spec exists to avoid.
   Avengers, X-Men or "Sentinels" terms or visual motifs, no "S.H.I.E.L.D."
   styling, no "patriot"/"captain"/"star-spangled"/"America(n)" wording, no
   red-white-blue concentric-star shield, no licensed likeness anywhere.
-  This includes any "x inside a ring" shape (see V2-M3 above).
+  This includes any "x inside a ring" shape (see V2-M3 above) and any
+  circle-in-ring token.
 - Names in every asset are exactly: product "Shield vs Robots" (title case,
   never all-caps in lockups), hero "ShieldMan", enemies "robots" (plain noun).
   The old pre-rename names appear only in the Revision history above.

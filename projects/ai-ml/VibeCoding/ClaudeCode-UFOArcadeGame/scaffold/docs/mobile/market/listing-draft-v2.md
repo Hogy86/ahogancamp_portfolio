@@ -245,6 +245,10 @@ stop scrolling, per `play-store-research.md` §1 sourced guidance)
    an active-effect indicator and the permanent-multiplier readout (F7
    AC10/AC11). Caption overlay: "Catch it. Use it." — demonstrates the catch
    mechanic and on-screen feedback loop.
+   Token rule: the falling/caught token is the fist (Hit Power) or the rabbit
+   (Speed) only. Never the Multiplier (X) token and never the Shield (circle)
+   token. The multiplier appears only as the HUD readout. (Note 2026-09-30:
+   added from review-v2 addendum 4, A4-M1, condition C7.)
 5. **Pause menu / session-respecting UI.** The pause overlay showing Resume /
    Restart Level / Restart Game / Quit (F6). Caption overlay: "Pause
    anytime. Tap Resume and carry on." — updated wording to match the

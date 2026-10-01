@@ -2,13 +2,17 @@
 
 **Product:** Shield vs Robots
 **Stage:** 2 — Product Manager (PRD addendum, shared art change)
-**Date:** 2026-09-29 (r1 2026-09-29, r2 2026-09-30, r3 2026-09-30)
+**Date:** 2026-09-29 (r1 2026-09-29, r2 2026-09-30, r3 2026-09-30, r4 2026-09-30)
 **Author:** product-manager subagent
 **Status:** v5 r3 — DECIDED in scope. r3 carries the owner's final glyph
 choices and one owner-accepted IP risk (2026-09-30, below). The change is art
 only. No game rule, number, timing or text changes. The one change to the IP
 rule (NFR-10 / F9 AC4, tightened by v4 F22 AC8) is a narrow, owner-accepted
 exception for the Permanent Multiplier token (§r3 below, F22 AC8(c)).
+*(Status updated 2026-09-30, r4: Q-v5-1 answered by
+`docs/mobile/security/review-v2-addendum4.md`; the circle is kept. No glyph,
+geometry or test bound changes, so "F23 r3" stays the glyph specification
+that code, tests and other docs cite. See §Revision r4.)*
 
 **Revision 2026-09-29 (r1)** — fixes `docs/mobile/reviews/code-review-round16.md`
 **D6** (the addendum contradicted itself). The F11 AC8 amendment required
@@ -126,6 +130,19 @@ r3 changes, old r2 text quoted next to new:
 | AC9 | "… shows the old ringed "x", chevron, speed lines or kite." | Old chevron, speed lines and kite gone. The Multiplier's current X is kept. Screenshot 4 does not show the Multiplier token. |
 | F22 AC8(c) amendment | "No token, icon, HUD element, logo, splash or store asset shows an "X" emblem …" | Same rule, plus one named exception: the `PERMANENT_MULTIPLIER` token glyph (F23 AC4.4). |
 | Cross-platform note | "… the ringed-"x" hit is resolved by F23 …" | The Multiplier X is an owner-accepted risk; mobile-product-manager records it under C7 in M9.6. |
+
+**Revision 2026-09-30 (r4) — records review-v2 addendum 4; no glyph
+change.** `docs/mobile/security/review-v2-addendum4.md` (2026-09-30) ruled on
+the r3 glyphs. r4 writes three of its results into this addendum. It changes
+no shape, radius band, colour, test bound or owner decision. The fist, the
+rabbit, the circle and the capital X stay exactly as r3 specifies them.
+
+| Where | r3 text (quoted) | r4 text |
+|---|---|---|
+| Open Question Q-v5-1 | "Q-v5-1 (new in r3, not blocking implementation) … This was not raised with the owner on 2026-09-30. Options: (a) … (b) … (c) …" | **Answered** by review-v2 addendum 4 §1.4: the circle is kept, on five binding limits; the wall bar (r2 AC4.3) is the fallback. The r3 question text is kept below the answer. |
+| AC9 | "… never the Multiplier token (and, pending Q-v5-1, not the Shield token); the feature graphic shows no Multiplier token." | The Shield-token exclusion is **permanent** and covers every store asset (review-v2 addendum 4 §1.4 limit 3). No store asset shows the Multiplier token or the Shield token (addendum 4 A4-M1). |
+| AC4.3 | "At r = 12 that is a 3-4.2px radius circle with a gap of at least 7.8px (0.65r) to the ring" | 7.8px is the centre-line distance. The visible dark gap between the two 2px strokes is at least about 5.8px (about 5.9px at the implemented 0.34r). Review-v2 addendum 4 A4-I2. |
+| Cross-platform table, AC4.3 row | "See Q-v5-1." | "Q-v5-1 answered (r4)." |
 
 **What this addendum does.** It adds **F23**, which sets the icon ("glyph")
 drawn inside each of the four power-up tokens. The shared amber ring and the
@@ -336,9 +353,17 @@ r = 20) so that the geometry is proven to scale with r.
    - **4.3 `SHIELD` — circle.** Exactly one stroked full circle (`arc`
      0 to 2π, or `ellipse` with equal radii), centered at (0, 0) ± 0.03r,
      with radius between **0.25r and 0.35r**. At r = 12 that is a 3-4.2px
-     radius circle with a gap of at least 7.8px (0.65r) to the ring, so it
-     reads as a small separate circle, not a second ring. No star, dot, fill
-     or other mark inside it (M9.6 item 2; see Open Question Q-v5-1).
+     radius circle whose centre line is at least 7.8px (0.65r) from the
+     ring's centre line. Both strokes are 2px wide, so the visible dark gap
+     between them is at least about 5.8px (about 5.9px at the implemented
+     radius of 0.34r). It reads as a small separate circle, not a second
+     ring. No star, dot, fill or other mark inside it (M9.6 item 2; Open
+     Question Q-v5-1, answered in r4).
+     *r3 text superseded (r4, review-v2 addendum 4 A4-I2):* "At r = 12 that
+     is a 3-4.2px radius circle with a gap of at least 7.8px (0.65r) to the
+     ring, so it reads as a small separate circle, not a second ring." The
+     7.8px figure was a centre-line distance, not the visible gap. No bound
+     changes.
    - **4.4 `PERMANENT_MULTIPLIER` — capital X.** Exactly two diagonal
      segments:
      (a) one from (−a, −a) to (+a, +a) and one from (+a, −a) to (−a, +a),
@@ -417,9 +442,16 @@ r = 20) so that the geometry is proven to scale with r.
    after this change shows the old chevron, speed lines or kite. The
    Multiplier's X stays (AC4.4). Store screenshot 4 ("Power-up catch moment",
    `docs/mobile/ux/store-assets-spec.md`) shows a **Hit Power (fist) or
-   Speed (rabbit)** token, never the Multiplier token (and, pending
+   Speed (rabbit)** token, never the Multiplier token and never the Shield
+   token. **No store asset** (screenshot 4, any other phone or tablet
+   screenshot, the feature graphic, the store icon) shows the Multiplier (X)
+   token or the Shield (circle) token. If a power-up is in frame, it is the
+   fist or the rabbit. The Shield-token exclusion is **permanent** (r4;
+   review-v2 addendum 4 §1.4 limit 3), not pending. All store assets are
+   captured only from a build that contains the new glyphs.
+   *r3 text superseded (r4):* "… never the Multiplier token (and, pending
    Q-v5-1, not the Shield token); the feature graphic shows no Multiplier
-   token. Both are captured only from a build that contains the new glyphs.
+   token. Both are captured only from a build that contains the new glyphs."
    The Android power-up evidence screenshots (`m2_7_lowend_powerups_*`) are
    re-captured with the new glyphs for mobile-ui-ux-designer's next round.
    *r2 text superseded:* "… shows the old ringed "x", chevron, speed lines or
@@ -437,7 +469,7 @@ r = 20) so that the geometry is proven to scale with r.
 | F23 AC | Android counterpart | Owner of the mobile side |
 |---|---|---|
 | AC1, AC7 | **M9.6 item 3** ("No X-Men imagery or iconography: no 'X' emblem") and item 4 ("Any hit is a FAIL"). The Multiplier token X is an owner-accepted exception, not a hit; everything else must stay X-free. | mobile-product-manager (records the acceptance under **C7** in M9.6), mobile-security-compliance-reviewer (closes review-v2 **V2-M3** as **risk-accepted**), mobile-ui-ux-designer (next round) |
-| AC4.3 | **M9.6 item 2** ("no concentric-ring shield"). See Q-v5-1. | mobile-security-compliance-reviewer, mobile-ui-ux-designer |
+| AC4.3 | **M9.6 item 2** ("no concentric-ring shield"). Q-v5-1 answered (r4): not a hit, on five binding limits; recorded in the PRD-mobile M9.6 note of 2026-09-30. | mobile-security-compliance-reviewer, mobile-ui-ux-designer |
 | AC4.2(d) | Store/IP check of the rabbit silhouette (Playboy, Energizer, Duracell). | mobile-ui-ux-designer, mobile-security-compliance-reviewer |
 | AC6 | UC4 row: "power-up icons must stay distinguishable at phone scale (F11 AC8)"; M2 phone-scale checks on the low-end profile, including a grayscale capture | mobile-junior-tester / mobile-lead-tester (device matrix captures) |
 | AC9 | `store-assets-spec.md` screenshot 4 and feature graphic; review-v2 C7 ("before screenshots are captured (step 15)") | mobile-release-engineer, mobile-ui-ux-designer |
@@ -471,6 +503,38 @@ redraws the other three glyphs)."
 
 ## Open Questions v5 — for owner decision
 
+**Q-v5-1 — ANSWERED 2026-09-30 (r4) by
+`docs/mobile/security/review-v2-addendum4.md` §1.4 (finding A4-L1): the
+circle is kept.** This is option (a) below. The reviewer ruled the circle
+Shield token **not a hit** under PRD-mobile M9.6 item 2, on five binding
+limits:
+1. One amber stroked circle only: no fill, star, dot or second inner ring;
+   no red, white or blue; no alternating bands. The test `SHIELD is exactly
+   one full circle and nothing else` must stay.
+2. The radius stays within 0.25r-0.35r (0.34r as implemented).
+3. The Shield token appears in **no** store asset: not screenshot 4, not the
+   feature graphic, not the icon, not a tablet screenshot (AC9, now
+   permanent).
+4. The glyph is never enlarged into a HUD badge, logo, splash or title
+   element.
+5. **Fallback:** if a complaint arrives or a later reviewer disagrees, the
+   Shield token becomes the wall bar (r2 AC4.3, already specified), as a new
+   F23 revision through both pipelines.
+
+Option (b), a solid dot, is **not recommended** by the reviewer: a filled
+dot inside a ring is closer to a retailer's bullseye logo than the hollow
+circle is. Option (c), the wall, is the fallback in limit 5.
+
+No owner decision is needed. The owner chose the circle on 2026-09-30
+(19:52 UTC). The ruling (reviewed, acceptable with limits, kept out of store
+art, wall bar as fallback) is stated to the owner by the main session in its
+project-thread update of 2026-09-30, and recorded in the
+`docs/mobile/PRD-mobile.md` M9.6 note of the same date. He can still ask for
+the wall. The website pass 2 (security-compliance-reviewer) records the same
+disposition against NFR-10.
+
+*r3 question text, kept for the audit trail:*
+
 **Q-v5-1 (new in r3, not blocking implementation): the circle Shield token
 and PRD-mobile M9.6 item 2.** M9.6 item 2 bans a "concentric-ring shield"
 (Captain America's shield is concentric rings). The r3 Shield token is an
@@ -490,8 +554,8 @@ raised with the owner on 2026-09-30. Options:
 - (c) Switch Shield to the owner's other option, the wall "---" (r2 AC4.3,
   already specified). Cost: reverses an owner choice; needs owner approval.
 
-Otherwise none open. The owner chose all four shapes on 2026-09-30 and
-accepted the X risk. The change costs three redrawn glyph branches, their
+None open (r4: Q-v5-1 is answered above). The owner chose all four shapes
+on 2026-09-30 and accepted the X risk. The change costs three redrawn glyph branches, their
 unit tests, a grayscale capture and a screenshot re-capture.
 
 ---

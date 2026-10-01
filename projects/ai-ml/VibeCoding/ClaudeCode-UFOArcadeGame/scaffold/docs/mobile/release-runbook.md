@@ -17,17 +17,17 @@
 
 Verify these items from `docs/mobile/security/review-v2.md` conditions C1-C11 are complete and recorded in `docs/mobile/release/submission-checklist.md`:
 
-- ✓ **C1:** OQ-M11 decided: account type, public developer name, contact email, app ID confirmed or updated.
-- ✓ **C2:** OQ-M12 decided: Play App Signing enrolled, upload key generated and backed up.
-- ✓ **C3:** OQ-M13 decided: target age group (if "under 13", Families policy applies and review-v2 addendum required).
-- ✓ **C4:** OQ-M14 decided: ≥ 12 testers recruited and confirmed for closed test.
-- ✓ **C5:** OQ-M15 (ShieldMan name check) decided and recorded in PRD-mobile §7.
-- ✓ **C6:** V2-M2 (trademark keywords removed from listing).
-- ✓ **C7:** V2-M3 (permanent multiplier glyph ruled on per design review).
-- ✓ **C8:** Privacy text final; hosted URL loads over HTTPS; all three hashes equal.
-- ✓ **C9:** V2-L2 release evidence plus live re-check of targetSdk, closed-test rule, and User Data policy wording.
-- ✓ **C10:** Play Console answers transcribed and entered exactly.
-- ✓ **C11:** No changed build promoted to production without CI and a C9 re-run (due at step 17).
+- [ ] **C1:** OQ-M11 decided: account type, public developer name, contact email, app ID confirmed or updated.
+- [ ] **C2:** OQ-M12 decided: Play App Signing enrolled, upload key generated and backed up.
+- [ ] **C3:** OQ-M13 decided: target age group (if "under 13", Families policy applies and review-v2 addendum required).
+- [ ] **C4:** OQ-M14 decided: ≥ 12 testers recruited and confirmed for closed test.
+- [ ] **C5:** OQ-M15 (ShieldMan name check) decided and recorded in PRD-mobile §7.
+- [ ] **C6:** V2-M2 (trademark keywords removed from listing).
+- [ ] **C7:** V2-M3 closed as owner risk-accepted (PRD addendum v5 r3; review-v2 addendum 4). M9.6 note recorded; no Multiplier or Shield token in any store graphic; icon, splash and feature graphic X-free.
+- [ ] **C8:** Privacy text final; hosted URL loads over HTTPS; all three hashes equal.
+- [ ] **C9:** V2-L2 release evidence plus live re-check of targetSdk, closed-test rule, and User Data policy wording.
+- [ ] **C10:** Play Console answers transcribed and entered exactly.
+- [ ] **C11:** No changed build promoted to production without CI and a C9 re-run (due at step 17).
 
 If any condition is OPEN, stop and route back to mobile-product-manager before proceeding.
 
@@ -467,7 +467,7 @@ Record all the following in `docs/mobile/release/submission-checklist.md` before
 
 - [ ] Commit SHA (short): ____________________
 - [ ] Tree clean (`git status`): Yes / No
-- [ ] All conditions C1-C11 from review-v2 complete: Yes / No
+- [ ] C1-C10 complete: Yes / No. C11 acknowledged (re-checked at step 17): Yes / No
 
 ### Build
 
@@ -485,7 +485,7 @@ Record all the following in `docs/mobile/release/submission-checklist.md` before
 - [ ] No network errors in logcat: PASS / FAIL
 - [ ] Manifest check passed: PASS / FAIL
 
-### Privacy policy (C8, C9, C10, C11)
+### Privacy policy (C8) and live policy re-check (C9)
 
 - [ ] Hosted URL (`public/privacy.html` on GitHub Pages): loads over HTTPS
 - [ ] Repo copy SHA-256 (from `public/privacy.html`): ____________________
@@ -496,7 +496,9 @@ Record all the following in `docs/mobile/release/submission-checklist.md` before
 
 To extract and hash the files:
 ```powershell
-# Repo copy
+cd C:\Users\<owner>\dev-build\shield-vs-robots
+
+# Mirror copy (the "repo copy" is actually the mirror copy; parity is checked by §3.1)
 (Get-FileHash public/privacy.html -Algorithm SHA256).Hash
 
 # Hosted copy (C8: must load over HTTPS)
@@ -507,7 +509,14 @@ Invoke-WebRequest -Uri "https://hogy86.github.io/ahogancamp_portfolio/privacy.ht
 mkdir "$env:TEMP\aab-x" -Force | Out-Null
 tar -xf android/app/build/outputs/bundle/release/app-release.aab -C "$env:TEMP\aab-x" base/assets/public/privacy.html
 (Get-FileHash "$env:TEMP\aab-x\base\assets\public\privacy.html" -Algorithm SHA256).Hash
+
+# If the hashes differ, check line endings first (the repo has LF, a Windows clone with core.autocrlf=true may produce CRLF).
+# Compute all three hashes after A-C1 (the placeholder edit changes the hash) and after that commit is live on GitHub Pages.
 ```
+
+### Store graphics (C7)
+
+- [ ] Every store screenshot (phone and tablet), the feature graphic and the 512 icon checked by eye: no X token, no circle token. Any power-up shown is the fist or the rabbit.
 
 ### Play Console
 
