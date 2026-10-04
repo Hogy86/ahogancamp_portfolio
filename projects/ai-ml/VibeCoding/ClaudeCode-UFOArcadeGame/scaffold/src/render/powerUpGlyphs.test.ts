@@ -105,16 +105,25 @@ function allPoints(glyph: Op[], r: number): Pt[] {
 
 /** Splits glyph calls into subpaths (each moveTo starts one) and flattens curves; result is
  * in units of r. `closed` is true when the subpath ended with closePath. */
-function subpaths(glyph: Op[], r: number): { pts: Pt[]; closed: boolean }[] {
-  const out: { pts: Pt[]; closed: boolean }[] = [];
-  let cur: { pts: Pt[]; closed: boolean } | null = null;
+type SubPath = {
+  pts: Pt[];
+  closed: boolean;
+  /** src[i] is what drew the segment that ENDS at pts[i] ('curve' or 'line'; src[0] is the
+   * moveTo). closeSrc is what drew the closing segment from the last point back to pts[0]. */
+  src: ('move' | 'line' | 'curve')[];
+  closeSrc: 'line' | 'curve';
+};
+function subpaths(glyph: Op[], r: number): SubPath[] {
+  const out: SubPath[] = [];
+  let cur: SubPath | null = null;
   const last = (): Pt => cur!.pts[cur!.pts.length - 1]!;
   for (const o of glyph) {
     if (o.op === 'moveTo') {
-      cur = { pts: [{ x: o.x / r, y: o.y / r }], closed: false };
+      cur = { pts: [{ x: o.x / r, y: o.y / r }], closed: false, src: ['move'], closeSrc: 'line' };
       out.push(cur);
     } else if (o.op === 'lineTo' && cur) {
       cur.pts.push({ x: o.x / r, y: o.y / r });
+      cur.src.push('line');
     } else if (o.op === 'quadraticCurveTo' && cur) {
       const p0 = last();
       const c = { x: o.cx / r, y: o.cy / r };
@@ -126,6 +135,7 @@ function subpaths(glyph: Op[], r: number): { pts: Pt[]; closed: boolean }[] {
           x: u * u * p0.x + 2 * u * t * c.x + t * t * p2.x,
           y: u * u * p0.y + 2 * u * t * c.y + t * t * p2.y,
         });
+        cur.src.push('curve');
       }
     } else if (o.op === 'bezierCurveTo' && cur) {
       const p0 = last();
@@ -139,13 +149,18 @@ function subpaths(glyph: Op[], r: number): { pts: Pt[]; closed: boolean }[] {
           x: u ** 3 * p0.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t ** 3 * p3.x,
           y: u ** 3 * p0.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t ** 3 * p3.y,
         });
+        cur.src.push('curve');
       }
     } else if (o.op === 'closePath' && cur) {
       cur.closed = true;
       // A final point equal to the start is the same vertex, not an extra one.
       const first = cur.pts[0]!;
       const end = last();
-      if (cur.pts.length > 1 && Math.hypot(end.x - first.x, end.y - first.y) < 1e-12) cur.pts.pop();
+      if (cur.pts.length > 1 && Math.hypot(end.x - first.x, end.y - first.y) < 1e-12) {
+        cur.pts.pop();
+        const popped = cur.src.pop();
+        if (popped === 'curve') cur.closeSrc = 'curve';
+      }
     }
   }
   return out;
@@ -338,7 +353,12 @@ function rabbitLandmarks(raw: Pt[]) {
   const centreX = (box.minX + box.maxX) / 2;
   const bumps = topBumps(pts);
   const ears = bumps.filter((b) => b.prominence >= 0.3).sort((p, q) => p.x - q.x);
-  const [rear, front] = ears as [Bump, Bump];
+  // L2 (code-review-round19): with any ear count other than 2 this must not throw, because
+  // it runs while the describe body is collected (the whole file would report no tests).
+  // The degenerate fallback lets AC4.2(b)1 fail with a normal assertion on the ear count.
+  const fallback: Bump = bumps[0] ?? { x: 0, y: 0, prominence: 0 };
+  const rear: Bump = ears[0] ?? fallback;
+  const front: Bump = ears[1] ?? rear;
   const between = sampleRange(rear.x, front.x, 400);
   const V = { x: 0, y: -Infinity };
   for (const x of between) {
@@ -348,7 +368,7 @@ function rabbitLandmarks(raw: Pt[]) {
       V.y = y;
     }
   }
-  const rump = bumps.filter((b) => b.x < rear.x).sort((p, q) => p.y - q.y)[0]!;
+  const rump = bumps.filter((b) => b.x < rear.x).sort((p, q) => p.y - q.y)[0] ?? fallback;
   const N = { x: 0, y: -Infinity };
   for (const x of sampleRange(rump.x, rear.x, 400)) {
     const y = upperY(pts, x);
@@ -368,7 +388,23 @@ function rabbitLandmarks(raw: Pt[]) {
     )[0]!;
     return { y, x0: run[0], x1: run[1], width: run[1] - run[0], mid: (run[0] + run[1]) / 2 };
   };
-  return { pts, box, W, H, centreX, bumps, ears, rear, front, V, N, R: rump, E, earSlice };
+  return {
+    pts,
+    mirrored: !headRight,
+    box,
+    W,
+    H,
+    centreX,
+    bumps,
+    ears,
+    rear,
+    front,
+    V,
+    N,
+    R: rump,
+    E,
+    earSlice,
+  };
 }
 
 /** F23 AC6(a): a glyph's recorded path reduced to the signature columns of the table. */
@@ -585,8 +621,24 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
   });
 
   describe('AC4.2: SPEED is a side-view rabbit (r5)', () => {
-    const raw = subpaths(glyphOf('SPEED'), r)[0]!.pts;
+    const rabbitPath = subpaths(glyphOf('SPEED'), r)[0]!;
+    const raw = rabbitPath.pts;
     const m = rabbitLandmarks(raw);
+    /** True when every outline segment that holds point p (within 1e-6r) was drawn by a curve
+     * call (v3-round2 L4: a pointed tip made by a lineTo next to a curve must not pass). */
+    const heldByCurve = (p: Pt): boolean => {
+      const n = m.pts.length;
+      const holding: ('move' | 'line' | 'curve')[] = [];
+      for (let i = 0; i < n; i += 1) {
+        const a = m.pts[i]!;
+        const j = (i + 1) % n;
+        const seg: Seg = [a, m.pts[j]!];
+        if (distToSegment(p, seg) <= 1e-6) {
+          holding.push(j === 0 ? rabbitPath.closeSrc : rabbitPath.src[j]!);
+        }
+      }
+      return holding.length > 0 && holding.every((k) => k === 'curve');
+    };
     const { pts, rear, front, V, N, R, E } = m;
     const eps = 1e-9;
     it('(a) has a 1.1r-1.3r by 0.9r-1.2r box, wider than tall, centered on the token', () => {
@@ -642,8 +694,16 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
             o.op === 'bezierCurveTo' || o.op === 'quadraticCurveTo',
         );
         for (const ear of m.ears) {
-          const nearTip = curves.some((o) => Math.hypot(o.x / r - ear.x, o.y / r - ear.y) <= 0.15);
+          // L3: the curve end points are in the raw (unmirrored) frame, the ear in the mirrored one.
+          const sign = m.mirrored ? -1 : 1;
+          const nearTip = curves.some(
+            (o) => Math.hypot((sign * o.x) / r - ear.x, o.y / r - ear.y) <= 0.15,
+          );
           expect(nearTip).toBe(true);
+          expect(
+            heldByCurve({ x: ear.x, y: ear.y }),
+            'the outline segment at the ear tip is a curve',
+          ).toBe(true);
           for (const [a, b] of segments(pts, true)) {
             const horizontal = Math.abs(a.y - b.y) <= 0.02;
             const belowTip =
@@ -684,7 +744,14 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
           (o): o is Extract<Op, { op: 'bezierCurveTo' | 'quadraticCurveTo' }> =>
             o.op === 'bezierCurveTo' || o.op === 'quadraticCurveTo',
         );
-        expect(curves.some((o) => Math.hypot(o.x / r - R.x, o.y / r - R.y) <= 0.2)).toBe(true);
+        const sign = m.mirrored ? -1 : 1;
+        expect(curves.some((o) => Math.hypot((sign * o.x) / r - R.x, o.y / r - R.y) <= 0.2)).toBe(
+          true,
+        );
+        expect(
+          heldByCurve({ x: R.x, y: R.y }),
+          'the outline segment at the rump top is a curve',
+        ).toBe(true);
       });
       it('3. keeps a horizontal body: below V it is >= 1.3x as wide as tall', () => {
         const b = bbox(pts.filter((p) => p.y >= V.y));

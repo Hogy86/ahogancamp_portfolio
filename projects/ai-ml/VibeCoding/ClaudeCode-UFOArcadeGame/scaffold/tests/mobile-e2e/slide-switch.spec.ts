@@ -141,8 +141,15 @@ const SWIPES_PER_DIRECTION = 20;
 // that window to inspect, which is a delivery artifact, not a game stall. Rule 2 is only
 // meaningful when the page really spent a realistic time in the gap, so a gesture whose
 // in-page dwell is shorter than this is re-collected (bounded, like a GAMEOVER
-// interruption). A genuine stall inside a real dwell still leaves <2 frames and fails.
+// interruption). A drop in the gap (ShieldMan not moving)
+// leaves <2 moving frames and fails; the recorder only logs frames where x changed, so
+// this is the rule itself, not a main-thread stall detector. Re-collections are capped per
+// test (MAX_RECOLLECTED_GESTURES) and counted, so they cannot hide on screen.
 const MIN_GAP_DWELL_MS = 120;
+// code-review-round19 L1: fail a test if more than this many of its 40 gestures needed a
+// re-collection (compressed dwell or GAMEOVER), so a systematic delivery problem is visible.
+const MAX_RECOLLECTED_GESTURES = 4;
+let recollectedGestures = 0;
 
 async function snapshot(page: Page) {
   return page.evaluate(() => window.__vvsTest!.snapshot());
@@ -176,7 +183,10 @@ async function startRun(page: Page): Promise<void> {
 async function enableSwapControls(page: Page): Promise<void> {
   await page.locator('[data-action="settings"]').click();
   await page.locator('[data-action="settings-swap"]').click();
-  await page.getByRole('dialog', { name: 'Settings' }).locator('[data-action="overlay-close"]').click();
+  await page
+    .getByRole('dialog', { name: 'Settings' })
+    .locator('[data-action="overlay-close"]')
+    .click();
 }
 
 /**
@@ -307,7 +317,9 @@ async function runOneSlide(
   const RUN_ONE_SLIDE_MAX_ATTEMPTS = 3;
   let dataCollectionInterrupted = true;
   let compressedGestures = 0;
+  let attemptsUsed = 0;
   for (let attempt = 0; attempt < RUN_ONE_SLIDE_MAX_ATTEMPTS; attempt += 1) {
+    attemptsUsed += 1;
     await page.evaluate(() => window.__startSlideRecorder!());
 
     await touchDown(client, from.x, from.y);
@@ -327,7 +339,9 @@ async function runOneSlide(
     pointerLog = result.pointerLog;
     const recordedMoves = result.pointerLog.filter(([, type]) => type === 'pointermove');
     const gapDwell =
-      recordedMoves.length >= 2 ? recordedMoves[1]![0] - recordedMoves[0]![0] : Number.POSITIVE_INFINITY;
+      recordedMoves.length >= 2
+        ? recordedMoves[1]![0] - recordedMoves[0]![0]
+        : Number.POSITIVE_INFINITY;
     const compressed = gapDwell < MIN_GAP_DWELL_MS;
     if (compressed) compressedGestures += 1;
     dataCollectionInterrupted = result.leftPlaying || compressed;
@@ -345,6 +359,8 @@ async function runOneSlide(
     );
   }
 
+  if (attemptsUsed > 1) recollectedGestures += 1;
+
   // The scripted gesture dispatches exactly one pointerdown (from) then two
   // pointermoves (gap, then to) then one pointerup - matched by ORDER, using the
   // page's own clock, not Node's `Date.now()` around the CDP round trip (which was
@@ -356,7 +372,11 @@ async function runOneSlide(
   ).toBeGreaterThanOrEqual(2);
   const tGapEnter = moves[0]![0];
   const tEnter = moves[1]![0];
-  if (compressedGestures > 0) test.info().annotations.push({ type: 'recollected-compressed', description: String(compressedGestures) });
+  if (compressedGestures > 0)
+    test.info().annotations.push({
+      type: 'recollected-compressed',
+      description: String(compressedGestures),
+    });
 
   // Rule 2 ("no drop"): while the finger is between the two buttons, ShieldMan keeps
   // moving the OLD direction, with no zero-velocity frame.
@@ -391,9 +411,10 @@ async function runOneSlide(
   for (let i = switchIndex + 1; i < postFrames.length; i += 1) {
     const dx = postFrames[i]![1] - postFrames[i - 1]![1];
     if (dx !== 0) {
-      expect(Math.sign(dx), 'moved the OLD direction after entering the new button (rule 3, "no stick")').not.toBe(
-        initialSign,
-      );
+      expect(
+        Math.sign(dx),
+        'moved the OLD direction after entering the new button (rule 3, "no stick")',
+      ).not.toBe(initialSign);
     }
   }
 }
@@ -411,6 +432,7 @@ async function runOneSlide(
  * not the M3.3a behavior under test).
  */
 async function runFortySwipes(page: Page): Promise<void> {
+  recollectedGestures = 0;
   const client = await page.context().newCDPSession(page);
 
   for (let i = 0; i < SWIPES_PER_DIRECTION; i += 1) {
@@ -426,12 +448,21 @@ async function runFortySwipes(page: Page): Promise<void> {
     const toLeft = await currentRects(page);
     await runOneSlide(page, client, toLeft.right, toLeft.left, toLeft.gap, 'left');
   }
+  console.log(
+    `slide-switch: ${recollectedGestures} of ${SWIPES_PER_DIRECTION * 2} gestures re-collected`,
+  );
+  expect(
+    recollectedGestures,
+    `more than ${MAX_RECOLLECTED_GESTURES} of ${SWIPES_PER_DIRECTION * 2} gestures needed re-collection`,
+  ).toBeLessThanOrEqual(MAX_RECOLLECTED_GESTURES);
 }
 
 test.describe('M3.3a - 40/40 continuous slide-to-switch', () => {
   test.setTimeout(180_000);
 
-  test('default layout: 20 L->R and 20 R->L continuous swipes all switch cleanly', async ({ page }) => {
+  test('default layout: 20 L->R and 20 R->L continuous swipes all switch cleanly', async ({
+    page,
+  }) => {
     await page.addInitScript(installSlideRecorder);
     await page.goto('/?e2e=1');
     await page.evaluate(() => localStorage.clear());
