@@ -9,6 +9,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const PORT = 4174;
+// Pinned to the IPv4 loopback: `localhost` can resolve to ::1 first while vite preview
+// listens on 127.0.0.1, which showed up as rare net::ERR_CONNECTION_REFUSED (~1 in 650).
+const HOST = '127.0.0.1';
+const ORIGIN = `http://${HOST}:${PORT}`;
 
 export default defineConfig({
   testDir: 'tests/mobile-e2e',
@@ -18,12 +22,13 @@ export default defineConfig({
     // `--mode android` makes vite.config.ts resolve `build.outDir` to
     // `dist-android` (the same mode `npm run build:android` builds with), so
     // `vite preview` serves the Android-mode build, not the default web one.
-    command: `npx vite preview --mode android --port ${PORT} --strictPort`,
-    port: PORT,
+    command: `npx vite preview --mode android --host ${HOST} --port ${PORT} --strictPort`,
+    // A URL (not just `port`) makes Playwright wait for an HTTP 200 from the page, not a bare TCP accept.
+    url: `${ORIGIN}/`,
     reuseExistingServer: !process.env.CI,
   },
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: ORIGIN,
     hasTouch: true,
     isMobile: true,
     deviceScaleFactor: 2,

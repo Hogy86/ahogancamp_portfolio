@@ -78,6 +78,7 @@ function bootstrap(platform: Platform): void {
     // Android re-layout (fold/resize/insets change), not just at boot. Web's platform
     // never calls this after the one boot-time call below.
     setRenderScale: (scale) => renderer.applyScale(scale),
+    setTopBannerTextOnCanvas: (enabled) => renderer.setTopBannerTextOnCanvas(enabled),
   };
 
   // Mounting touch/fit/back/lifecycle is async only on Android (e.g. reading

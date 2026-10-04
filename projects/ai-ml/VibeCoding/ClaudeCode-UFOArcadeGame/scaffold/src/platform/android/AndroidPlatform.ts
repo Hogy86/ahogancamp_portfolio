@@ -27,6 +27,7 @@ import { AndroidOverlays } from './overlays';
 import { registerBackButton, resolveBackTarget } from './backButton';
 import { registerLifecycle } from './lifecycle';
 import { GameShell } from './GameShell';
+import { TopBanner, type TopBannerKind } from './topBanner';
 
 let overlays: AndroidOverlays;
 let touchControls: TouchControls;
@@ -41,6 +42,19 @@ let touchControlsVisible = true;
 /** Last state written to `<html data-vvs-state>`, so the attribute is only touched on a
  * transition (android.css hides the HUD and control hint by state). */
 let publishedState: string | null = null;
+let topBanner: TopBanner;
+/** Test-only (`?e2e=1`): forces a DOM banner on without touching the world, since the
+ * real triggers need minutes of play. See installE2eTestHook. */
+let forcedTopBanner: TopBannerKind = null;
+
+/** Which top banner the world calls for. Boss wins if both were ever active, so the two
+ * never show on top of each other. Only the states the canvas borders are drawn in. */
+function topBannerFor(world: World): TopBannerKind {
+  if (world.state !== 'PLAYING' && world.state !== 'PAUSED') return null;
+  if (forcedTopBanner !== null) return forcedTopBanner;
+  if (world.bossWarningRemaining > 0) return 'boss';
+  return world.formationWarningActive ? 'robots' : null;
+}
 
 /** design-review-round3 L1 (code-review-round13): while the too-small/portrait prompt
  * shows, the hidden 800 x 600 `#app-root` is wider than a narrow window, and WebView
@@ -113,6 +127,7 @@ export const androidPlatform: Platform = {
       pauseForInterruption(world);
     }
     publishState(world.state);
+    topBanner.sync(topBannerFor(world));
     const playing = world.state === 'PLAYING';
     if (playing !== touchControlsVisible) {
       touchControlsVisible = playing;
@@ -161,6 +176,13 @@ export const androidPlatform: Platform = {
         }
       },
       (swap) => screenFit.setSwapControls(swap),
+    );
+
+    // The words move out of the canvas into a DOM row below the HUD (topBanner.ts).
+    ctx.setTopBannerTextOnCanvas(false);
+    topBanner = new TopBanner(
+      ctx.dom.appRoot,
+      ctx.dom.appRoot.querySelector<HTMLElement>('#hud-root') ?? ctx.dom.appRoot,
     );
 
     touchControls = new TouchControls(
@@ -299,6 +321,11 @@ function installE2eTestHook(ctx: PlatformContext): void {
     // §10.1 Amendment A11: the same pure order-resolution `registerBackButton` uses,
     // called directly rather than through the real `App.addListener('backButton', ...)`
     // path (see backButton.ts's own comment on why that path is excluded here).
+    // Presentation only: shows an Android DOM banner so its layout can be measured. It
+    // does not touch the world, so game rules and the warning triggers are unchanged.
+    showTopBanner: (kind: TopBannerKind) => {
+      forcedTopBanner = kind;
+    },
     resolveBack: () =>
       resolveBackTarget({
         isRotatePromptShowing: () => overlays.isRotatePromptShowing(),

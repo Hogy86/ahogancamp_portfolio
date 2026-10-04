@@ -171,6 +171,13 @@ export const ENEMY_LASER_RADIUS = 6;
  */
 export const FORMATION_WARNING_ENABLED = true;
 
+/** F3 AC6: the non-colour text cue shown with the pulsing border. Shared so the canvas
+ * (web) and the Android DOM warning (M2.3b) can never drift apart. */
+export const FORMATION_WARNING_TEXT = 'WARNING: ROBOTS APPROACHING';
+
+/** F12 AC10-11: the boss-incoming telegraph text (shared canvas/Android DOM banner). */
+export const BOSS_WARNING_TEXT = 'BOSS INCOMING';
+
 /** F3 AC6: warning triggers one row above the player's row. */
 export const FORMATION_WARNING_ROW_MARGIN_PX = ENEMY_HEIGHT + FORMATION_STEP_DOWN;
 

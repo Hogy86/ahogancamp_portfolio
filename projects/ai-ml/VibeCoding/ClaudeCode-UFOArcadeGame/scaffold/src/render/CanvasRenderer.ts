@@ -6,6 +6,8 @@
 // entities only. HUD/overlays are DOM (see ui/HUDView.ts, ui/ScreenController.ts).
 
 import {
+  BOSS_WARNING_TEXT,
+  FORMATION_WARNING_TEXT,
   LEVEL_INTRO_SECONDS,
   LEVEL_INTRO_TEXT_COLOR,
   LEVEL_INTRO_TEXT_STROKE_COLOR,
@@ -36,6 +38,10 @@ function blinkOn(remainingSeconds: number): boolean {
 
 export class CanvasRenderer {
   private readonly ctx: CanvasRenderingContext2D;
+  /** Android draws the formation-warning and boss-incoming words as a DOM row below the HUD (M2.3b, F4 of
+   * UAT round 2: the 16 px canvas text sat under the Level box). Web keeps the canvas
+   * text, so this defaults to true and web output is unchanged. */
+  private topBannerTextOnCanvas = true;
 
   /**
    * `renderScale` is the canvas backing-store scale (mobile-architecture.md §6.5, M2.8):
@@ -71,6 +77,12 @@ export class CanvasRenderer {
     this.ctx.setTransform(renderScale, 0, 0, renderScale, 0, 0);
   }
 
+  /** Turns the canvas top-centre words (formation warning, BOSS INCOMING) on/off; the
+   * borders are always drawn. */
+  setTopBannerTextOnCanvas(enabled: boolean): void {
+    this.topBannerTextOnCanvas = enabled;
+  }
+
   render(world: World): void {
     const { ctx } = this;
     ctx.clearRect(0, 0, PLAYFIELD_WIDTH, PLAYFIELD_HEIGHT);
@@ -102,13 +114,15 @@ export class CanvasRenderer {
     ctx.strokeStyle = pulse ? '#ff5a5a' : '#ffb3b3';
     ctx.lineWidth = 6;
     ctx.strokeRect(3, 3, PLAYFIELD_WIDTH - 6, PLAYFIELD_HEIGHT - 6);
-    ctx.fillStyle = '#ff5a5a';
-    ctx.font = 'bold 16px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    // F22 AC4 (docs/PRD-addendum-v4.md): "Sentinel(s)" renamed to "robots" everywhere
-    // player-facing; the internal drawSentinel/VANGUARD_* identifiers are unchanged
-    // (F22 AC12 - internal names are explicitly optional to rename).
-    ctx.fillText('WARNING: ROBOTS APPROACHING', PLAYFIELD_WIDTH / 2, 24);
+    if (this.topBannerTextOnCanvas) {
+      ctx.fillStyle = '#ff5a5a';
+      ctx.font = 'bold 16px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      // F22 AC4 (docs/PRD-addendum-v4.md): "Sentinel(s)" renamed to "robots" everywhere
+      // player-facing; the internal drawSentinel/VANGUARD_* identifiers are unchanged
+      // (F22 AC12 - internal names are explicitly optional to rename).
+      ctx.fillText(FORMATION_WARNING_TEXT, PLAYFIELD_WIDTH / 2, 24);
+    }
     ctx.restore();
   }
 
@@ -130,9 +144,11 @@ export class CanvasRenderer {
     // reads against light enemy/Vanguard bodies too, not just the black background.
     ctx.lineWidth = 4;
     ctx.strokeStyle = LEVEL_INTRO_TEXT_STROKE_COLOR;
-    ctx.strokeText('BOSS INCOMING', PLAYFIELD_WIDTH / 2, 24);
-    ctx.fillStyle = LEVEL_INTRO_TEXT_COLOR;
-    ctx.fillText('BOSS INCOMING', PLAYFIELD_WIDTH / 2, 24);
+    if (this.topBannerTextOnCanvas) {
+      ctx.strokeText(BOSS_WARNING_TEXT, PLAYFIELD_WIDTH / 2, 24);
+      ctx.fillStyle = LEVEL_INTRO_TEXT_COLOR;
+      ctx.fillText(BOSS_WARNING_TEXT, PLAYFIELD_WIDTH / 2, 24);
+    }
     ctx.restore();
   }
 

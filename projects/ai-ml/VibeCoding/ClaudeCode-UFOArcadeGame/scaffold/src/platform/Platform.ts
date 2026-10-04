@@ -50,6 +50,9 @@ export interface PlatformContext {
    * unchanged (renderer.applyScale's `=== 1` behavior no longer short-circuits, but
    * nothing on web ever calls this with a value other than the boot-time 1). */
   setRenderScale(scale: number): void;
+  /** Android moves the formation-warning and boss-incoming words out of the canvas into a DOM row below
+   * the HUD (M2.3b); the web platform never calls this, so its canvas text is unchanged. */
+  setTopBannerTextOnCanvas(enabled: boolean): void;
 }
 
 export interface Platform {
