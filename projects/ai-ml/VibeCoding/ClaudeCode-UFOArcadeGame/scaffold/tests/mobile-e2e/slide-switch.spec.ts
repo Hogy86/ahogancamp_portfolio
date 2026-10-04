@@ -134,6 +134,15 @@ const POST_SWITCH_HOLD_MS = 160;
 const SWITCH_BUDGET_MS = 100;
 const FRAME_TOLERANCE_MS = 40;
 const SWIPES_PER_DIRECTION = 20;
+// L1 (validation-report-round6): the two gap/new-button pointermoves are dispatched from
+// Node ~CROSS_MS (180ms) apart, but CDP delivers them to the page on ITS clock. If the
+// renderer main thread is busy (many parallel workers) the page can receive both queued
+// moves back-to-back - the in-page gap dwell collapses to ~0ms and there is no frame in
+// that window to inspect, which is a delivery artifact, not a game stall. Rule 2 is only
+// meaningful when the page really spent a realistic time in the gap, so a gesture whose
+// in-page dwell is shorter than this is re-collected (bounded, like a GAMEOVER
+// interruption). A genuine stall inside a real dwell still leaves <2 frames and fails.
+const MIN_GAP_DWELL_MS = 120;
 
 async function snapshot(page: Page) {
   return page.evaluate(() => window.__vvsTest!.snapshot());
@@ -297,6 +306,7 @@ async function runOneSlide(
   let pointerLog: Array<[number, string]> = [];
   const RUN_ONE_SLIDE_MAX_ATTEMPTS = 3;
   let dataCollectionInterrupted = true;
+  let compressedGestures = 0;
   for (let attempt = 0; attempt < RUN_ONE_SLIDE_MAX_ATTEMPTS; attempt += 1) {
     await page.evaluate(() => window.__startSlideRecorder!());
 
@@ -315,9 +325,14 @@ async function runOneSlide(
     const result = await page.evaluate(() => window.__stopSlideRecorder!());
     xLog = result.xLog;
     pointerLog = result.pointerLog;
-    dataCollectionInterrupted = result.leftPlaying;
+    const recordedMoves = result.pointerLog.filter(([, type]) => type === 'pointermove');
+    const gapDwell =
+      recordedMoves.length >= 2 ? recordedMoves[1]![0] - recordedMoves[0]![0] : Number.POSITIVE_INFINITY;
+    const compressed = gapDwell < MIN_GAP_DWELL_MS;
+    if (compressed) compressedGestures += 1;
+    dataCollectionInterrupted = result.leftPlaying || compressed;
     if (!dataCollectionInterrupted) break;
-    await ensurePlaying(page);
+    if (result.leftPlaying) await ensurePlaying(page);
   }
   // code-review-round11.md R2 (second hole): the old code re-collected at most twice
   // and then, if still interrupted, silently fell through into the rule assertions
@@ -326,7 +341,7 @@ async function runOneSlide(
   // instead, distinct from any M3.3a rule failure.
   if (dataCollectionInterrupted) {
     throw new Error(
-      `data collection interrupted by GAMEOVER ${RUN_ONE_SLIDE_MAX_ATTEMPTS} times in a row - no clean slide was recorded to check M3.3a rules against`,
+      `data collection interrupted (GAMEOVER, or in-page gap dwell < ${MIN_GAP_DWELL_MS}ms from delayed CDP event delivery; ${compressedGestures} compressed) ${RUN_ONE_SLIDE_MAX_ATTEMPTS} times in a row - no clean slide was recorded to check M3.3a rules against`,
     );
   }
 
@@ -341,13 +356,14 @@ async function runOneSlide(
   ).toBeGreaterThanOrEqual(2);
   const tGapEnter = moves[0]![0];
   const tEnter = moves[1]![0];
+  if (compressedGestures > 0) test.info().annotations.push({ type: 'recollected-compressed', description: String(compressedGestures) });
 
   // Rule 2 ("no drop"): while the finger is between the two buttons, ShieldMan keeps
   // moving the OLD direction, with no zero-velocity frame.
   const gapFrames = xLog.filter(([t]) => t >= tGapEnter && t < tEnter);
   expect(
     gapFrames.length,
-    'not enough recorded frames while crossing the gap to check rule 2 (increase CROSS_MS or check the recorder)',
+    `not enough recorded frames while crossing the gap (dwell ${tEnter - tGapEnter}ms >= ${MIN_GAP_DWELL_MS}ms) to check rule 2 - a real stall while crossing`,
   ).toBeGreaterThanOrEqual(2);
   for (let i = 1; i < gapFrames.length; i += 1) {
     const dx = gapFrames[i]![1] - gapFrames[i - 1]![1];

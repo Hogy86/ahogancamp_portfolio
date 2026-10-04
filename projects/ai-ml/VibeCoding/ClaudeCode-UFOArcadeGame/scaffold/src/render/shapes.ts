@@ -278,7 +278,8 @@ export function drawSentinel(
  * the HUD readout describing the same type by name/text. Distinguishable while still
  * falling, before the catch collision (F11 AC8). Shared ring + disc for all four types;
  * only the glyph inside differs (PRD addendum v5 F23). All glyph coordinates are fractions
- * of `radius` and stay within +-0.45 of the center (F23 AC3(d)). */
+ * of `radius`. The stroked glyphs (circle, X) stay within +-0.45 of the center; the filled glyphs
+ * (fist, rabbit) within +-0.65 and 0.75 of the center (F23 r5 AC3(d)). */
 export function drawPowerUp(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -307,7 +308,7 @@ export function drawPowerUp(
       drawFistGlyph(ctx, radius);
       break;
     case 'SPEED':
-      // PRD addendum v5 F23 AC4.2: filled side-view rabbit (whole body, two upright ears).
+      // PRD addendum v5 F23 AC4.2: filled side-view rabbit (whole body, two ears leaning back).
       drawRabbitGlyph(ctx, radius);
       break;
     case 'SHIELD':
@@ -331,7 +332,7 @@ export function drawPowerUp(
   ctx.restore();
 }
 
-/** Knuckle dome spans (x0, x1) as fractions of the glyph radius, left to right. */
+/** Knuckle dome spans (x0, x1) in the fist's own unit (see FIST_SCALE), left to right. */
 const FIST_KNUCKLES = [
   [-0.26, -0.1],
   [-0.1, 0.06],
@@ -339,11 +340,16 @@ const FIST_KNUCKLES = [
   [0.22, 0.38],
 ] as const;
 
+/** The fist's unit as a multiple of the token radius. The filled glyphs are drawn larger
+ * than the stroked ones so they survive the ~13 dp in-play token (F23 r5 AC3(d), AC4.1). */
+const FIST_SCALE = 1.4;
+
 /** Fist seen from the front, thumb tucked on the left: four round knuckle domes on the top
  * edge, a flat base (no wrist), drawn as one filled outline. Each dome is a bezier with
  * vertical end tangents, so the knuckles read as round bumps separated by sharp valleys
- * even at 24px. */
-function drawFistGlyph(ctx: CanvasRenderingContext2D, r: number): void {
+ * even at 24px. Spans about 1.12r by 0.97r (F23 r5 AC4.1). */
+function drawFistGlyph(ctx: CanvasRenderingContext2D, radius: number): void {
+  const r = radius * FIST_SCALE;
   const valleyY = -0.2 * r;
   const domeControlY = -0.347 * r;
   ctx.beginPath();
@@ -361,28 +367,41 @@ function drawFistGlyph(ctx: CanvasRenderingContext2D, r: number): void {
   ctx.fill();
 }
 
-/** Rabbit in side view facing right, crouched on four legs (hind foot, front foot), with a
- * rounded back, a small tail, a pointed nose and two tall, slightly curved ears leaning
- * back. One filled outline, no eye cut-out, no accessories (F23 AC4.2(d) IP rules). */
+/** Rabbit in side view facing right, crouched on four legs, one filled outline (F23 r5 AC4.2).
+ * Two leaf-shaped ears with rounded tips are rooted on the head at the front and lean back
+ * about 16 degrees, with a clear dark gap between them. Behind the head are a neck dip and a
+ * high rounded rump carrying a small tail bump, with a haunch below it. One notch under the
+ * belly separates the hind and front feet, which stand on one line. No eye cut-out, no
+ * accessories (AC4.2(d)). About 1.27r wide by 1.05r tall, every point within 0.75r of the
+ * centre. The ear coordinates were generated from one ear profile rotated 18 degrees about
+ * its base and placed 0.35r apart, so both ears are the same shape. */
 function drawRabbitGlyph(ctx: CanvasRenderingContext2D, r: number): void {
   ctx.beginPath();
-  ctx.moveTo(-0.34 * r, 0.3 * r); // hind foot, back
-  ctx.lineTo(-0.1 * r, 0.3 * r); // hind foot, front
-  ctx.lineTo(-0.04 * r, 0.19 * r); // belly between the legs
-  ctx.lineTo(0.16 * r, 0.19 * r);
-  ctx.lineTo(0.22 * r, 0.3 * r); // front foot, back
-  ctx.lineTo(0.4 * r, 0.3 * r); // front foot, toe
-  ctx.lineTo(0.34 * r, 0.14 * r); // chest
-  ctx.quadraticCurveTo(0.44 * r, 0.1 * r, 0.44 * r, -0.02 * r); // chin to nose
-  ctx.quadraticCurveTo(0.42 * r, -0.1 * r, 0.32 * r, -0.12 * r); // forehead, front ear base
-  ctx.quadraticCurveTo(0.3 * r, -0.3 * r, 0.23 * r, -0.44 * r); // front ear, leading edge
-  ctx.quadraticCurveTo(0.2 * r, -0.3 * r, 0.18 * r, -0.12 * r); // front ear, trailing edge
-  ctx.quadraticCurveTo(0.14 * r, -0.3 * r, 0.05 * r, -0.42 * r); // rear ear, leading edge
-  ctx.quadraticCurveTo(0.05 * r, -0.28 * r, 0.04 * r, -0.14 * r); // rear ear, trailing edge
-  ctx.quadraticCurveTo(-0.12 * r, -0.26 * r, -0.3 * r, -0.08 * r); // rounded back
-  ctx.lineTo(-0.44 * r, -0.02 * r); // tail
-  ctx.lineTo(-0.44 * r, 0.06 * r);
-  ctx.quadraticCurveTo(-0.42 * r, 0.3 * r, -0.34 * r, 0.3 * r); // rump
+  ctx.moveTo(-0.46 * r, 0.5 * r); // hind foot, heel
+  ctx.lineTo(-0.2 * r, 0.5 * r); // hind foot, toe
+  ctx.lineTo(-0.17 * r, 0.38 * r); // belly notch, hind side
+  ctx.quadraticCurveTo(-0.14 * r, 0.27 * r, -0.05 * r, 0.27 * r); // belly notch, rounded top
+  ctx.quadraticCurveTo(0.04 * r, 0.27 * r, 0.07 * r, 0.38 * r);
+  ctx.lineTo(0.1 * r, 0.5 * r); // front foot, heel
+  ctx.lineTo(0.41 * r, 0.5 * r); // front foot, toe
+  ctx.bezierCurveTo(0.44 * r, 0.44 * r, 0.42 * r, 0.34 * r, 0.46 * r, 0.28 * r); // chest, throat
+  ctx.quadraticCurveTo(0.5 * r, 0.25 * r, 0.55 * r, 0.22 * r); // chin
+  ctx.bezierCurveTo(0.62 * r, 0.2 * r, 0.65 * r, 0.14 * r, 0.65 * r, 0.05 * r); // muzzle
+  ctx.quadraticCurveTo(0.65 * r, -0.08 * r, 0.64 * r, -0.179 * r); // forehead
+  ctx.bezierCurveTo(0.61 * r, -0.327 * r, 0.548 * r, -0.465 * r, 0.505 * r, -0.514 * r); // front ear: leading edge
+  ctx.bezierCurveTo(0.45 * r, -0.578 * r, 0.379 * r, -0.555 * r, 0.372 * r, -0.471 * r); // rounded tip
+  ctx.bezierCurveTo(0.367 * r, -0.406 * r, 0.397 * r, -0.258 * r, 0.46 * r, -0.121 * r); // trailing edge
+  ctx.quadraticCurveTo(0.375 * r, -0.071 * r, 0.29 * r, -0.179 * r); // valley between the ears
+  ctx.bezierCurveTo(0.26 * r, -0.327 * r, 0.198 * r, -0.465 * r, 0.155 * r, -0.514 * r); // rear ear: leading edge
+  ctx.bezierCurveTo(0.1 * r, -0.578 * r, 0.029 * r, -0.555 * r, 0.022 * r, -0.471 * r); // rounded tip
+  ctx.bezierCurveTo(0.017 * r, -0.406 * r, 0.047 * r, -0.258 * r, 0.11 * r, -0.121 * r); // trailing edge
+  ctx.quadraticCurveTo(0.07 * r, -0.01 * r, 0.01 * r, -0.01 * r); // neck dip
+  ctx.bezierCurveTo(-0.1 * r, -0.01 * r, -0.12 * r, -0.23 * r, -0.28 * r, -0.23 * r); // rump top
+  ctx.bezierCurveTo(-0.42 * r, -0.23 * r, -0.56 * r, -0.2 * r, -0.56 * r, -0.14 * r); // rump
+  ctx.bezierCurveTo(-0.63 * r, -0.18 * r, -0.64 * r, -0.04 * r, -0.56 * r, -0.02 * r); // tail bump
+  ctx.quadraticCurveTo(-0.53 * r, 0.0 * r, -0.52 * r, 0.04 * r); // notch under the tail
+  ctx.bezierCurveTo(-0.52 * r, 0.12 * r, -0.6 * r, 0.16 * r, -0.58 * r, 0.26 * r); // haunch
+  ctx.bezierCurveTo(-0.56 * r, 0.36 * r, -0.48 * r, 0.44 * r, -0.46 * r, 0.5 * r); // hind leg
   ctx.closePath();
   ctx.fill();
 }

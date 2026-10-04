@@ -4,8 +4,8 @@
 //   keeps a finger tracked wherever it slides (§5.2).
 // - Throw: a latch cleared only once at least one simulation step has run this frame,
 //   so a tap shorter than one frame still reaches exactly one step (§5.3, F16 AC3).
-// - Stray gestures (M3.7): handled by android.css (touch-action: none etc.) and a
-//   `contextmenu` preventDefault here.
+// - Stray gestures (M3.7): handled by android.css (touch-action: none etc.) and
+//   the document-level `contextmenu` preventDefault in AndroidPlatform.
 
 import { createElement } from '../../ui/dom';
 import type { InputSource } from '../../core/InputManager';
@@ -136,8 +136,6 @@ export class TouchControls {
     this.wireMoveZone();
     this.wireThrow();
     this.wirePause();
-    // M3.7: stray-gesture prevention beyond android.css's touch-action/user-select rules.
-    this.root.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
   /** Applies computed absolute pixel positions (M2.4/M2.12, C1/C2) - called by

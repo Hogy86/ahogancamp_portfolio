@@ -584,3 +584,73 @@ Note: I did not map each glyph to its named effect (Speed, Shield, Power, etc.) 
 - The tap bot restarts a run automatically after Game Over by tapping "Play again"; those runs are not evidence for anything else.
 - The HUD panel "Power" / status lines partly overlap the top-right of the formation in some Level 1-3 frames when the formation is at the top (e.g. the L3 capture near "Power x1.80"). Not part of B2, noted for the UX reviewer.
 - The emulator was stopped after the session; no settings were changed, so nothing needed restoring. No commits or pushes made.
+
+---
+
+# Round 6 - 2026-09-30 (mobile-lead-tester, step 10, after UAT round 1 fixes F1/F2/F23/O5)
+
+**Verdict for this round: PASS** (see `validation-report-round6.md`).
+**Build:** debug APK `app-debug.apk`, 3,963,301 bytes, built 21:19 from the mirror `C:\Users\aaron\dev-build\shield-vs-robots` after `scripts/refresh-android-mirror.ps1` (parity passed, 136 files + 6 named files) of committed HEAD `57f159e` (working tree clean). `check-android-manifest --variant debug`: PASSED.
+**Method:** `adb` plus WebView DevTools reads of element boxes; the play bot presses only the on-screen buttons; a read-only canvas watcher triggers screenshots. Screenshots `screenshots/*_r6.png`. Raw evidence: `raw-output-round6.log` (section DEVICE EVIDENCE).
+**AVDs (one at a time, `-gpu host -no-window -no-audio -no-snapshot`):** lowend 640 x 360 dp, pixel7 915 x 412 dp (cutout inset l 51.8), tablet 1280 x 800 dp, fold (natural CLOSED, 412 x 309 dp window).
+
+## Gaps and fit, measured on the devices (dp)
+
+Required: at least 8 dp between adjacent buttons (M3.1), buttons at least 48 dp tall (M3.8), every menu inside the insets, no scrolling.
+
+| Device / font | Smallest gap (Title, Settings, Pause) | Confirm / Cancel gap | Title y range (allowed) | Pause y range | Result |
+|---|---|---|---|---|---|
+| lowend, 1.0 | 8, 8, 8 | 8 (side by side) | 32.5-319.5 (24-328) | 46-306 | PASS |
+| lowend, 2.0 | 8, 8, 8 | 8 | 24.4-327.6 (24-328) | 37.6-314.4 | PASS (0.4 dp of slack on the title) |
+| pixel7, 1.0 | 8, 8, 8 | 8 | 60.9-347.5 (28.2-380) | 74.2-334.2 | PASS |
+| pixel7, 2.0 | 8, 8, 8 | 8 | 52.6-355.8 (28.2-380) | 66.1-342.3 | PASS |
+| tablet, 1.0 | 12, 12, 12 | 8 | 235-557 (24-768) | 250.5-541.5 | PASS |
+| tablet, 2.0 | 12, 12, 12 | 8 | 225.5-566.5 | 240.8-551.3 | PASS |
+
+All heights at least 48 dp, no overlay scrolled (scrollHeight = clientHeight), horizontal ranges inside the side insets (pixel7 menus all right of the 51.8 dp cutout inset). UAT F1 (0 dp) and F2 (6 dp) are closed. The stacked Confirm/Cancel layout (large font on a narrow box) did not occur on any real device; it is covered by `menu-gaps.spec.ts` only. Screenshots: `{lowend,pixel7,tablet}_{title,settings,pause,confirm}_gap_r6.png` and `*_font2_*_gap_r6.png`.
+
+## Power-up tokens in play (F23)
+
+All four tokens seen falling in real play on both profiles (bot play, level 1, `-gpu host`):
+
+| Token | lowend 640 x 360 (ring 24-26 px) | pixel7 (ring 38 px) |
+|---|---|---|
+| Fist (Hit Power) | `m2_7_lowend_powerup_fist_r6.png` | `m2_7_pixel7_powerup_fist_r6.png` |
+| Rabbit (Speed) | `m2_7_lowend_powerup_rabbit_r6.png` | `m2_7_pixel7_powerup_rabbit_r6.png` |
+| Circle (Shield) | `m2_7_lowend_powerup_circle_r6.png` | `m2_7_pixel7_powerup_circle_r6.png` |
+| X (Permanent Multiplier) | `m2_7_lowend_powerup_X_r6.png` | `m2_7_pixel7_powerup_X_r6.png` |
+
+Close-up sheets (8x / 5x, nearest-neighbour): `m2_7_lowend_powerups_closeup_8x_r6.png`, `m2_7_pixel7_powerups_closeup_8x_r6.png`. The two stale `m2_7_lowend_powerups_*_round6_b2.png` files (old bars/chevron/diamond icons) were deleted; `m2_7_lowend_mixed_robots_powerups_L3_round6_b2.png` also shows the old icons and should be ignored.
+
+Lead-tester reading (the formal legibility ruling, AC6(b), is for the UX reviewer): on the low-end profile the four are told apart by shape. The circle (hollow) and X are crisp. The fist reads as a solid block with four tiny knuckle ticks and a thumb notch on the left; at this size it is a "block with teeth" rather than an obvious fist. The rabbit is a small solid body with two ears and is clearly different from the fist, though it is only about 10 px wide. On pixel7 all four are clearer. The grey-scale distinction rests on shape only (same ring and fill color), as intended.
+
+## O5 long press
+
+Held 1.5 s on lowend with real touch: a menu button, the title text, the playfield, the THROW control and the move control. In every case the `contextmenu` event fired and was prevented (`defaultPrevented = true`), the selection stayed empty and the screenshots show no popup (`lowend_O5_longpress_*_r6.png`). PASS. Vibration on a real phone is still a closed-test item.
+
+## UAT F3: fold prompt slower than 5 s (ruling: emulator warm-up, not the app)
+
+Same APK on the fold AVD (natural CLOSED, `wm size` 1080 x 2340, 412 x 309 dp window):
+
+| Situation | am TotalTime | Prompt visible (host clock from `am start`) |
+|---|---|---|
+| First launch after `pm clear`, just booted | 5505 ms | 5946 ms |
+| 6 cold starts straight after boot | 4796, 3612, 2726, 2465, 1562, 1474 | 5752, 4113, 3011, 2787, 1817, 1751 |
+| 5 more cold starts, settled | 1430, 1518, 1513, 1487, 1588 | 1757, 1762, 1777, 1722, 1844 (median 1762) |
+
+Other AVDs, same APK: pixel7 settled 1722-2457 ms (title visible 2.0-2.9 s); first launch after `pm clear` right after boot was 8261 ms on pixel7, 5281 ms on lowend, 5401 ms on tablet, 5505 ms on fold. The fold AVD has the same cores and RAM as pixel7 (4 cores, 1536 MB). Cold-start time falls steadily over the first six starts after boot and then flattens; once settled the prompt shows in about 1.8 s, which is faster than the game title on pixel7 because no game is started. logcat `Displayed` equals the `am start` TotalTime every time. Conclusion: the 5-8 s in UAT came from measuring a freshly booted, busy emulator, not from the app. M2.10a (a) timing PASS (settled 1.7-1.8 s). Behavior unchanged: only "Make the window larger to play." shown (`fold_prompt_closed_r6.png`), window stays 412 x 309 after `device_state state reset`. Standing limit: the unfold gap (M2.9) cannot be tested on this AVD.
+
+## Not re-run this round (unchanged, carried forward)
+
+Frame rate (UAT N1), levels 2-10, real edge back-swipe, incoming call, real fold/split screen, Android 7-9 with a modern WebView: closed test. `svr_api30_mid`, `svr_api29_webview`, `svr_api24_small` were not started: nothing in this round's diff touches WebView-version behavior (CSS `gap` was already in use at 6 px; the new `margin` and `line-height` rules are plain CSS 1).
+
+## Restored and stopped
+
+`font_scale` set back to 1.0 on every AVD (it was 1.0); `navigation_mode` and `wm size` never changed; fold `cmd device_state state reset` run; every emulator stopped with `adb emu kill`; adb port forwards removed; adb server killed; the mutation scratch copy (in the session scratchpad, outside the repo) had its node_modules junction removed. No command was denied.
+
+## Plain-language checklist addendum for closed-test testers (round 6)
+
+- Open the Restart Game prompt (Pause, then Restart Game). Confirm and Cancel should have a visible gap between them and not touch. Try it with the largest text size too.
+- Open the start screen, Settings and the pause menu: the buttons should have an even, visible gap, with no button touching the one above it.
+- Watch the power-ups that fall from robots. There are four: a small fist, a small rabbit, a small circle and an X. Can you tell which is which without catching them? Tell us the phone model and screen size if any two look alike.
+- Press and hold (about 2 seconds) on a menu button, on the title text and on the play area: no pop-up menu, no text selection and no zoom should appear.

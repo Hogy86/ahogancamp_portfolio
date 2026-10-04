@@ -2,9 +2,9 @@
 
 **Product:** Shield vs Robots
 **Stage:** 2 — Product Manager (PRD addendum, shared art change)
-**Date:** 2026-09-29 (r1 2026-09-29, r2 2026-09-30, r3 2026-09-30, r4 2026-09-30)
-**Author:** product-manager subagent
-**Status:** v5 r3 — DECIDED in scope. r3 carries the owner's final glyph
+**Date:** 2026-09-29 (r1 2026-09-29, r2 2026-09-30, r3 2026-09-30, r4 2026-09-30, r5 2026-09-30)
+**Author:** product-manager subagent (r5 written by mobile-product-manager)
+**Status:** v5 r5 — DECIDED in scope. r3 carries the owner's final glyph
 choices and one owner-accepted IP risk (2026-09-30, below). The change is art
 only. No game rule, number, timing or text changes. The one change to the IP
 rule (NFR-10 / F9 AC4, tightened by v4 F22 AC8) is a narrow, owner-accepted
@@ -13,6 +13,13 @@ exception for the Permanent Multiplier token (§r3 below, F22 AC8(c)).
 `docs/mobile/security/review-v2-addendum4.md`; the circle is kept. No glyph,
 geometry or test bound changes, so "F23 r3" stays the glyph specification
 that code, tests and other docs cite. See §Revision r4.)*
+*(Status updated 2026-09-30, r5: **F23 r5 is now the glyph specification**
+for the two filled glyphs (fist and rabbit): a larger bound (AC3(d)), new
+rabbit proportions (AC4.2), a proportionally larger fist (AC4.1) and the
+review evidence (AC6(b)). The circle, the capital X, the ring, the colours
+and every owner choice are unchanged, so "F23 r3" citations for the circle
+and the X stay valid. The status line above read "v5 r3" until r5. No owner
+decision is needed for r5. See §Revision r5.)*
 
 **Revision 2026-09-29 (r1)** — fixes `docs/mobile/reviews/code-review-round16.md`
 **D6** (the addendum contradicted itself). The F11 AC8 amendment required
@@ -144,6 +151,88 @@ rabbit, the circle and the capital X stay exactly as r3 specifies them.
 | AC4.3 | "At r = 12 that is a 3-4.2px radius circle with a gap of at least 7.8px (0.65r) to the ring" | 7.8px is the centre-line distance. The visible dark gap between the two 2px strokes is at least about 5.8px (about 5.9px at the implemented 0.34r). Review-v2 addendum 4 A4-I2. |
 | Cross-platform table, AC4.3 row | "See Q-v5-1." | "Q-v5-1 answered (r4)." |
 
+**Revision 2026-09-30 (r5) — bigger filled glyphs and a re-proportioned
+rabbit; the owner's four choices are unchanged.** Both design gates failed
+the rabbit twice:
+`docs/ux/design-review-v3-round1.md` and `-round2.md` (website) and
+`docs/mobile/ux/design-review-round6.md` and `-round7.md` (Android). The fist,
+the circle and the X passed and are not re-judged.
+
+Why r3 could not pass, in plain terms:
+- **Size (mobile round 7).** In play, the token is about 13 dp across (dp is
+  Android's screen-size unit; on a "2x" phone 13 dp is about 26 pixels). The
+  r3 glyph box of ±0.45r is then only about 10 pixels wide. A side-view rabbit
+  with a head, two ears, a rump and legs does not fit in 10 pixels. Round 7
+  ruled that another redraw at that size would fail again and asked for a
+  larger glyph inside the same ring.
+- **Composition (website round 2).** The ears stood over the middle of the
+  back, straight and flat-topped, on a loaf-shaped body. They read as "two
+  towers on a wall". The reviewer asked for ears attached to a round head at
+  the head end, leaning back 15 to 25 degrees with rounded tips, a neck dip,
+  a high rounded rump with lower shoulders, a tail bump and a notch under the
+  belly.
+- **A rule that fought the fix (r3 AC4.2(b)).** r3 said the two ear tips are
+  "exactly 2 bumps with prominence of at least 0.2r" and "both lie in the same
+  half … of the bounding box". Ears that lean back move their tips toward the
+  middle of the box, and a high rump is itself a bump that can reach 0.2r. So
+  the reviewers' required shape could break the r3 rule. r5 rewrites the rule
+  (AC4.2(b), "Reconciliation" note) so the required shape is allowed and the
+  tests can still tell ears from everything else.
+
+The website reviewer wrote (round 2) that a larger glyph "is not needed". r5
+still enlarges it, because the mobile reviewer measured the real in-play size
+and the two fixes do not conflict: r5 applies the website reviewer's
+composition changes at the mobile reviewer's larger size. Both reviewers
+re-review (website v3 round 3, mobile round 8).
+
+r5 changes, old r3/r4 text quoted next to new:
+
+| Where | r3/r4 text (quoted) | r5 text |
+|---|---|---|
+| Header status | "**Status:** v5 r3 — DECIDED in scope." | "**Status:** v5 r5 — DECIDED in scope." plus the r5 status note. |
+| AC3(d) | "Every recorded glyph point, including curve control points and the circle's extreme points, lies within ±0.45r of the token center on both axes, so each glyph, including its stroke, stays clear of the ring." | Circle and X: unchanged (±0.45r). Fist and rabbit: every recorded point within **±0.65r** on both axes, every flattened-outline point within **0.75r** of the center, and a visible dark gap of **at least 2.0 px** to the ring's inner edge at r = 12. |
+| AC4.1 (fist) | "(a) Bounding box width between 0.6r and 0.9r, height between 0.5r and 0.9r …" / "(b) … 3 or 4 bumps … prominence between 0.04r and 0.15r, spaced at least 0.12r apart in x …" / "(c) … width measured at y = +0.3r is at least 0.6 × its width at y = 0 …" | The same fist scaled up in proportion: box **1.0r-1.3r** wide by **0.8r-1.2r** tall; 3 or 4 knuckle bumps, prominence **0.06r-0.22r**, at least **0.17r** apart; the no-forearm width is measured **0.12r above the lowest point** of the outline. |
+| AC4.2 (rabbit) | "(a) Bounding box width between 0.6r and 0.9r, height between 0.5r and 0.9r …" / "(b) Ears: the flattened outline has **exactly 2 bumps** with prominence of at least 0.2r. They are the two highest points of the outline, both lie in the same half (left or right) of the bounding box (the head end), and both point up or up-and-back (no ear bent or folded down)." / "(c) Body: the part of the outline below the base of the ears is at least 1.3 × as wide as it is tall …" | New box (**1.1r-1.3r** by **0.9r-1.2r**, wider than tall) and numeric rules for the ears (on the head, leaning back 15°-25°, rounded tips, minimum widths and gap), the head lump and neck dip, the high rump, the tail bump, the underside notch and the four-leg crouch. The 1.3 × body rule is kept. (d) IP rules kept and two limits added. |
+| AC6(a) table, fist row | "3-4 top bumps, prominence 0.04r-0.15r" | "3-4 top bumps, prominence 0.06r-0.22r, none ≥ 0.3r" |
+| AC6(a) table, rabbit row | "exactly 2 top bumps, prominence ≥ 0.2r, one side" | "exactly 2 top bumps with prominence ≥ 0.3r (the ears), both rooted in the head half" |
+| AC6(b) | "a capture of all four tokens side by side at r = 12 is attached … Capture it on the website at 1× and at the phone-emulation viewport, and a **grayscale** copy of each." | Named evidence set: unmagnified 1:1 crops of all four tokens at 13 dp on a 2x profile and at 24 px, each in colour and grayscale, plus one emulator capture; and the unprimed "rabbit or bunny" naming test. |
+| F11 AC8 amendment | "… drawn only in `LEVEL_INTRO_TEXT_COLOR` within ±0.45r …" | "… within the F23 AC3(d) bounds …" |
+
+**What r5 does not change (binding, from
+`docs/mobile/security/review-v2-addendum4.md`):**
+- The **capital X** stays two 2px amber strokes with a ≤ 0.4r (range
+  0.3r-0.4r, 0.35r as built), inside ±0.45r, never touching the ring (AC4.4;
+  addendum 4 §2.2 and A4-M1 limit 4).
+- The **Shield circle** stays exactly one stroked circle, radius 0.25r-0.35r,
+  inside ±0.45r, nothing inside it (AC4.3; addendum 4 §1.4 limits 1-2).
+- The **rabbit IP bindings** of addendum 4 §1.3 stay: whole body, side view,
+  never head-only, never upright, no eye cut-out, no clothing or accessories,
+  amber only (AC4.2(d)).
+- The owner's choices (fist, rabbit, circle, capital X), the ring, the disc,
+  the colours, the token size (`POWERUP_RADIUS` = 12) and the catch hitbox.
+- The store-asset rules (AC9) and the owner-accepted X risk (C7).
+
+**New IP check owed.** Addendum 4 §1.3 says: "Any redraw outside the AC4
+ranges needs a new F23 revision and a new IP check." r5 is that revision.
+mobile-security-compliance-reviewer and security-compliance-reviewer check
+the redrawn rabbit and fist renders by eye against AC4.2(d) and AC4.1 before
+either version ships (see §Pipeline impact).
+
+**Not an owner decision.** The owner chose a rabbit and the rabbit stays; r5
+only makes it bigger inside the same ring and fixes its proportions. The
+owner is told in one line in the next project-thread update. No question is
+put to him.
+
+**If the rabbit fails again (recorded now, asked later).** If mobile round 8
+or website v3 round 3 still fails the rabbit on AC6(b), the pipeline does
+**not** try another redraw. The fallback is the double arrow "<-->" (r2
+AC4.2, already specified in the r2 record). That reverses an owner choice, so
+it **needs the owner's approval**. product-manager / mobile-product-manager
+put it to him **then**, with options and consequences (Job 0), and **not
+before**. Until he answers, the rabbit stays in the spec and neither version
+ships the new glyphs. Enlarging the whole token (design-review-round7 option
+(a2)) changes the catch hitbox and is out of scope (§Out of Scope).
+
 **What this addendum does.** It adds **F23**, which sets the icon ("glyph")
 drawn inside each of the four power-up tokens. The shared amber ring and the
 dark disc stay the same. Per the owner (r3), Hit Power becomes a fist, Speed a
@@ -171,6 +260,18 @@ text below. `docs/mobile/PRD-mobile.md` is cross-referenced, not edited.
   glyph. r3 overrides that ruling for the Multiplier by owner decision; its
   requirements 3-4 (distinguishable at 24px; both pipelines' gates) still
   apply.
+- *(added r5)* `docs/mobile/ux/design-review-round6.md` (finding 1) and
+  `docs/mobile/ux/design-review-round7.md` (FAIL, rabbit; required change
+  (a): raise the filled-glyph bound to about ±0.65r; evidence list for round
+  8; fallback (b) only after a further FAIL) → AC3(d), AC4.1, AC4.2, AC6(b).
+- *(added r5)* `docs/ux/design-review-v3-round1.md` (Finding 1) and
+  `docs/ux/design-review-v3-round2.md` (FAIL, rabbit; required changes 1-5:
+  ears on the head, lean 15-25 degrees, rounded tips, head lump, neck dip,
+  high rump, tail bump, underside notch) → AC4.2, AC6(b).
+- *(added r5)* `docs/mobile/security/review-v2-addendum4.md` §1.3 (rabbit IP
+  bindings; a redraw outside the AC4 ranges needs a new revision and IP
+  check), §1.4 limits 1-2 (circle), §2.2 (X arms never reach the ring) → the
+  limits r5 does not change.
 - `docs/PRD.md` — **F7** (the four power-ups; AC7 permanent multiplier, AC10
   HUD readout), **NFR-9(a)** (not color-only), **NFR-10** and **F9 AC4**
   (original art, no trademark-adjacent motifs; hard requirement).
@@ -220,6 +321,17 @@ text below. `docs/mobile/PRD-mobile.md` is cross-referenced, not edited.
   of its two neighbouring local maxima of y.
 - **"horizontal" / "vertical" / "diagonal" segment**: |dy| ≤ 0.02r /
   |dx| ≤ 0.02r / neither.
+- **"upper envelope"** (r5, states what the tests already do): for each x,
+  the highest point (smallest y) of a flattened outline. "Top bumps" are the
+  peaks of the upper envelope. A top bump's prominence is its rise above the
+  **higher** of the two envelope valleys next to it (or the outline's end).
+- **"forward" / "back"** (r5, rabbit): toward the nose end / toward the tail
+  end of the bounding box. The rabbit may face left or right.
+- **"head half" / "tail half"** (r5): the half of the bounding-box width at
+  the nose end / at the tail end.
+- **"in-play size"** (r5): the size a token has on a phone during play, about
+  13 dp across (about 26 px on a 2x screen). dp is Android's
+  density-independent screen unit; "2x" means 2 physical pixels per dp.
 - **r**: the token radius (`p.radius`, default `POWERUP_RADIUS` = 12).
   Coordinates are relative to the token center, +y down (canvas convention).
 
@@ -229,7 +341,7 @@ text below. `docs/mobile/PRD-mobile.md` is cross-referenced, not edited.
 
 | # | Change (short) | Feature | Amends |
 |---|---|---|---|
-| 1 | Power-up glyphs redrawn: Hit Power a filled fist, Speed a filled side-view rabbit, Shield a stroked circle, Permanent Multiplier a capital X (current geometry kept; owner-accepted IP risk). Ring, disc, colors, size and behavior unchanged. | **F23** (r3) | `docs/PRD.md` **F7** (power-up types list), **NFR-10**; `docs/PRD-addendum-v2.md` **F11 AC8**; `docs/PRD-addendum-v4.md` **F22 AC8** (adds item (c) with one exception). |
+| 1 | Power-up glyphs redrawn: Hit Power a filled fist, Speed a filled side-view rabbit, Shield a stroked circle, Permanent Multiplier a capital X (current geometry kept; owner-accepted IP risk). Ring, disc, colors, size and behavior unchanged. | **F23** (r3; fist and rabbit bound and proportions per r5) | `docs/PRD.md` **F7** (power-up types list), **NFR-10**; `docs/PRD-addendum-v2.md` **F11 AC8**; `docs/PRD-addendum-v4.md` **F22 AC8** (adds item (c) with one exception). |
 
 ---
 
@@ -259,6 +371,9 @@ items 2-4.
     already draws this and stays as is.
 
   Fist and rabbit are filled because 2px outlines of them blur at 24px (r2).
+  From r5 the two filled glyphs are drawn larger than the two stroked ones
+  (AC3(d)), and the rabbit's ears sit on its head and lean back (AC4.2); the
+  words "two upright ears" above mean "not folded or bent", not "vertical".
   Circle and X are stroked. The power-ups' behavior, drop rules, catch rules,
   HUD readout and on-catch feedback do not change.
 
@@ -271,7 +386,7 @@ the shape rules explicit so they can be tested.
 | Where | Old text (quoted) | v5 r3 text |
 |---|---|---|
 | `docs/PRD.md` F7, power-up types list | "**5× Hit Power** — hit power ×5 for 8 seconds (temporary)." / "**3× Speed** — player movement speed ×3 for 8 seconds (temporary)." / "**Indestructible Shield** — player is invulnerable for 8 seconds (temporary)." / "**Permanent Hit-Power Multiplier** — current hit power ×1.8, stacks, permanent for the rest of the run." | Effects unchanged. Added after the list: "Every token is the shared amber ring with a glyph: 5× Hit Power a filled fist, 3× Speed a filled side-view rabbit, Indestructible Shield a stroked circle, Permanent Hit-Power Multiplier a capital X (F23)." r2 text superseded: "… 5× Hit Power an up arrow, 3× Speed a horizontal double-headed arrow "<-->", Indestructible Shield a thick horizontal wall bar "---", Permanent Hit-Power Multiplier three ascending vertical bars. No glyph is an "x", "+" or any crossing-stroke shape (F23)." |
-| `docs/PRD-addendum-v2.md` F11 AC8 | "each has a distinct icon/shape, differentiated by more than color alone (non-color-only per NFR-9)." | "each has a distinct icon/shape, differentiated by more than color alone (non-color-only per NFR-9), **and all four glyphs follow F23 AC1-AC4: no unintended crossing strokes and no "+" shape, drawn only in `LEVEL_INTRO_TEXT_COLOR` within ±0.45r, with the F23 AC4 shapes, and distinguishable at 24px diameter in grayscale (F23 AC6)**." r2 text superseded: "… no crossing strokes and no "X"/"+" shape, stroked in `LEVEL_INTRO_TEXT_COLOR` at `lineWidth` 2 within ±0.45r …". The rest of F11 AC8 (identify a drop's type while falling, before the catch) is unchanged. |
+| `docs/PRD-addendum-v2.md` F11 AC8 | "each has a distinct icon/shape, differentiated by more than color alone (non-color-only per NFR-9)." | "each has a distinct icon/shape, differentiated by more than color alone (non-color-only per NFR-9), **and all four glyphs follow F23 AC1-AC4: no unintended crossing strokes and no "+" shape, drawn only in `LEVEL_INTRO_TEXT_COLOR` within the F23 AC3(d) bounds (r5; r3 text superseded: "within ±0.45r"), with the F23 AC4 shapes, and distinguishable at 24px diameter in grayscale (F23 AC6)**." r2 text superseded: "… no crossing strokes and no "X"/"+" shape, stroked in `LEVEL_INTRO_TEXT_COLOR` at `lineWidth` 2 within ±0.45r …". The rest of F11 AC8 (identify a drop's type while falling, before the catch) is unchanged. |
 | `docs/PRD-addendum-v4.md` F22 AC8 | "(a) The word "Shield" is **never** styled as **S.H.I.E.L.D.** … (b) **No shield** anywhere in the product … uses a **red/white/blue star design** …" | Items (a) and (b) unchanged. **Added (c):** "No token, icon, HUD element, logo, splash or store asset shows an "X" emblem: two crossing diagonal strokes inside or over a circle or ring, or any X-shaped mark used as a badge. A plain "×" multiplication sign in running text (for example the HUD readout "Power ×3.24", F7 AC10) is text, not an emblem, and is allowed. **Single exception (owner-accepted risk, 2026-09-30, review-v2 V2-M3):** the `PERMANENT_MULTIPLIER` power-up token glyph is a capital X inside the shared ring (F23 AC4.4). The exception does not extend to the app icon, adaptive icon, splash, title/logo, feature graphic or store screenshot 4." r2 text superseded: item (c) without the exception sentence. |
 | `docs/PRD.md` NFR-10 (as amended by v4 F22) | "ShieldMan/robots original designs only, plus F22 AC8-AC10." | "ShieldMan/robots original designs only, plus F22 AC8(a)-(c) (v5 r3, with the one owner-accepted Multiplier-token exception in (c)), AC9-AC10, and F23." Hard requirement, not contingent (unchanged). |
 
@@ -315,41 +430,165 @@ r = 20) so that the geometry is proven to scale with r.
    (no glyph `fill()`), in `LEVEL_INTRO_TEXT_COLOR` at `lineWidth` 2.
    (c) No new color is introduced (no glyph call uses any other
    `fillStyle`/`strokeStyle`), and no glyph has holes or interior cut-outs.
-   (d) Every recorded glyph point, including curve control points and the
-   circle's extreme points, lies within ±0.45r of the token center on both
-   axes, so each glyph, including its stroke, stays clear of the ring.
+   (d) **Bound (r5).** The limit depends on the kind of glyph.
+   - *Stroked glyphs (`SHIELD`, `PERMANENT_MULTIPLIER`) — unchanged.* Every
+     recorded glyph point, including the circle's extreme points, lies
+     within **±0.45r** of the token center on both axes.
+   - *Filled glyphs (`HIT_POWER`, `SPEED`) — r5.*
+     (i) Every recorded glyph point, including curve control points, lies
+     within **±0.65r** of the token center on both axes.
+     (ii) Every point of the flattened outline lies within a distance of
+     **0.75r** of the token center. (The corners of the ±0.65r box are
+     0.92r from the center and would touch the ring; (ii) keeps the glyph
+     out of them.)
+     (iii) Visible dark gap: at r = 12, `(r − 1) − d − s ≥ 2.0` px, where
+     `r − 1` is the ring's inner edge (11 px; the ring's centre line is at
+     r and its stroke is 2 px), `d` is the largest distance from the
+     center to any flattened-outline point, and `s` is 1 if the optional
+     same-path `stroke()` of AC3(a) is used, else 0. With no stroke, (ii)
+     gives exactly this: 11 − 9 = 2.0 px at the closest point, and
+     11 − 7.8 = 3.2 px on the axes.
+   *r3 text superseded (r5):* "(d) Every recorded glyph point, including
+   curve control points and the circle's extreme points, lies within ±0.45r
+   of the token center on both axes, so each glyph, including its stroke,
+   stays clear of the ring."
    *Test:* recorded styles, line widths, fill/stroke call counts per type,
    single-subpath check for (c), and a bound check on every recorded point.
+   *Test (r5, (d)):* per type, the box check on every recorded point with
+   the type's limit (0.45r or 0.65r); for the two filled glyphs also the
+   0.75r distance check on the flattened outline at r = 12 and r = 20, and
+   the 2.0 px gap formula at r = 12.
    *r2 text superseded:* "Every glyph segment is stroked (not filled) in
    `LEVEL_INTRO_TEXT_COLOR` at `lineWidth` 2. No new color and no glyph fill
    are introduced."
 4. **Glyph shapes.** Tolerance ±0.05r on every stated coordinate unless a
-   range is given.
-   - **4.1 `HIT_POWER` — fist.** One filled closed outline.
-     (a) Bounding box width between 0.6r and 0.9r, height between 0.5r and
-     0.9r, centered on (0, 0) within ±0.1r.
+   range is given. Where a range is given (all of AC4.1 and AC4.2 in r5),
+   the test asserts the range as written, with floating-point tolerance
+   only; angles are asserted to ±0.5°.
+   - **4.1 `HIT_POWER` — fist (r5).** One filled closed outline. It is the
+     r3 fist scaled up in proportion (the r3 ranges × 0.65/0.45 ≈ 1.44,
+     rounded), so the fist and the rabbit have similar visual weight.
+     (a) Bounding box width between **1.0r and 1.3r**, height between
+     **0.8r and 1.2r**, centered on (0, 0) within ±0.1r. (The width floor is
+     1.0r, not 0.87r, so the fist is never much smaller than the rabbit.)
+     (b) Knuckles: the outline has **3 or 4 top bumps**, all in its upper
+     half (y < 0), each with prominence between **0.06r and 0.22r**, spaced
+     at least **0.17r** apart in x. No top bump has prominence of 0.3r or
+     more.
+     (c) No forearm or wrist: the outline's width measured **0.12r above its
+     lowest point** is at least 0.6 × its width at y = 0 (the bottom is not
+     a narrow stub). The fist faces the viewer or sideways; it is not a
+     raised arm.
+     (d) The AC3(d) filled-glyph bound holds. A fist wider than about 1.06r
+     and as tall needs rounded lower corners to stay inside 0.75r.
+     Note: the r3 fist as built (0.81r by 0.69r, bumps 0.11r high and 0.16r
+     apart), scaled uniformly about the center by a factor between about
+     1.25 and 1.45, meets (a)-(d).
+     *r3 text superseded (r5):* "(a) Bounding box width between 0.6r and
+     0.9r, height between 0.5r and 0.9r, centered on (0, 0) within ±0.1r.
      (b) Knuckles: the flattened outline has **3 or 4 bumps** in its upper
      half (y < 0), each with prominence between 0.04r and 0.15r, spaced at
-     least 0.12r apart in x, all on the top edge.
-     (c) No forearm or wrist: the outline's width measured at y = +0.3r is
-     at least 0.6 × its width at y = 0 (the bottom is not a narrow stub).
-     The fist faces the viewer or sideways; it is not a raised arm.
-   - **4.2 `SPEED` — rabbit, side view.** One filled closed outline.
-     (a) Bounding box width between 0.6r and 0.9r, height between 0.5r and
-     0.9r, centered on (0, 0) within ±0.1r.
+     least 0.12r apart in x, all on the top edge. (c) No forearm or wrist:
+     the outline's width measured at y = +0.3r is at least 0.6 × its width
+     at y = 0 (the bottom is not a narrow stub). The fist faces the viewer
+     or sideways; it is not a raised arm."
+   - **4.2 `SPEED` — rabbit, side view (r5).** One filled closed outline of
+     a whole rabbit, crouched on four legs, facing left or right.
+     **Landmarks** (found on the flattened outline; the tests locate them
+     the same way). Walking the top of the outline from the nose end to the
+     tail end: the **front ear tip** and the **rear ear tip** (the two
+     highest top bumps), the **ear valley V** (the lowest outline point
+     between the two tips), the **neck dip N** (the lowest outline point
+     between the rear ear tip and the rump top), and the **rump top R** (the
+     highest outline point behind N). **E** is the ear height: the rise of
+     the *lower* of the two ear tips above V. "At 0.25E / 0.5E / 0.75E"
+     means on the horizontal line that far above V. W and H are the
+     bounding-box width and height.
+     (a) **Box.** W between **1.1r and 1.3r**; H between **0.9r and 1.2r**;
+     **W ≥ H**; centered on (0, 0) within ±0.1r; AC3(d) filled-glyph bound.
+     (b) **Ears: on the head, leaning back.**
+     1. *Count.* Exactly **2** top bumps have prominence of at least
+        **0.3r**. They are the two ear tips, and they are the two highest
+        points of the outline. No ear is bent or folded down.
+     2. *Height.* **0.3r ≤ E ≤ 0.55r**. The lower ear tip is also at least
+        **0.3r** above the rump top R.
+     3. *Width.* Each ear is between **0.2r and 0.3r** wide at 0.25E (its
+        base), and between **0.12r and 0.25r** wide at 0.75E (near its tip).
+     4. *Gap.* The dark gap between the two ears is at least **0.1r** at
+        0.5E and at least **0.17r** (2 px at r = 12) at 0.75E.
+     5. *Lean.* For each ear, the line from the midpoint of its width at
+        0.25E to the midpoint of its width at 0.75E leans **back** (toward
+        the tail) by **15° to 25°** from vertical. No ear leans forward,
+        and no ear lies flatter than 25°.
+     6. *Rounded tips.* Each ear tip is drawn by a curve call (`arc`,
+        `quadraticCurveTo` or `bezierCurveTo`), and the flattened outline
+        has no horizontal segment longer than 0.05r within 0.05r below the
+        tip (no flat-topped ear).
+     7. *Placement.* The midpoint of each ear at 0.25E (its root) lies in
+        the **head half** of the box and **forward of the neck dip N**, so
+        both ears attach to the head, not to the back. Each ear **tip** lies
+        within the head-end **0.6 × W** of the box and forward of R.
+     *Reconciliation with r3 AC4.2(b) (r5).* r3 required both ear tips to
+     "lie in the same half … of the bounding box" and to be the only bumps
+     of 0.2r or more. Ears that lean back 15°-25° carry their tips up to
+     about 0.2r backward, which can put the rear tip past the middle of the
+     box, and the high rump now required in (c) can itself rise 0.2r. r5
+     therefore (1) applies the half-box rule to the ear **roots** and gives
+     the **tips** the head-end 0.6 × W; (2) raises the ear threshold to
+     0.3r and caps the rump at 0.25r, so the count of 2 can never include
+     the rump; (3) replaces "point up or up-and-back" with the 15°-25° lean.
+     A rabbit that meets (a)-(c) exists inside the AC3(d) bound: for
+     example W = 1.25r, ear tips at y = −0.6r, V at y = −0.2r (E = 0.4r),
+     N at y = −0.15r, R at y = −0.27r, feet at y = +0.5r.
+     (c) **Head, body, tail, legs.**
+     1. *Head lump.* The head is a round lump at the nose end. A disc of
+        diameter at least **0.3r** fits inside the outline forward of N and
+        below V. The horizontal distance from the nose (the head-end edge
+        of the box) to N is between **0.35r and 0.65r**. (The website
+        reviewer's "about 0.25r to 0.3r across" was written for the r3 box;
+        r5 takes its upper value as the floor for the larger box.)
+     2. *Neck dip and high rump.* R lies in the tail half of the box and
+        is between **0.1r and 0.25r** higher than N (a clear neck dip, with
+        the shoulders lower than the rump). The rump is drawn by curve
+        calls (rounded).
+     3. *Horizontal body (kept from r3).* The part of the outline below V
+        is at least **1.3 ×** as wide as it is tall.
+     4. *Tail bump.* Between R and the hind foot, the tail-end edge of the
+        outline has one small rounded bump: the tail's rearmost point is
+        between **0.06r and 0.15r** behind the notch directly under it, and
+        at least **0.25r** above the foot line.
+     5. *Underside notch.* The bottom edge has exactly **one** notch,
+        between the front and hind legs: at least **0.15r** wide at half its
+        depth and between **0.15r and 0.3r** deep, measured up from the
+        foot line. Its top stays below the box's mid-height. It is a notch
+        in the outline, not an interior hole (AC3(c)).
+     6. *Four-leg crouch.* Exactly two foot contacts (runs of the outline
+        within 0.03r of the lowest point), one in the head half and one in
+        the tail half, each between **0.15r and 0.4r** long. Both feet are
+        on the same line: their lowest points differ by at most 0.05r (a
+        crouch, not a leap).
+     (d) **IP** (checked by eye in the design and security reviews;
+     unchanged from r3, binding per review-v2 addendum 4 §1.3): the
+     silhouette must not resemble the **Playboy** rabbit logo (a head-only
+     profile, bow tie, one bent ear, eye cut-out) or the **Energizer** or
+     **Duracell** bunnies (an upright, standing, costumed or drum-carrying
+     rabbit). Whole body only, side view, never head-only, never upright,
+     no accessories, no clothing, no bow tie, no drum, no sunglasses, no
+     eye or other cut-out (AC3(c)), amber only. *Added in r5, for the same
+     reason:* the ears never lie flat along the back (lean ≤ 25°, (b)5) and
+     the pose is never a stretched leap ((c)6), which keeps the glyph away
+     from the leaping-rabbit car badge named in addendum 4 §1.3. The r5
+     redraw gets a new IP check (addendum 4 §1.3, last bullet).
+     *r3 text superseded (r5):* "(a) Bounding box width between 0.6r and
+     0.9r, height between 0.5r and 0.9r, centered on (0, 0) within ±0.1r.
      (b) Ears: the flattened outline has **exactly 2 bumps** with prominence
      of at least 0.2r. They are the two highest points of the outline, both
      lie in the same half (left or right) of the bounding box (the head
      end), and both point up or up-and-back (no ear bent or folded down).
      (c) Body: the part of the outline below the base of the ears is at
      least 1.3 × as wide as it is tall (a horizontal, four-legged body, not
-     an upright standing figure).
-     (d) IP (checked by eye in the design and security reviews): the
-     silhouette must not resemble the **Playboy** rabbit logo (a head-only
-     profile, bow tie, one bent ear, eye cut-out) or the **Energizer** or
-     **Duracell** bunnies (an upright, standing, costumed or drum-carrying
-     rabbit). Whole body only, no accessories, no clothing, no bow tie, no
-     drum, no sunglasses, no eye or other cut-out (AC3(c)), amber only.
+     an upright standing figure)." r3 (d) is kept word for word, with the
+     r5 additions marked above.
    - **4.3 `SHIELD` — circle.** Exactly one stroked full circle (`arc`
      0 to 2π, or `ellipse` with equal radii), centered at (0, 0) ± 0.03r,
      with radius between **0.25r and 0.35r**. At r = 12 that is a 3-4.2px
@@ -371,7 +610,9 @@ r = 20) so that the geometry is proven to scale with r.
      (b) the two segments cross once, at (0, 0) ± 0.05r (AC1(c));
      (c) no other glyph call (no fill, no extra segment, no inner ring).
 
-   *Test:* one unit test per glyph on the recorded path.
+   *Test:* one unit test per glyph on the recorded path. (r5: for the fist
+   and the rabbit, one assertion per numbered item of AC4.1(a)-(d) and
+   AC4.2(a), (b)1-7 and (c)1-6.)
    *r2 text superseded:* "4.1 `HIT_POWER` — up arrow. Exactly 3 segments …",
    "4.2 `SPEED` — double-headed horizontal arrow "<-->". Exactly 5 segments
    …", "4.3 `SHIELD` — wall "---". Exactly 4 segments forming one closed
@@ -396,20 +637,51 @@ r = 20) so that the geometry is proven to scale with r.
 
    | Type | Glyph `fill()` | Glyph `stroke()` only | Primitive | Distinguishing feature |
    |---|---|---|---|---|
-   | `HIT_POWER` (fist) | 1 | no | one closed outline (curves allowed) | 3-4 top bumps, prominence 0.04r-0.15r |
-   | `SPEED` (rabbit) | 1 | no | one closed outline (curves allowed) | exactly 2 top bumps, prominence ≥ 0.2r, one side |
+   | `HIT_POWER` (fist) | 1 | no | one closed outline (curves allowed) | 3-4 top bumps, prominence 0.06r-0.22r, none ≥ 0.3r (r5; r3: "3-4 top bumps, prominence 0.04r-0.15r") |
+   | `SPEED` (rabbit) | 1 | no | one closed outline (curves allowed) | exactly 2 top bumps with prominence ≥ 0.3r (the ears), both rooted in the head half (r5; r3: "exactly 2 top bumps, prominence ≥ 0.2r, one side") |
    | `SHIELD` (circle) | 0 | yes | one full-circle arc, radius 0.25r-0.35r | no line segments |
    | `PERMANENT_MULTIPLIER` (X) | 0 | yes | 2 diagonal segments | one crossing at center |
 
-   (b) visual — a capture of all four tokens side by side at r = 12 is
-   attached to the website UX round 2 review and the mobile design review.
-   Capture it on the website at 1× and at the phone-emulation viewport, and
-   a **grayscale** copy of each. The reviewer records that each type can be
-   named without color, in grayscale, at 24px. The reviewer also records
-   that: the fist does not read as a blob, a cloud or a paw; the rabbit
-   reads as a rabbit (ears visible) and not as a "V" or a cat; the circle
-   does not read as a second ring, a target or a bullseye; and the X reads as
-   a multiplier mark.
+   (b) visual (r5) — the reviewers judge the tokens at the size a player
+   really sees, without magnification. The evidence set below is attached
+   to the website UX review (v3 round 3) and the mobile design review
+   (round 8). All files go in `docs/mobile/tests/screenshots/`, are
+   rendered from the shared `drawPowerUp` in a build that contains F23 r5,
+   and show **all four tokens side by side** (fist, rabbit, circle, X):
+
+   | # | File | What it is |
+   |---|---|---|
+   | 1 | `f23_tokens_13dp_at_2x_r5.png` | In-play size: 13 dp tokens on a 2x profile (each token about 26 px across), colour, 1:1 crop, no scaling |
+   | 2 | `f23_tokens_13dp_at_2x_gray_r5.png` | The same crop in grayscale |
+   | 3 | `f23_tokens_24px_r5.png` | 24 px tokens (r = 12 at 1×), colour, 1:1 crop, no scaling |
+   | 4 | `f23_tokens_24px_gray_r5.png` | The same crop in grayscale |
+   | 5 | `m2_7_lowend_powerup_rabbit_r5.png` (or `m2_7_pixel7_powerup_rabbit_r5.png`) | One capture from the Android emulator running the new build, with the rabbit token on screen during play, at native resolution |
+
+   Files 1-4 may be harness renders. File 5 must be a real emulator
+   capture. "1:1" means one image pixel per rendered pixel: no upscaling,
+   no smoothing, no zoom. A magnified sheet (for example 8×) may be added
+   for the IP check, but it is **not** evidence for this criterion.
+   *Pass test.* Each reviewer, looking only at the unmagnified crops and
+   not told the types, records what each token is. The rabbit passes only
+   if the reviewer would write "rabbit" or "bunny": the mobile reviewer
+   from file 2, the website reviewer from file 4. The reviewer also records
+   that: every type can be named without colour; the fist does not read as
+   a blob, a cloud or a paw; the rabbit does not read as a "V", a cat, a
+   castle or a crown; the circle does not read as a second ring, a target
+   or a bullseye; the X reads as a multiplier mark; and the dark gap
+   between each filled glyph and the ring is visible in files 1 and 3.
+   *If the rabbit fails this test again* in mobile round 8 or website v3
+   round 3, no further redraw is attempted. The "<-->" fallback (r2 AC4.2)
+   then goes to the owner for approval (AC5; §Open Questions, r5 note).
+   *r3 text superseded (r5):* "(b) visual — a capture of all four tokens
+   side by side at r = 12 is attached to the website UX round 2 review and
+   the mobile design review. Capture it on the website at 1× and at the
+   phone-emulation viewport, and a **grayscale** copy of each. The reviewer
+   records that each type can be named without color, in grayscale, at
+   24px. The reviewer also records that: the fist does not read as a blob,
+   a cloud or a paw; the rabbit reads as a rabbit (ears visible) and not as
+   a "V" or a cat; the circle does not read as a second ring, a target or a
+   bullseye; and the X reads as a multiplier mark."
    *r2 text superseded:* the r2 signature table (3/5/4/3 segments by
    horizontal/vertical/diagonal count) and "the up arrow and the "<-->" do
    not read as a "+" or as each other, and the wall does not read as the old
@@ -435,6 +707,9 @@ r = 20) so that the geometry is proven to scale with r.
    changes, AC10). The existing gameplay and power-up test suites pass
    without edits. The only exception is a test or visual snapshot that
    asserts an old glyph; it is updated to the new one.
+   *r5 note:* r5 changes only the fist and rabbit glyph drawing (and their
+   tests). The `SHIELD` and `PERMANENT_MULTIPLIER` branches, the ring, the
+   disc, `POWERUP_RADIUS` and the catch hitbox are not touched.
    *r2 text superseded:* "Only the glyph draw calls inside the four `switch`
    branches of `drawPowerUp` change."
 9. **Old tokens gone from all shipped art; screenshot 4 without the X.** No
@@ -472,6 +747,7 @@ r = 20) so that the geometry is proven to scale with r.
 | AC4.3 | **M9.6 item 2** ("no concentric-ring shield"). Q-v5-1 answered (r4): not a hit, on five binding limits; recorded in the PRD-mobile M9.6 note of 2026-09-30. | mobile-security-compliance-reviewer, mobile-ui-ux-designer |
 | AC4.2(d) | Store/IP check of the rabbit silhouette (Playboy, Energizer, Duracell). | mobile-ui-ux-designer, mobile-security-compliance-reviewer |
 | AC6 | UC4 row: "power-up icons must stay distinguishable at phone scale (F11 AC8)"; M2 phone-scale checks on the low-end profile, including a grayscale capture | mobile-junior-tester / mobile-lead-tester (device matrix captures) |
+| AC3(d), AC4.1, AC4.2, AC6(b) (r5) | Same shared drawing. Mobile evidence: AC6(b) files 1, 2 and 5 at the in-play size (about 13 dp). Rabbit and fist renders get a new IP check (review-v2 addendum 4 §1.3). `docs/mobile/PRD-mobile.md` v1.9 change-log line points here. | mobile-junior-developer (redraw), mobile-lead-tester (captures), mobile-ui-ux-designer (round 8), mobile-security-compliance-reviewer (IP delta check) |
 | AC9 | `store-assets-spec.md` screenshot 4 and feature graphic; review-v2 C7 ("before screenshots are captured (step 15)") | mobile-release-engineer, mobile-ui-ux-designer |
 | AC2-AC5, AC8 | No mobile-specific text needed: the Android app draws the same `drawPowerUp` from the shared `src/`. After the change, rebuild and `npx cap sync android`. Never hand-edit the copied web assets. | mobile-junior-developer |
 
@@ -496,6 +772,11 @@ redraws the other three glyphs)."
   player's own shield art, F14, is unchanged).
 - A new icon, splash or logo (they are only re-checked under AC7, and stay
   X-free).
+- (r5) Enlarging the whole token: `POWERUP_RADIUS`, the ring and the catch
+  hitbox stay as they are (design-review-round7 option (a2) is not taken).
+  r5 enlarges only the two filled glyphs inside the ring.
+- (r5) Replacing the rabbit with "<-->". That reverses an owner choice and
+  is only put to him if the rabbit fails again (§Open Questions, r5 note).
 - Removing the Multiplier X. That would reverse the owner's r3 decision and
   needs a new revision.
 
@@ -554,6 +835,14 @@ raised with the owner on 2026-09-30. Options:
 - (c) Switch Shield to the owner's other option, the wall "---" (r2 AC4.3,
   already specified). Cost: reverses an owner choice; needs owner approval.
 
+**r5 note — no open question; one conditional question recorded.** r5 needs
+no owner decision. If the rabbit fails AC6(b) again in mobile round 8 or
+website v3 round 3, a new question **Q-v5-2** is opened and put to the owner
+at that time, and not before: approve the double arrow "<-->" (r2 AC4.2) for
+the Speed token in place of the rabbit, or choose another route. The
+fallback is not applied without his approval, because he chose the rabbit on
+2026-09-30 (19:52 UTC).
+
 None open (r4: Q-v5-1 is answered above). The owner chose all four shapes
 on 2026-09-30 and accepted the X risk. The change costs three redrawn glyph branches, their
 unit tests, a grayscale capture and a screenshot re-capture.
@@ -577,6 +866,18 @@ pass the gates of **both** pipelines:
   mobile-ui-ux-designer next round, mobile-security-compliance-reviewer
   closing V2-M3 as risk-accepted under C7), mobile-product-manager's M9.6
   note, mobile UAT, and store capture per AC9.
+- **r5 route (both pipelines, same order):** code-implementer /
+  mobile-junior-developer redraw the fist and rabbit in
+  `src/render/shapes.ts` to AC3(d), AC4.1 and AC4.2; code-reviewer and
+  mobile-lead-developer review; test-writer / mobile-junior-tester update
+  `src/render/powerUpGlyphs.test.ts` (bound, boxes, AC4.1, AC4.2 items,
+  AC6(a) signatures); test-validator / mobile-lead-tester run them and
+  produce the AC6(b) evidence set; ui-ux-designer (v3 round 3) and
+  mobile-ui-ux-designer (round 8) judge the rabbit from the unmagnified
+  crops; security-compliance-reviewer and
+  mobile-security-compliance-reviewer do the IP delta check of the new
+  fist and rabbit renders (addendum 4 §1.3). A second rabbit FAIL at either
+  design gate goes to the owner as Q-v5-2, not back to the developer.
 - `.github/workflows/deploy-pages.yml` remains the single CI check. The F23
   unit tests run there for both platforms.
 - No ADR is needed: only the glyph branches of an existing draw function
@@ -597,3 +898,11 @@ r2 → r3 change is quoted in the r3 revision table and next to the AC it
 changes. The Android side maps to PRD-mobile M9.6 items 2-4 and the UC4
 phone-scale row. These are cross-referenced, not edited. `docs/PRD.md` and
 addenda v2-v4 are not edited, and this addendum wins where they differ.
+
+**r5 (2026-09-30).** Each r3/r4 → r5 change is quoted in the r5 revision
+table and next to the AC it changes (AC3(d), AC4.1, AC4.2, AC6(a) rows,
+AC6(b), F11 AC8 row). r5 traces to `docs/mobile/ux/design-review-round6.md`
+and `-round7.md`, `docs/ux/design-review-v3-round1.md` and `-round2.md`, and
+keeps the limits of `docs/mobile/security/review-v2-addendum4.md` (§1.3,
+§1.4, §2.2). The Android side is noted in the `docs/mobile/PRD-mobile.md`
+v1.9 change-log line.
