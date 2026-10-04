@@ -53,3 +53,10 @@
 - Adding a platform later (e.g. web touch, if OQ-M10 is ever revisited) is a new
   `Platform` implementation, not edits across the core.
 - Traces to: C1, C3, PRD-mobile §0, M3.12, M6.1, M8.3, OQ-M10 (a); `mobile-architecture.md` §4.
+
+## Amendment note (2026-10-04, architecture v1.8, Amendment A14)
+Written by mobile-solution-architect. The Decision text above is kept as the historical
+record; where later text differs, it wins. On Android the two top warning words are a DOM
+banner under the HUD, and the website keeps the canvas text, behind one `CanvasRenderer`
+flag set through `PlatformContext` (default on). `TEXT_TOP_LOGICAL` stays 4. Full record:
+M-ADR-0013 (`0013-android-top-banner.md`) and `docs/mobile/architecture/amendment-A14.md`.

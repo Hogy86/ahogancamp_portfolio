@@ -109,11 +109,15 @@ const BUTTON_SIZES = [64, 56] as const;
 const MIN_SCALE = 0.5;
 const BOTTOM_MARGIN_MIN_DP = 16;
 const PAUSE_SIZE_DP = 48;
-/** §6.2/§6.5 Amendment A12: the nearest playfield text to the top edge (the formation/
- * boss warning's em box, `CanvasRenderer.drawFormationWarning`/`drawBossWarning`,
- * baseline y=24 minus a 20px em box = logical y 4). See §6.5 A12's text inventory
- * table and change-control rule (§12 MR21): a shared change moving this text closer
- * to the top edge must update this constant in the same change. */
+/** §6.2/§6.5 Amendments A12 and A14: bound for the nearest playfield text to the top edge.
+ * 4 is the em-box top of the shared canvas warning words (`CanvasRenderer`
+ * `drawFormationWarning`/`drawBossWarning`, baseline y=24 minus a 20px em box), which is
+ * what the renderer draws when its top-banner flag is on (the default, and the website).
+ * On Android the flag is off and those words are the DOM banner below the HUD
+ * (topBanner.ts), so the nearest real text is the HUD content box at logical y 15 and 4
+ * is a conservative bound. Do not raise it without an architecture amendment: it sets
+ * the M2.10a/M2.3b/M2.3c floor. Change-control rule: §6.5 A12 rule 2 and A14 item 6
+ * (§12 MR21, MR23). */
 export const TEXT_TOP_LOGICAL = 4;
 /** §6.2/§6.5 Amendment A12: bound for the nearest playfield text to the bottom edge.
  * 13 is the website/shared `#control-text` position (content-box bottom at logical

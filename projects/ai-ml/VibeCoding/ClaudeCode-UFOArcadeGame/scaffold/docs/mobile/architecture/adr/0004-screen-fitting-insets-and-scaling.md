@@ -143,3 +143,10 @@ a display cutout. HUD/hint text, controls and menus stay inside the full insets.
 
 **Traces to:** PRD-mobile v1.6 M2.3b (rules 1-4, (a)-(e), known limit), the M2.10a and
 M2.12 v1.6 notes, M2.3a, M2.13, M3.1, M3.2; code-review-round8 E1 and I1; OQ-M7 (a).
+
+## Amendment note (2026-10-04, architecture v1.8, Amendment A14)
+Written by mobile-solution-architect. The Decision text above is kept as the historical
+record; where later text differs, it wins. On Android the two top warning words are a DOM
+banner under the HUD, and the website keeps the canvas text, behind one `CanvasRenderer`
+flag set through `PlatformContext` (default on). `TEXT_TOP_LOGICAL` stays 4. Full record:
+M-ADR-0013 (`0013-android-top-banner.md`) and `docs/mobile/architecture/amendment-A14.md`.
