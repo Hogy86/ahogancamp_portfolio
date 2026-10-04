@@ -654,3 +654,23 @@ Frame rate (UAT N1), levels 2-10, real edge back-swipe, incoming call, real fold
 - Open the start screen, Settings and the pause menu: the buttons should have an even, visible gap, with no button touching the one above it.
 - Watch the power-ups that fall from robots. There are four: a small fist, a small rabbit, a small circle and an X. Can you tell which is which without catching them? Tell us the phone model and screen size if any two look alike.
 - Press and hold (about 2 seconds) on a menu button, on the title text and on the play area: no pop-up menu, no text selection and no zoom should appear.
+
+## Round 7 (HEAD 5488b15): F23 r5 tokens and context menu, lowend and pixel7
+
+APK built from the mirror (`refresh-android-mirror.ps1`, `npm run build:android`, `cap sync`, `assembleDebug`: BUILD SUCCESSFUL). Emulators run one at a time with `-gpu host`; no device settings were changed. Bot play at level 1 (adb touch input only, canvas read-only).
+
+| Token | lowend 640 x 360 (1280 x 720 px, ring about 26 px) | pixel7 (ring about 38 px) |
+|---|---|---|
+| Fist (Hit Power) | `m2_7_lowend_powerup_fist_r5.png`, `_crop_r5.png`, `_crop_gray_r5.png` | `m2_7_pixel7_powerup_fist_r5.png`, `_crop_r5.png`, `_crop_gray_r5.png` |
+| Rabbit (Speed) | `m2_7_lowend_powerup_rabbit_*_r5.png` | `m2_7_pixel7_powerup_rabbit_*_r5.png` |
+| Circle (Shield) | `m2_7_lowend_powerup_circle_*_r5.png` | `m2_7_pixel7_powerup_circle_*_r5.png` |
+| X (Permanent Multiplier) | `m2_7_lowend_powerup_X_*_r5.png` | `m2_7_pixel7_powerup_X_*_r5.png` |
+
+Full screenshots are 1:1 (1280x720 and 2400x1080). Crops are 1:1 (40 px lowend, 70 px pixel7), unmagnified, in color and grayscale (luma).
+
+Honest reading at real size:
+- pixel7: the fist reads as a fist (four knuckle teeth on top, thumb notch at lower left). The rabbit reads as a rabbit: two ears leaning back, head forward, body and haunch. Circle and X are clear. All four are distinct in grayscale.
+- lowend: the fist is a solid block with three or four small teeth on its top edge and a thumb notch; clearly different from the other three, but "a fist" only if you know what to look for. The rabbit is a blob about 15 px wide with two thin ears (about 2 px wide, a 1-2 px gap) leaning back; it reads as "an animal with long ears" and is clearly not a block, circle or X. Better than round 6 (about 10 px wide), still small. The formal AC6(b) ruling is the UX reviewer's.
+- Catches: fist caught (HUD "5x Hit" countdown) and X caught (Power x1.80) on both profiles, so the catch hitbox is unchanged (the diff touches only draw code). Rabbit and circle catches have no HUD readout and were not separately confirmed.
+
+Long-press (2 s real touch) with a window-level `contextmenu` probe: pixel7 at the left band, right band, bottom edge and top edge: event fired on BODY and was prevented in all four; on the playfield (`#safe-layer`) prevented. lowend: bottom edge (BODY) and top edge, right band and playfield (`#safe-layer`) prevented; at the left control column no event fired. No event was ever left un-prevented, and there was no popup or selection (`lowend_longpress_band_r5.png`, `pixel7_longpress_band_r5.png`). 0 `FATAL EXCEPTION` on both.
