@@ -180,6 +180,15 @@ visual/legal review rounds, as noted per item below.
 
 ---
 
+## Android top banner (UAT round 2 F4; code-review-round20 L1/L4/L5/L7)
+
+| Criterion | Why manual-only |
+|---|---|
+| M2.3b rule 2 / F3 AC6 / F12 AC10-11: the banner appears at the real moment in play (formation one row above ShieldMan, and after the formation is cleared for the boss) and is not covering a robot or laser at that moment | The real triggers take minutes of play and the `?e2e=1` hook has no setters, so `tests/mobile-e2e/robot-warning.spec.ts` forces the banner with `&banner=robots|boss` and proves only layout. The mapping from world to banner is unit-tested (`src/platform/android/topBanner.test.ts`) and the web canvas words in `src/render/CanvasRenderer.test.ts`, but the timing in a live run needs a device or emulator playthrough. -> mobile-lead-tester device-matrix and UAT. |
+| Accessibility: TalkBack announces the banner once per change (`role="status"`) and does not repeat it every frame | Needs TalkBack on the emulator or a phone; the unit test only proves the attribute and that the text is written on a kind change. -> mobile-lead-tester and mobile-ui-ux-designer round 2. |
+
+---
+
 ## Test map (everything else — has an automated test)
 
 | Area | Automated in |
@@ -187,6 +196,7 @@ visual/legal review rounds, as noted per item below.
 | M0 parity (shared `src/`, no per-platform game-rule constants) | `src/**/*.test.ts` (shared suite, unchanged by this step), `scripts/check-capacitor-config.test.mjs` |
 | M2.2/M2.3/M2.4/M2.6/M2.8/M2.12/M2.13 layout math and geometry | `src/platform/android/layout.test.ts`, `tests/mobile-e2e/controls-layout.spec.ts` |
 | M2.10 rotate-prompt trigger math | `src/platform/android/layout.test.ts` |
+| M2.3b rule 2 banner (layout, font >= 12 dp, centring, pointer-events, A13 window; mapping; web canvas default) | `tests/mobile-e2e/robot-warning.spec.ts`, `src/platform/android/topBanner.test.ts`, `src/render/CanvasRenderer.test.ts` |
 | M2.3b (a)-(d) (reference phone plays in both layouts, three-button nav, text/controls out of the bands, playfield may use a band, never under a cutout or the side insets or a control) | `src/platform/android/layout.test.ts` (A12 tables, invariant grid), `tests/mobile-e2e/cutout-insets.spec.ts` |
 | M2.10a behaviors 1-5 and tests (c) boundary (prompt text and placement, precedence over portrait, pause on entry, no game time, no hidden resume, back order, screens return as they were) | `src/platform/android/layout.test.ts` (`classifyWindow`), `tests/mobile-e2e/too-small-window.spec.ts` |
 | M3.1/M3.2/M3.8 (sizes, gaps, menu targets ≥48dp) | `tests/mobile-e2e/controls-layout.spec.ts` |
@@ -201,7 +211,7 @@ visual/legal review rounds, as noted per item below.
 | M6.3 (Quit saves the best score first) | `src/core/GameStateMachine.test.ts` |
 | M7.1-M7.6 (best score/settings: fail-closed parsing, commit rules, persistence-across-reload, corrupt-data fallback) | `src/persistence/bestScore.test.ts`, `src/platform/android/settings.test.ts`, `tests/mobile-e2e/controls-behavior.spec.ts` |
 | M8.1-M8.3 (help overlay first-run, reopen, no stale-flag regression) | `tests/mobile-e2e/help-flow.spec.ts`, `smoke.spec.ts` |
-| M9.1/F22 (rename: no old player-facing text anywhere, including canvas-drawn text like the danger warning - no dedicated `CanvasRenderer.test.ts` exists, so the built-bundle scan is this string's only coverage) | `tests/mobile-e2e/rename-audit.spec.ts` (scans the built `dist-android` JS, which embeds every `fillText` literal), `src/ui/ScreenController.test.ts` |
+| M9.1/F22 (rename: no old player-facing text anywhere, including canvas-drawn text like the danger warning - `src/render/CanvasRenderer.test.ts` now also pins both strings and their draw calls) | `tests/mobile-e2e/rename-audit.spec.ts` (scans the built `dist-android` JS, which embeds every `fillText` literal), `src/ui/ScreenController.test.ts` |
 | M11.1/M11.2 (no network requests; manifest permission allowlist), M11.4a (privacy overlay flow, 2-tap, airplane-safe) | `tests/mobile-e2e/smoke.spec.ts`, `controls-behavior.spec.ts`, `scripts/check-android-manifest.test.mjs` |
 | F20 (saved best score: fail-closed, commit rules, mid-run save) | `src/persistence/bestScore.test.ts` |
 | F23 AC1-AC4, AC6(a), AC7 (glyph geometry at r = 12 and 20, ring/disc identical, single-X source search) | `src/render/powerUpGlyphs.test.ts` |

@@ -43,13 +43,14 @@ let touchControlsVisible = true;
  * transition (android.css hides the HUD and control hint by state). */
 let publishedState: string | null = null;
 let topBanner: TopBanner;
-/** Test-only (`?e2e=1`): forces a DOM banner on without touching the world, since the
- * real triggers need minutes of play. See installE2eTestHook. */
+/** Test-only (`?e2e=1&banner=robots|boss`): forces a DOM banner on without touching the
+ * world, since the real triggers need minutes of play. Set once at boot by
+ * installE2eTestHook; never changed afterwards. */
 let forcedTopBanner: TopBannerKind = null;
 
 /** Which top banner the world calls for. Boss wins if both were ever active, so the two
  * never show on top of each other. Only the states the canvas borders are drawn in. */
-function topBannerFor(world: World): TopBannerKind {
+export function topBannerFor(world: World): TopBannerKind {
   if (world.state !== 'PLAYING' && world.state !== 'PAUSED') return null;
   if (forcedTopBanner !== null) return forcedTopBanner;
   if (world.bossWarningRemaining > 0) return 'boss';
@@ -182,7 +183,7 @@ export const androidPlatform: Platform = {
     ctx.setTopBannerTextOnCanvas(false);
     topBanner = new TopBanner(
       ctx.dom.appRoot,
-      ctx.dom.appRoot.querySelector<HTMLElement>('#hud-root') ?? ctx.dom.appRoot,
+      ctx.dom.hudRoot,
     );
 
     touchControls = new TouchControls(
@@ -295,7 +296,7 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/** M5 (§10 item 3, §10.2, L4a): a read-only test hook for the Playwright phone-emulation
+/** M5 (§10 item 3, §10.2, L4a): a test hook with no setters for the Playwright phone-emulation
  * suite (the 40/40 slide test needs to read live world/player-x state without going
  * through GameCommands). Gated so it is installed ONLY under `?e2e=1` outside a real
  * Capacitor runtime - `typeof window.__vvsTest === 'undefined'` on the installed app
@@ -303,6 +304,11 @@ function deepFreeze<T>(value: T): T {
 function installE2eTestHook(ctx: PlatformContext): void {
   const params = new URLSearchParams(window.location.search);
   if (params.get('e2e') !== '1' || Capacitor.isNativePlatform()) return;
+
+  // Presentation only: `&banner=robots|boss` forces the DOM banner visible so its layout
+  // can be measured. Read once here (no setter on the hook); it never touches the world.
+  const bannerParam = params.get('banner');
+  if (bannerParam === 'robots' || bannerParam === 'boss') forcedTopBanner = bannerParam;
 
   // L6: bounded so a long-running suite can never grow this without limit.
   const PLAYER_X_LOG_CAP = 500;
@@ -321,11 +327,6 @@ function installE2eTestHook(ctx: PlatformContext): void {
     // §10.1 Amendment A11: the same pure order-resolution `registerBackButton` uses,
     // called directly rather than through the real `App.addListener('backButton', ...)`
     // path (see backButton.ts's own comment on why that path is excluded here).
-    // Presentation only: shows an Android DOM banner so its layout can be measured. It
-    // does not touch the world, so game rules and the warning triggers are unchanged.
-    showTopBanner: (kind: TopBannerKind) => {
-      forcedTopBanner = kind;
-    },
     resolveBack: () =>
       resolveBackTarget({
         isRotatePromptShowing: () => overlays.isRotatePromptShowing(),

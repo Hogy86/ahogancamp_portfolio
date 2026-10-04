@@ -1,23 +1,35 @@
 // Implements UAT round 2 F4 (M2.3, M2.3b rule 2, M2.6; F3 AC6): the "WARNING: ROBOTS
-// APPROACHING" and "BOSS INCOMING" banners must be fully visible and must not intersect any HUD panel, with a
-// power-up timer pill, a five-digit score, and at 1.3x font, on every device-matrix window.
+// APPROACHING" and "BOSS INCOMING" banners must be fully visible, legible (>= 12 dp) and must
+// not intersect any HUD panel, with a power-up timer pill, a six-digit score, and at 1.3x
+// font, on every device-matrix window plus the A13 window (640x360, insets 0,0,30,38.5).
 //
 // The real trigger (formation one row above ShieldMan) takes minutes of play and the
-// read-only `?e2e=1` hook cannot reach it, so this test uses `__vvsTest.showTopBanner`,
-// which only forces the Android DOM banner visible (no world change). It therefore proves the
-// layout, not the trigger rule, which FormationSystem's own unit tests cover.
+// `?e2e=1` hook has no setters, so this test navigates with `&banner=robots|boss`, which
+// only forces the Android DOM banner visible (no world change). It therefore proves the
+// layout, not the trigger rule; the mapping is unit-tested in src/platform/android/topBanner.test.ts.
 
 import { test, expect, type Page } from '@playwright/test';
 
 const HUD_TEXT = [
-  'Score: 99999',
+  'Score: 999999',
   'Lives: 4 (+1 LIFE)',
   'Level: 10/10',
-  'Power ×9.99',
+  'Power ×18.90',
   '3x Speed 8.0s',
 ];
 const FONT_SCALES = [1, 1.3];
-const INSET_QUERIES = ['', 'insets=30,30,24,32&'];
+// `insets=left,right,top,bottom` (GameShell web fallback). `viewport` is set only for the
+// A13 window, which runs in the 640x360 project only.
+const CASES = [
+  { label: 'no insets', query: '', top: 0, viewport: null },
+  { label: 'insets 30,30,24,32', query: 'insets=30,30,24,32&', top: 24, viewport: null },
+  {
+    label: 'A13 window 640x360 insets 0,0,30,38.5',
+    query: 'insets=0,0,30,38.5&cutout=0,0&',
+    top: 30,
+    viewport: { width: 640, height: 360 },
+  },
+];
 
 interface Box {
   x: number;
@@ -42,79 +54,98 @@ const BANNERS = [
 ];
 
 for (const { kind, text } of BANNERS) {
-  for (const insets of INSET_QUERIES) {
+  for (const { label, query, top: insetTop, viewport } of CASES) {
     for (const factor of FONT_SCALES) {
-      test(`the ${kind} banner is whole and clear of every HUD panel (font x${factor}, ${insets || 'no insets'})`, async ({
+      test(`the ${kind} banner is whole, legible and clear of every HUD panel (font x${factor}, ${label})`, async ({
         page,
-      }) => {
-        await page.goto(`/?${insets}e2e=1`);
+      }, testInfo) => {
+        test.skip(
+          viewport !== null && testInfo.project.name !== '640x360',
+          'the A13 window is a 640x360-only case',
+        );
+        if (viewport) await page.setViewportSize(viewport);
+        await page.goto(`/?${query}e2e=1&banner=${kind}`);
         await page.evaluate(() => localStorage.clear());
         await page.reload();
         await startRun(page);
-        await page.addStyleTag({
-          content: `
+        if (factor !== 1) {
+          // Simulates the system font-size setting. At factor 1 NOTHING is overridden, so
+          // the banner's own CSS rule is what the font assertion below measures.
+          await page.addStyleTag({
+            content: `
           html.platform-android .hud-panel, html.platform-android #top-banner {
             font-size: calc(max(15px, calc(12px / var(--pf-scale, 1))) * ${factor}) !important;
           }`,
-        });
+          });
+        }
         // The HUD only rewrites a panel when its value changes, so these texts persist.
         await page.evaluate(
-          ({ texts, kind }) => {
+          ({ texts }) => {
             document.querySelectorAll<HTMLElement>('.hud-panel').forEach((el, i) => {
               el.textContent = texts[i] ?? '';
             });
-            (
-              window as unknown as { __vvsTest: { showTopBanner: (kind: string | null) => void } }
-            ).__vvsTest.showTopBanner(kind);
           },
-          { texts: HUD_TEXT, kind },
+          { texts: HUD_TEXT },
         );
         const warning = page.locator('#top-banner');
         await expect(warning).toBeVisible();
         await expect(warning).toHaveText(text);
-        // Forcing the other kind swaps the one element, so both can never show together.
         await expect(page.locator('#top-banner')).toHaveCount(1);
         // Let the per-frame sync place the row under the (now tall) HUD.
         await page.evaluate(
           () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
         );
 
-        const { warn, panels, canvas, fits, fontPx } = await page.evaluate(() => {
+        const m = await page.evaluate(() => {
           const box = (el: Element): Box => {
             const r = el.getBoundingClientRect();
             return { x: r.x, y: r.y, width: r.width, height: r.height };
           };
           const w = document.querySelector<HTMLElement>('#top-banner')!;
+          const wr = w.getBoundingClientRect();
+          const hit = document.elementFromPoint(wr.x + wr.width / 2, wr.y + wr.height / 2);
           return {
             warn: box(w),
             panels: Array.from(document.querySelectorAll('.hud-panel'))
               .filter((el) => getComputedStyle(el).display !== 'none')
               .map(box),
             canvas: box(document.querySelector('#game-canvas')!),
-            fits: w.scrollWidth <= w.clientWidth,
             fontPx: parseFloat(getComputedStyle(w).fontSize),
+            scale: parseFloat(
+              getComputedStyle(document.documentElement).getPropertyValue('--pf-scale'),
+            ),
+            pointerEvents: getComputedStyle(w).pointerEvents,
+            hitIsBanner: !!hit && (hit === w || w.contains(hit)),
           };
         });
+        const { warn, panels, canvas } = m;
 
         expect(panels).toHaveLength(HUD_TEXT.length);
-        expect(fits, 'text not clipped inside its own box').toBe(true);
         expect(warn.x, 'left edge inside the playfield').toBeGreaterThanOrEqual(canvas.x);
         expect(warn.x + warn.width, 'right edge inside the playfield').toBeLessThanOrEqual(
           canvas.x + canvas.width,
         );
+        expect(warn.y, 'top at or below the top inset').toBeGreaterThanOrEqual(insetTop - 0.01);
+        expect(warn.y + warn.height, 'bottom inside the canvas').toBeLessThanOrEqual(
+          canvas.y + canvas.height + 0.01,
+        );
+        expect(
+          Math.abs(warn.x + warn.width / 2 - (canvas.x + canvas.width / 2)),
+          'horizontally centred on the playfield',
+        ).toBeLessThan(1);
+        expect(m.pointerEvents).toBe('none');
+        expect(m.hitIsBanner, 'a touch at the banner centre reaches what is beneath').toBe(false);
         for (const panel of panels) {
           expect(
             intersects(warn, panel),
             `warning ${JSON.stringify(warn)} vs HUD ${JSON.stringify(panel)}`,
           ).toBe(false);
         }
-        // As legible as the HUD text: same font floor (the HUD uses the same expression).
-        const hudPx = await page
-          .locator('.hud-panel')
-          .first()
-          .evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
-        expect(fontPx).toBeGreaterThanOrEqual(hudPx);
-        test.info().annotations.push({
+        // M2.6: at least 12 dp on screen (logical font px x playfield scale), times the
+        // simulated font factor, minus a small rounding tolerance.
+        expect(m.scale).toBeGreaterThan(0);
+        expect(m.fontPx * m.scale, 'banner font in dp').toBeGreaterThanOrEqual(12 * factor - 0.1);
+        testInfo.annotations.push({
           type: 'clearance',
           description: `gap below lowest HUD panel: ${(warn.y - Math.max(...panels.map((p) => p.y + p.height))).toFixed(1)} css px`,
         });

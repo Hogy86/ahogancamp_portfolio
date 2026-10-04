@@ -25,6 +25,7 @@ export class TopBanner {
   ) {
     this.el = document.createElement('div');
     this.el.id = 'top-banner';
+    this.el.setAttribute('role', 'status');
     this.el.hidden = true;
     appRoot.appendChild(this.el);
   }
@@ -33,6 +34,8 @@ export class TopBanner {
    * height changed (a wrapped HUD row at large font pushes the banner down with it). */
   sync(kind: TopBannerKind): void {
     if (kind !== this.kind) {
+      // role="status" (set in the constructor) announces this text once per kind change;
+      // it is only written here, never per frame, so it cannot repeat.
       this.kind = kind;
       this.el.hidden = kind === null;
       this.el.dataset.kind = kind ?? '';

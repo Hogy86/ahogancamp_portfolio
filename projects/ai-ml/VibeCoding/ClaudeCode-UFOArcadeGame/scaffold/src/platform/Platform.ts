@@ -41,6 +41,8 @@ export interface PlatformContext {
   };
   dom: {
     appRoot: HTMLElement;
+    /** The HUD container; Android anchors the top banner directly below it. */
+    hudRoot: HTMLElement;
     canvas: HTMLCanvasElement;
     overlayRoot: HTMLElement;
   };

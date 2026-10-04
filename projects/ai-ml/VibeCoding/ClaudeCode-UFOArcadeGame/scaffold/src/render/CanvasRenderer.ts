@@ -118,9 +118,6 @@ export class CanvasRenderer {
       ctx.fillStyle = '#ff5a5a';
       ctx.font = 'bold 16px system-ui, sans-serif';
       ctx.textAlign = 'center';
-      // F22 AC4 (docs/PRD-addendum-v4.md): "Sentinel(s)" renamed to "robots" everywhere
-      // player-facing; the internal drawSentinel/VANGUARD_* identifiers are unchanged
-      // (F22 AC12 - internal names are explicitly optional to rename).
       ctx.fillText(FORMATION_WARNING_TEXT, PLAYFIELD_WIDTH / 2, 24);
     }
     ctx.restore();
@@ -138,13 +135,13 @@ export class CanvasRenderer {
     ctx.strokeStyle = LEVEL_INTRO_TEXT_COLOR;
     ctx.lineWidth = 6;
     ctx.strokeRect(3, 3, PLAYFIELD_WIDTH - 6, PLAYFIELD_HEIGHT - 6);
-    ctx.font = 'bold 20px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    // design-review-v2-round4.md FAIL-2: dark outline behind the amber fill so the text
-    // reads against light enemy/Vanguard bodies too, not just the black background.
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = LEVEL_INTRO_TEXT_STROKE_COLOR;
     if (this.topBannerTextOnCanvas) {
+      ctx.font = 'bold 20px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      // design-review-v2-round4.md FAIL-2: dark outline behind the amber fill so the text
+      // reads against light enemy/Vanguard bodies too, not just the black background.
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = LEVEL_INTRO_TEXT_STROKE_COLOR;
       ctx.strokeText(BOSS_WARNING_TEXT, PLAYFIELD_WIDTH / 2, 24);
       ctx.fillStyle = LEVEL_INTRO_TEXT_COLOR;
       ctx.fillText(BOSS_WARNING_TEXT, PLAYFIELD_WIDTH / 2, 24);

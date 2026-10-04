@@ -465,8 +465,8 @@ html.platform-android .privacy-overlay .privacy-frame {
   touch-action: pan-y;
 }
 
-/* UAT round 2 F4 (M2.3b rule 2, M2.6): the "WARNING: ROBOTS APPROACHING" words, a DOM row
-   directly below the HUD (robotWarning.ts sets `top`). Same font floor as the HUD panels;
+/* UAT round 2 F4 (M2.3b rule 2, M2.6): the "WARNING: ROBOTS APPROACHING" and "BOSS
+   INCOMING" words, one DOM row directly below the HUD (topBanner.ts sets `top`). Same font floor as the HUD panels;
    it sits in the playfield's top area, which is empty whenever the warning fires (the
    formation has to be at ShieldMan's row). Centred, nowrap: ~27 caps at 12 sp is far
    narrower than the playfield even at the 130% font cap. */
@@ -487,7 +487,8 @@ html.platform-android #top-banner {
   border-radius: 4px;
 }
 
-/* BOSS INCOMING keeps its amber (LEVEL_INTRO_TEXT_COLOR) and dark outline from the canvas. */
+/* BOSS INCOMING keeps its amber (LEVEL_INTRO_TEXT_COLOR) from the canvas; the dark
+   background does the job the canvas text outline did. */
 html.platform-android #top-banner[data-kind='boss'] {
   color: #ffd873;
   border-color: #ffd873;

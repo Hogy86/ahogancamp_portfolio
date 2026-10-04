@@ -73,7 +73,7 @@ function bootstrap(platform: Platform): void {
     getWorld: () => world,
     input: loop.input,
     loop: { suspend: () => loop.suspend(), resume: () => loop.resume() },
-    dom: { appRoot, canvas, overlayRoot },
+    dom: { appRoot, hudRoot, canvas, overlayRoot },
     // code-review-round1.md M3: re-applies the canvas backing-store scale on every
     // Android re-layout (fold/resize/insets change), not just at boot. Web's platform
     // never calls this after the one boot-time call below.

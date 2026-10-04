@@ -173,6 +173,9 @@ export const FORMATION_WARNING_ENABLED = true;
 
 /** F3 AC6: the non-colour text cue shown with the pulsing border. Shared so the canvas
  * (web) and the Android DOM warning (M2.3b) can never drift apart. */
+// F22 AC4 (docs/PRD-addendum-v4.md): "Sentinel(s)" renamed to "robots" everywhere
+// player-facing; the internal drawSentinel/VANGUARD_* identifiers are unchanged
+// (F22 AC12 - internal names are explicitly optional to rename).
 export const FORMATION_WARNING_TEXT = 'WARNING: ROBOTS APPROACHING';
 
 /** F12 AC10-11: the boss-incoming telegraph text (shared canvas/Android DOM banner). */
