@@ -19,6 +19,7 @@ import {
   SHIELD_CORNER_ZONE_FRACTION,
   SHIELD_SPEED,
 } from '../config/constants';
+import { getLevelConfig, toughestRegularTier } from '../config/levelConfig';
 import type { Enemy, PowerUpType, ShieldProjectile, World } from '../core/types';
 import { emit } from '../instrumentation/Instrumentation';
 import { consumeGuaranteedDrop, getGuaranteedDropsRemaining } from './levelRuntimeState';
@@ -60,6 +61,19 @@ function circleCircleOverlap(
 function currentHitPower(world: World): number {
   const base = world.permanentMultiplier;
   return world.effects.type === 'HIT_POWER' ? base * HIT_POWER_MULTIPLIER : base;
+}
+
+/** Damage one shield contact deals. Regular enemies take the full hit power. The boss's HP
+ * is Nx the level's toughest regular tier, so a big power multiplier would otherwise
+ * one-shot it; instead each boss hit deals 1/k of that tier, where k is how many hits the
+ * toughest regular enemy would need at the current power. That keeps the boss at exactly
+ * N times as many hits as the toughest regular enemy, whatever power-ups are active. */
+function damageForHit(world: World, enemy: Enemy): number {
+  const hitPower = Math.max(1, Math.round(currentHitPower(world)));
+  if (!enemy.isBoss) return hitPower;
+  const toughest = toughestRegularTier(getLevelConfig(world.level));
+  const hitsForToughest = Math.ceil(toughest / hitPower);
+  return toughest / hitsForToughest;
 }
 
 /** F10 AC2: points per kill scale with the current level. */
@@ -212,10 +226,11 @@ function resolveShieldHits(world: World): void {
       if (!circleRectOverlap(shield.x, shield.y, shield.radius, ex, ey, enemy.width, enemy.height))
         continue;
 
-      enemy.hitsTaken += Math.max(1, Math.round(currentHitPower(world)));
+      enemy.hitsTaken += damageForHit(world, enemy);
       shield.lastHitEnemyId = enemy.id;
 
-      if (enemy.hitsTaken >= enemy.hitsToKill) {
+      // Small tolerance: boss damage per hit can be fractional (see damageForHit).
+      if (enemy.hitsTaken >= enemy.hitsToKill - 1e-9) {
         enemy.alive = false;
         world.score += scoreForKill(world.level);
         const guaranteedRemaining = getGuaranteedDropsRemaining();

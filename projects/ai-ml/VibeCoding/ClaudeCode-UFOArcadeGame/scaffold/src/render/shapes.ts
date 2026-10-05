@@ -159,6 +159,9 @@ export function drawEnemyLaser(
   ctx.restore();
 }
 
+/** Most crack lines drawn on the boss; matches the 4-hit toughest regular tier. */
+const MAX_BOSS_CRACKS = 4;
+
 /**
  * A Sentinel. Humanoid silhouette with four distinguishable regions - head, arms, torso,
  * legs (F17 AC1) - deliberately generic geometry, not modeled on any specific trademarked
@@ -259,8 +262,12 @@ export function drawSentinel(
 
   // Damage-state crack overlay (F4 AC6 / F17 AC6/AC9): one crack line per hit taken,
   // contrast-adaptive against this enemy's own base body color, independent of the
-  // toughness-color scale above.
-  for (let i = 0; i < hitsTaken; i += 1) {
+  // toughness-color scale above. The boss takes far more hits than fit on its body, so its
+  // cracks scale with the fraction of HP lost, up to the same four a regular enemy can show.
+  const crackCount = isBoss
+    ? Math.ceil((hitsTaken / Math.max(1, hitsToKill)) * MAX_BOSS_CRACKS)
+    : hitsTaken;
+  for (let i = 0; i < crackCount; i += 1) {
     const crackY = height * (0.45 + i * 0.14);
     ctx.beginPath();
     ctx.moveTo(width * 0.25, crackY);

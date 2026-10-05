@@ -71,7 +71,7 @@ describe('BossWarningSystem (F12 AC10-AC11)', () => {
     expect(world.enemies[0]!.isBoss).toBe(true);
   });
 
-  it('F12 AC2: the spawned boss on level 5 has 15 HP; on level 10 has 20 HP', () => {
+  it('F12 AC2: the spawned boss on level 5 has 15 HP; on level 10 has 40 HP', () => {
     const world5 = makePlayingWorld(5);
     world5.enemies = [];
     world5.bossPhase = 'WARNING';
@@ -84,7 +84,7 @@ describe('BossWarningSystem (F12 AC10-AC11)', () => {
     world10.bossPhase = 'WARNING';
     world10.bossWarningRemaining = FIXED_DT / 2;
     updateBossWarning(world10, FIXED_DT);
-    expect(world10.enemies[0]!.hitsToKill).toBe(20);
+    expect(world10.enemies[0]!.hitsToKill).toBe(40);
   });
 
   it('F12 AC5: the spawned boss is 5x the linear size of a regular enemy and spawns clear of the playfield/HUD/player row', () => {
