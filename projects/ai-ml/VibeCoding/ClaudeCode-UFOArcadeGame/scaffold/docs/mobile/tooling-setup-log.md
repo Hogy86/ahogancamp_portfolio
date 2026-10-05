@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-25  
 **Agent:** mobile-it-analyst (Claude Haiku 4.5)  
-**Owner:** Aaron Hogancamp (aaron.hogancamp@gmail.com)  
+**Owner:** Aaron Hogancamp  
 **Approval:** Granted 2026-09-25
 
 ---
