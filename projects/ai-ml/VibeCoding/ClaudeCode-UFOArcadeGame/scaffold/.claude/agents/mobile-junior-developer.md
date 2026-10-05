@@ -46,7 +46,7 @@ nice to have.
    re-submit. If you believe a finding is wrong, document why and let
    the orchestrator route it for a second opinion — don't argue inline.
 
-## As the core-team builder (after the first full run)
+## As the core-team builder (when the main session uses the core team of 3)
 You also write the tests: add or update tests for the acceptance
 criteria your change touches, written from the criteria rather than
 from your implementation (see test-strategy). The reviewer checks them

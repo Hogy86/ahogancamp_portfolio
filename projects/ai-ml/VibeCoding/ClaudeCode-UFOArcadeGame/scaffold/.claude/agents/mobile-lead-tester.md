@@ -49,7 +49,7 @@ detail is a failure of your job.
    docs/mobile/tests/raw-output-round{N}.log, and
    docs/mobile/tests/device-matrix.md (results per device).
 
-## As the core-team tester (after the first full run)
+## As the core-team tester (when the main session uses the core team of 3)
 After the device matrix, also run the UAT scenarios in
 docs/mobile/tests/uat-plan.md that the change can affect, on the
 emulator, and append the results to docs/mobile/tests/uat-results.md

@@ -192,44 +192,57 @@ Agents skip any process step that only serves those.
   with the owner only if it changes scope, cost, or risk.
 - `mobile-junior-developer` ↔ `mobile-lead-developer` (steps 7-8) loop
   until PASS. A FAIL at step 10 or 11 routes back to step 7, then
-  through step 8 again, then re-runs only the gate that failed (see
-  "Core team").
+  through step 8 again, then re-runs only the gate that failed.
 - Only findings marked **required** block a gate. **Suggested**
   findings are logged and batched into the next change that touches
   the same files; they never start a review round on their own.
-- If the same gate fails 3 rounds in a row, stop looping and have
-  mobile-product-manager put the remaining findings to the owner with
+- If the same gate fails 3 rounds in a row, stop looping and put the
+  remaining findings to the owner (via mobile-product-manager in a
+  full run, or directly with the core team) with
   a recommendation (fix, accept, or defer).
 
-## Core team (after the first full run)
+## Sizing a change (owner rule, 2026-10-05)
 
-The full pipeline above runs once, for the first build or a major new
-phase. After that, every change uses three agents:
+Before any work starts, whether on a new project or a change to this
+one, the main session sizes the effort as small, medium, or large. It
+tells the owner the size and the team it will use, and records both in
+the commit message.
+
+| Size | Team |
+|---|---|
+| Small | Core team of 3 (below) |
+| Medium | All 12 if the change needs a distinct piece of work (a change, design, or review of its own) from at least 5 of the 12 mobile roles; otherwise the core team of 3 |
+| Large, or a new project | All 12: the full pipeline above |
+
+Example of a medium change that uses all 12: a security fix that
+forces UI rework needs distinct work from the security reviewer,
+developer, tester, UX designer, and solution architect. That's 5
+roles, so it runs the full pipeline.
+
+When the count is unclear, list the roles and what each would do,
+then count. When unsure between two sizes, pick the larger one.
+
+## Core team (small changes, and medium changes under 5 roles)
 
 | Role | Agent | Does |
 |---|---|---|
 | Builder | `mobile-junior-developer` | Code, plus new or updated tests for the criteria the change touches |
-| Reviewer | `mobile-lead-developer` | One independent, read-only review of code, tests, UX and security for web and app |
+| Reviewer | `mobile-lead-developer` | One independent, read-only review of code, tests, UX, security, and IP for web and app |
 | Tester | `mobile-lead-tester` | Test suites, emulator device matrix, screenshots, and the affected UAT scenarios |
 
 The flow is builder, then reviewer (loop until PASS), then tester (a
 FAIL goes back to the builder, then the reviewer). The main session
 does the product manager's job: it asks the owner questions with a
 recommendation for each and records decisions in
-docs/mobile/PRD-mobile.md.
+docs/mobile/PRD-mobile.md. No other mobile agent runs, with one
+exception: `mobile-it-analyst` still handles tooling requests (see
+"Tool requests"), because it installs tools rather than working on the
+change.
 
-The other mobile agents (marketing, product manager, UX designer,
-architect, security reviewer, IT analyst, junior tester, technical
-writer) run only when the main session sees a reason to:
-- `mobile-security-compliance-reviewer` for a change that touches its
-  trigger list (dependencies, plugins, manifest, permissions, config,
-  stored data, network, WebView, secrets).
-- `mobile-solution-architect` when a change needs a new or changed ADR.
-- `mobile-it-analyst` for a tooling request.
-- `mobile-ui-ux-designer` for a new screen or control scheme, not for
-  tweaks the reviewer can judge from screenshots.
-
-When unsure whether a specialist is needed, call it.
+If the reviewer reports that a change hits the security trigger list
+(dependencies, plugins, manifest, permissions, config, stored data,
+network, WebView, secrets) or needs a new ADR, the main session
+re-sizes the change by the rule above.
 
 ## Shared (web + Android) changes
 

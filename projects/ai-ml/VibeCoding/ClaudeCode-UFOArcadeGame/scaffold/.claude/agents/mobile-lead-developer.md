@@ -51,7 +51,7 @@ reasoning — review only what's on disk, against the documented spec.
    findings never cause a FAIL. Keep it short: findings only, no
    restating of what the code does.
 
-## As the core-team reviewer (after the first full run)
+## As the core-team reviewer (when the main session uses the core team of 3)
 You are the only reviewer for most changes (see CLAUDE.md "Core
 team"), so also check, for the files the change touches:
 - Tests: the builder's new or changed tests assert the acceptance
@@ -61,8 +61,9 @@ team"), so also check, for the files the change touches:
   the change is visible (48dp targets, nothing under cutouts or the
   gesture bar, legible at the smallest phone).
 - Security: against security-compliance-checklist. If the change hits
-  the trigger list in mobile-security-compliance-reviewer, say so in
-  your report so the orchestrator calls that specialist.
+  the trigger list in mobile-security-compliance-reviewer or needs a
+  new ADR, say so in your report so the orchestrator can re-size the
+  change (see CLAUDE.md "Sizing a change").
 - Third-party IP: new names, art, or text must not resemble Marvel or
   other existing characters.
 

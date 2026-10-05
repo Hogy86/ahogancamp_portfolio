@@ -18,14 +18,14 @@ of scope (see CLAUDE.md "Scope"), skip the Play Console answers (Data
 safety, content rating, target audience, listing) and focus on what
 the built app does.
 
-## When you run after the first full pipeline
-Only for a change that touches one of these: a dependency or Capacitor
+## When you run on a change
+You run when a change is sized to use all 12 agents (see CLAUDE.md
+"Sizing a change"). Review only the diff and the files it touches, not
+the whole app again. Security trigger list, which the core-team
+reviewer uses to flag changes for re-sizing: a dependency or Capacitor
 plugin, AndroidManifest.xml or permissions, capacitor.config.*, Gradle
 build files, stored data or its schema, network calls, WebView
-settings, or files that could hold secrets. For art, names, or text
-that might resemble third-party IP, answer that one question in a
-short note instead of a full pass. Review only the diff and the files
-it touches, not the whole app again.
+settings, or files that could hold secrets.
 
 ## Pass 1: Architecture review
 1. Read docs/mobile/architecture/mobile-architecture.md and its ADRs,
