@@ -181,10 +181,7 @@ export const androidPlatform: Platform = {
 
     // The words move out of the canvas into a DOM row below the HUD (topBanner.ts).
     ctx.setTopBannerTextOnCanvas(false);
-    topBanner = new TopBanner(
-      ctx.dom.appRoot,
-      ctx.dom.hudRoot,
-    );
+    topBanner = new TopBanner(ctx.dom.appRoot, ctx.dom.hudRoot);
 
     touchControls = new TouchControls(
       () => pause(ctx.getWorld()),

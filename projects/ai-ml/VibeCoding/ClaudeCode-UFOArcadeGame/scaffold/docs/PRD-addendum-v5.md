@@ -3,6 +3,8 @@
 **Product:** Shield vs Robots
 **Stage:** 2 — Product Manager (PRD addendum, shared art change)
 **Date:** 2026-09-29 (r1 2026-09-29, r2 2026-09-30, r3 2026-09-30, r4 2026-09-30, r5 2026-09-30)
+
+> **Revision r6 (2026-10-05, owner decision).** The Speed token glyph is the "<-->" double arrow; the rabbit criteria in AC4.2 (r3-r5) below are superseded. Fist, circle and X are unchanged. Live text: `docs/PRD-addendum-v5-r6.md`.
 **Author:** product-manager subagent (r5 written by mobile-product-manager)
 **Status:** v5 r5 — DECIDED in scope. r3 carries the owner's final glyph
 choices and one owner-accepted IP risk (2026-09-30, below). The change is art

@@ -7,6 +7,8 @@
 **Date:** 2026-09-25
 **Author:** mobile-product-manager subagent
 **Status:** **Draft v1 — OQ-M1..OQ-M10 DECIDED by owner 2026-09-25 (all recommendations accepted); OQ-M11..OQ-M14 PENDING**
+
+> **Amendment v2.0 (2026-10-05, owner decision).** The Mobile Pipeline ends at step 14 (UAT on the emulator); steps 15-17 (signed bundle, closed test, production) will not run, and the store-only items are closed as not applicable. The Speed icon question Q-v5-2 is answered: the "<-->" double arrow replaces the rabbit. Full record: `docs/mobile/PRD-mobile-amendment-v2.0.md`.
 *(Status updated 2026-09-25, v1.3: OQ-S1, OQ-A1 and Q-v3-1 also DECIDED by the owner; OQ-M11..OQ-M14 still PENDING.)*
 *(Status updated 2026-09-25, v1.4: OQ-S1a (hero name "ShieldMan") DECIDED by the owner; a name/trademark check on "ShieldMan" is recommended before step 15; OQ-M11..OQ-M14 still PENDING.)*
 *(Status updated 2026-09-27, v1.5: PM clarification M2.10a (too-small window, any shape) added; no owner decision reopened or needed; OQ-M11..OQ-M14 still PENDING.)*

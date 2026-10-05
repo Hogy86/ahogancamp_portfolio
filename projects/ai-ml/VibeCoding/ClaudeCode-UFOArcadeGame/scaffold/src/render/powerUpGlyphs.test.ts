@@ -1,11 +1,12 @@
-// Tests PRD addendum v5 r5 F23 AC1-AC4, AC6(a) and AC7 (source search): the four power-up
-// glyphs (fist, rabbit, circle, capital X) drawn by `drawPowerUp`. AC5/AC8-AC10 are not
+// Tests PRD addendum v5 F23 AC1-AC4, AC6(a) and AC7 (source search): the four power-up
+// glyphs (fist, double arrow "<-->", circle, capital X) drawn by `drawPowerUp`. The double
+// arrow is r2's AC4.2, restored by the owner's decision of 2026-10-05. AC5/AC8-AC10 are not
 // geometry and are covered elsewhere (existing gameplay suites) or listed in
-// docs/mobile/tests/manual-only-criteria.md (AC6(b), AC4.2(d), Q-v5-1). jsdom has no real 2D
+// docs/mobile/tests/manual-only-criteria.md (AC6(b), Q-v5-1). jsdom has no real 2D
 // canvas, so the tests run the real exported function against a recording 2D-context stub that
 // logs every path call with the style in force, then check the recorded geometry (not pixels).
 // Every case runs at r = 12 and r = 20 to prove the glyphs scale with the radius (F23 preamble).
-// The r5 fist and rabbit rules are asserted as written, one test per numbered item.
+// The r5 fist rules are asserted as written, one test per numbered item.
 
 import { describe, expect, it } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -274,139 +275,6 @@ function topBumps(pts: Pt[]): Bump[] {
   return bumps;
 }
 
-/** Highest outline point (smallest y) at x, or Infinity if the outline does not reach x. */
-function upperY(pts: Pt[], x: number): number {
-  let top = Infinity;
-  for (const [a, b] of segments(pts, true)) {
-    if ((a.x <= x && x <= b.x) || (b.x <= x && x <= a.x)) {
-      const y = a.x === b.x ? Math.min(a.y, b.y) : a.y + ((x - a.x) / (b.x - a.x)) * (b.y - a.y);
-      top = Math.min(top, y);
-    }
-  }
-  return top;
-}
-
-/** Lowest outline point (largest y) at x, or -Infinity if the outline does not reach x. */
-function lowerY(pts: Pt[], x: number): number {
-  let bottom = -Infinity;
-  for (const [a, b] of segments(pts, true)) {
-    if ((a.x <= x && x <= b.x) || (b.x <= x && x <= a.x)) {
-      const y = a.x === b.x ? Math.max(a.y, b.y) : a.y + ((x - a.x) / (b.x - a.x)) * (b.y - a.y);
-      bottom = Math.max(bottom, y);
-    }
-  }
-  return bottom;
-}
-
-/** Filled runs [x0, x1] of the closed outline on the horizontal line at height y
- * (even-odd pairing of the sorted crossings). */
-function runsAt(pts: Pt[], y: number): [number, number][] {
-  const xs: number[] = [];
-  for (const [a, b] of segments(pts, true)) {
-    if (a.y !== b.y && ((a.y <= y && y < b.y) || (b.y <= y && y < a.y))) {
-      xs.push(a.x + ((y - a.y) / (b.y - a.y)) * (b.x - a.x));
-    }
-  }
-  xs.sort((p, q) => p - q);
-  const runs: [number, number][] = [];
-  for (let i = 0; i + 1 < xs.length; i += 2) runs.push([xs[i]!, xs[i + 1]!]);
-  return runs;
-}
-
-/** Leftmost and rightmost x of the outline on the horizontal line at height y. */
-function sideEdgesAt(pts: Pt[], y: number): { left: number; right: number } | null {
-  const runs = runsAt(pts, y);
-  if (runs.length === 0) return null;
-  return { left: runs[0]![0], right: runs[runs.length - 1]![1] };
-}
-
-function distToSegment(p: Pt, [a, b]: Seg): number {
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const len2 = dx * dx + dy * dy;
-  const t = len2 === 0 ? 0 : Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / len2));
-  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
-}
-
-/** Radius of the largest disc centred at c that stays inside the outline (0 if c is outside). */
-function insideRadius(pts: Pt[], c: Pt): number {
-  const inside = runsAt(pts, c.y).some(([x0, x1]) => x0 <= c.x && c.x <= x1);
-  if (!inside) return 0;
-  return Math.min(...segments(pts, true).map((s) => distToSegment(c, s)));
-}
-
-const sampleRange = (from: number, to: number, n: number): number[] =>
-  Array.from({ length: n + 1 }, (_, i) => from + ((to - from) * i) / n);
-
-/** The rabbit's landmarks per F23 r5 AC4.2, located on the flattened outline. Points are
- * mirrored if needed so the head end is at +x (the spec allows facing left or right). */
-function rabbitLandmarks(raw: Pt[]) {
-  const first = bbox(raw);
-  const tips0 = topBumps(raw).filter((b) => b.prominence >= 0.3);
-  const headRight =
-    tips0.length === 0 ||
-    tips0.reduce((s, b) => s + b.x, 0) / tips0.length >= (first.minX + first.maxX) / 2;
-  const pts = headRight ? raw : raw.map((p) => ({ x: -p.x, y: p.y }));
-  const box = bbox(pts);
-  const W = box.maxX - box.minX;
-  const H = box.maxY - box.minY;
-  const centreX = (box.minX + box.maxX) / 2;
-  const bumps = topBumps(pts);
-  const ears = bumps.filter((b) => b.prominence >= 0.3).sort((p, q) => p.x - q.x);
-  // L2 (code-review-round19): with any ear count other than 2 this must not throw, because
-  // it runs while the describe body is collected (the whole file would report no tests).
-  // The degenerate fallback lets AC4.2(b)1 fail with a normal assertion on the ear count.
-  const fallback: Bump = bumps[0] ?? { x: 0, y: 0, prominence: 0 };
-  const rear: Bump = ears[0] ?? fallback;
-  const front: Bump = ears[1] ?? rear;
-  const between = sampleRange(rear.x, front.x, 400);
-  const V = { x: 0, y: -Infinity };
-  for (const x of between) {
-    const y = upperY(pts, x);
-    if (y > V.y) {
-      V.x = x;
-      V.y = y;
-    }
-  }
-  const rump = bumps.filter((b) => b.x < rear.x).sort((p, q) => p.y - q.y)[0] ?? fallback;
-  const N = { x: 0, y: -Infinity };
-  for (const x of sampleRange(rump.x, rear.x, 400)) {
-    const y = upperY(pts, x);
-    if (y > N.y) {
-      N.x = x;
-      N.y = y;
-    }
-  }
-  const E = V.y - Math.max(rear.y, front.y);
-  /** Width and midpoint of the run of the outline that holds the given ear at `frac` * E
-   * above the valley V. */
-  const earSlice = (ear: Bump, frac: number) => {
-    const y = V.y - frac * E;
-    const runs = runsAt(pts, y);
-    const run = runs.sort(
-      (p, q) => Math.abs((p[0] + p[1]) / 2 - ear.x) - Math.abs((q[0] + q[1]) / 2 - ear.x),
-    )[0]!;
-    return { y, x0: run[0], x1: run[1], width: run[1] - run[0], mid: (run[0] + run[1]) / 2 };
-  };
-  return {
-    pts,
-    mirrored: !headRight,
-    box,
-    W,
-    H,
-    centreX,
-    bumps,
-    ears,
-    rear,
-    front,
-    V,
-    N,
-    R: rump,
-    E,
-    earSlice,
-  };
-}
-
 /** F23 AC6(a): a glyph's recorded path reduced to the signature columns of the table. */
 function signature(glyph: Op[], r: number): Record<PowerUpType, boolean> {
   const fills = glyph.filter((o) => o.op === 'fill').length;
@@ -415,26 +283,23 @@ function signature(glyph: Op[], r: number): Record<PowerUpType, boolean> {
   const lines = glyph.filter((o) => o.op === 'lineTo').length;
   const paths = subpaths(glyph, r);
   const bumps = paths.length === 1 ? topBumps(paths[0]!.pts) : [];
-  const knuckles = bumps.filter((b) => b.prominence >= 0.06 && b.prominence <= 0.22);
-  const ears = bumps.filter((b) => b.prominence >= 0.3);
   const closedOutline = paths.length === 1 && paths[0]!.closed;
-  // Both ears are rooted in the head half: the midpoint of each at 0.25E is past the box centre.
-  const earsInHead =
-    ears.length === 2 &&
-    (() => {
-      const m = rabbitLandmarks(paths[0]!.pts);
-      return m.ears.every((e) => m.earSlice(e, 0.25).mid > m.centreX);
-    })();
+  const knuckles = bumps.filter((b) => b.prominence >= 0.06 && b.prominence <= 0.22);
   return {
     HIT_POWER:
       fills === 1 &&
       strokes === 0 &&
       closedOutline &&
-      ears.length === 0 &&
       bumps.length === knuckles.length &&
       knuckles.length >= 3 &&
       knuckles.length <= 4,
-    SPEED: fills === 1 && strokes === 0 && closedOutline && ears.length === 2 && earsInHead,
+    SPEED:
+      fills === 0 &&
+      strokes === 1 &&
+      arcs.length === 0 &&
+      lines === 5 &&
+      paths.length === 3 &&
+      paths.every((p) => !p.closed),
     SHIELD: fills === 0 && strokes === 1 && arcs.length === 1 && lines === 0,
     PERMANENT_MULTIPLIER:
       fills === 0 && strokes === 1 && arcs.length === 0 && lines === 2 && paths.length === 2,
@@ -463,11 +328,33 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
   });
 
   describe('AC1: no unintended crossing strokes, no "+"', () => {
-    it.each(['HIT_POWER', 'SPEED'] as const)('%s is one closed simple curve', (t) => {
+    it.each(['HIT_POWER'] as const)('%s is one closed simple curve', (t) => {
       const paths = subpaths(glyphOf(t), r);
       expect(paths).toHaveLength(1);
       expect(paths[0]!.closed).toBe(true);
       expect(isSimpleClosedCurve(paths[0]!.pts)).toBe(true);
+    });
+
+    it('SPEED is one shaft and two open arrowheads that meet only at the shaft ends', () => {
+      const paths = subpaths(glyphOf('SPEED'), r);
+      expect(paths.map((p) => p.pts.length)).toEqual([2, 3, 3]);
+      const segs = paths.flatMap((p) => segments(p.pts, false));
+      expect(segs).toHaveLength(5);
+      const shaft = segs[0]!;
+      for (const head of segs.slice(1)) {
+        // A head wing may touch the shaft only at the shaft's own endpoint.
+        const touchesAtEnd =
+          Math.hypot(head[1].x - shaft[0].x, head[1].y - shaft[0].y) < 1e-9 ||
+          Math.hypot(head[1].x - shaft[1].x, head[1].y - shaft[1].y) < 1e-9 ||
+          Math.hypot(head[0].x - shaft[0].x, head[0].y - shaft[0].y) < 1e-9 ||
+          Math.hypot(head[0].x - shaft[1].x, head[0].y - shaft[1].y) < 1e-9;
+        expect(segmentsMeet(shaft, head) ? touchesAtEnd : true).toBe(true);
+      }
+      // The wings of one head never cross each other (no X at an arrowhead).
+      expect(segmentsMeet(segs[1]!, segs[2]!)).toBe(true);
+      expect(segs[1]![1]).toEqual(segs[2]![0]);
+      expect(segmentsMeet(segs[3]!, segs[4]!)).toBe(true);
+      expect(segs[3]![1]).toEqual(segs[4]![0]);
     });
 
     it('SHIELD is exactly one full circle and nothing else', () => {
@@ -520,7 +407,8 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
   });
 
   describe('AC3: style and bound', () => {
-    it.each(['HIT_POWER', 'SPEED'] as const)('%s has exactly one fill in the glyph color', (t) => {
+    it('HIT_POWER has exactly one fill in the glyph color', () => {
+      const t = 'HIT_POWER';
       const paints = glyphOf(t).filter((o) => o.op === 'fill' || o.op === 'stroke');
       const fills = paints.filter((o) => o.op === 'fill');
       expect(fills).toHaveLength(1);
@@ -533,22 +421,25 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
       }
     });
 
-    it.each(['SHIELD', 'PERMANENT_MULTIPLIER'] as const)('%s is stroke-only, width 2', (t) => {
-      const paints = glyphOf(t).filter((o) => o.op === 'fill' || o.op === 'stroke');
-      expect(paints).toHaveLength(1);
-      expect(paints[0]).toEqual({
-        op: 'stroke',
-        fillStyle: LEVEL_INTRO_TEXT_COLOR,
-        strokeStyle: LEVEL_INTRO_TEXT_COLOR,
-        lineWidth: 2,
-      });
+    it.each(['SPEED', 'SHIELD', 'PERMANENT_MULTIPLIER'] as const)(
+      '%s is stroke-only, width 2',
+      (t) => {
+        const paints = glyphOf(t).filter((o) => o.op === 'fill' || o.op === 'stroke');
+        expect(paints).toHaveLength(1);
+        expect(paints[0]).toEqual({
+          op: 'stroke',
+          fillStyle: LEVEL_INTRO_TEXT_COLOR,
+          strokeStyle: LEVEL_INTRO_TEXT_COLOR,
+          lineWidth: 2,
+        });
+      },
+    );
+
+    it('HIT_POWER has no holes (one subpath)', () => {
+      expect(subpaths(glyphOf('HIT_POWER'), r)).toHaveLength(1);
     });
 
-    it.each(['HIT_POWER', 'SPEED'] as const)('%s has no holes (one subpath)', (t) => {
-      expect(subpaths(glyphOf(t), r)).toHaveLength(1);
-    });
-
-    it.each(['SHIELD', 'PERMANENT_MULTIPLIER'] as const)(
+    it.each(['SPEED', 'SHIELD', 'PERMANENT_MULTIPLIER'] as const)(
       '%s keeps every point within +-0.45r',
       (t) => {
         const pts = allPoints(glyphOf(t), r);
@@ -560,8 +451,8 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
       },
     );
 
-    // AC3(d) (r5): filled glyphs get a larger box, but stay out of the ring's corners.
-    describe.each(['HIT_POWER', 'SPEED'] as const)('%s filled-glyph bound', (t) => {
+    // AC3(d) (r5): the filled fist gets a larger box, but stays out of the ring's corners.
+    describe.each(['HIT_POWER'] as const)('%s filled-glyph bound', (t) => {
       it('keeps every recorded point (incl. control points) within +-0.65r', () => {
         const pts = allPoints(glyphOf(t), r);
         for (const p of pts) {
@@ -620,209 +511,39 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
     });
   });
 
-  describe('AC4.2: SPEED is a side-view rabbit (r5)', () => {
-    const rabbitPath = subpaths(glyphOf('SPEED'), r)[0]!;
-    const raw = rabbitPath.pts;
-    const m = rabbitLandmarks(raw);
-    /** True when every outline segment that holds point p (within 1e-6r) was drawn by a curve
-     * call (v3-round2 L4: a pointed tip made by a lineTo next to a curve must not pass). */
-    const heldByCurve = (p: Pt): boolean => {
-      const n = m.pts.length;
-      const holding: ('move' | 'line' | 'curve')[] = [];
-      for (let i = 0; i < n; i += 1) {
-        const a = m.pts[i]!;
-        const j = (i + 1) % n;
-        const seg: Seg = [a, m.pts[j]!];
-        if (distToSegment(p, seg) <= 1e-6) {
-          holding.push(j === 0 ? rabbitPath.closeSrc : rabbitPath.src[j]!);
-        }
+  describe('AC4.2: SPEED is a double-headed arrow "<-->" (r2, restored 2026-10-05)', () => {
+    const paths = subpaths(glyphOf('SPEED'), r);
+    const [shaft, left, right] = paths.map((p) => p.pts) as [Pt[], Pt[], Pt[]];
+    it('has a horizontal shaft through the center spanning the full +-0.45r', () => {
+      expect(shaft).toHaveLength(2);
+      expect(shaft[0]!.y).toBe(0);
+      expect(shaft[1]!.y).toBe(0);
+      expect(Math.min(...shaft.map((p) => p.x))).toBeCloseTo(-0.45, 9);
+      expect(Math.max(...shaft.map((p) => p.x))).toBeCloseTo(0.45, 9);
+    });
+    it('has an arrowhead tip at each shaft end, the two heads mirrored left/right', () => {
+      expect(left[1]).toEqual({ x: -0.45, y: 0 });
+      expect(right[1]).toEqual({ x: 0.45, y: 0 });
+      left.forEach((p, i) => {
+        expect(p.x).toBeCloseTo(-right[i]!.x, 9);
+        expect(p.y).toBeCloseTo(right[i]!.y, 9);
+      });
+    });
+    it('has heads at least 0.5r tall and 0.2r long, wings mirrored above/below the shaft', () => {
+      for (const head of [left, right]) {
+        expect(head[0]!.y).toBeCloseTo(-head[2]!.y, 9);
+        expect(head[2]!.y - head[0]!.y).toBeGreaterThanOrEqual(0.5);
+        expect(Math.abs(head[1]!.x - head[0]!.x)).toBeGreaterThanOrEqual(0.2);
+        expect(head[0]!.x).toBeCloseTo(head[2]!.x, 9);
       }
-      return holding.length > 0 && holding.every((k) => k === 'curve');
-    };
-    const { pts, rear, front, V, N, R, E } = m;
-    const eps = 1e-9;
-    it('(a) has a 1.1r-1.3r by 0.9r-1.2r box, wider than tall, centered on the token', () => {
-      expect(m.W).toBeGreaterThanOrEqual(1.1);
-      expect(m.W).toBeLessThanOrEqual(1.3);
-      expect(m.H).toBeGreaterThanOrEqual(0.9);
-      expect(m.H).toBeLessThanOrEqual(1.2);
-      expect(m.W).toBeGreaterThanOrEqual(m.H);
-      expect(Math.abs(m.centreX)).toBeLessThanOrEqual(0.1);
-      expect(Math.abs((m.box.minY + m.box.maxY) / 2)).toBeLessThanOrEqual(0.1);
     });
-
-    describe('(b) ears: on the head, leaning back', () => {
-      it('1. has exactly 2 top bumps of prominence >= 0.3r, the two highest points', () => {
-        expect(m.ears).toHaveLength(2);
-        const byHeight = [...m.bumps].sort((p, q) => p.y - q.y).slice(0, 2);
-        expect(byHeight.map((b) => b.x).sort((p, q) => p - q)).toEqual(m.ears.map((b) => b.x));
-      });
-      it('2. has ear height 0.3r-0.55r and the lower tip 0.3r above the rump top', () => {
-        expect(E).toBeGreaterThanOrEqual(0.3);
-        expect(E).toBeLessThanOrEqual(0.55);
-        expect(R.y - Math.max(rear.y, front.y)).toBeGreaterThanOrEqual(0.3);
-      });
-      it('3. has each ear 0.2r-0.3r wide at 0.25E and 0.12r-0.25r wide at 0.75E', () => {
-        for (const ear of m.ears) {
-          const base = m.earSlice(ear, 0.25).width;
-          const near = m.earSlice(ear, 0.75).width;
-          expect(base).toBeGreaterThanOrEqual(0.2 - eps);
-          expect(base).toBeLessThanOrEqual(0.3 + eps);
-          expect(near).toBeGreaterThanOrEqual(0.12 - eps);
-          expect(near).toBeLessThanOrEqual(0.25 + eps);
-        }
-      });
-      it('4. has a dark gap of >= 0.1r at 0.5E and >= 0.17r at 0.75E between the ears', () => {
-        const gap = (frac: number): number =>
-          m.earSlice(front, frac).x0 - m.earSlice(rear, frac).x1;
-        expect(gap(0.5)).toBeGreaterThanOrEqual(0.1 - eps);
-        expect(gap(0.75)).toBeGreaterThanOrEqual(0.17 - eps);
-      });
-      it('5. leans each ear back by 15-25 degrees from vertical', () => {
-        for (const ear of m.ears) {
-          const lowMid = m.earSlice(ear, 0.25).mid;
-          const highMid = m.earSlice(ear, 0.75).mid;
-          // The head is at +x, so "back" is toward -x: the higher midpoint is further back.
-          const lean = (Math.atan2(lowMid - highMid, 0.5 * E) * 180) / Math.PI;
-          expect(lean).toBeGreaterThanOrEqual(15);
-          expect(lean).toBeLessThanOrEqual(25);
-        }
-      });
-      it('6. rounds each tip with a curve call and has no flat-topped ear', () => {
-        const curves = glyphOf('SPEED').filter(
-          (o): o is Extract<Op, { op: 'bezierCurveTo' | 'quadraticCurveTo' }> =>
-            o.op === 'bezierCurveTo' || o.op === 'quadraticCurveTo',
-        );
-        for (const ear of m.ears) {
-          // L3: the curve end points are in the raw (unmirrored) frame, the ear in the mirrored one.
-          const sign = m.mirrored ? -1 : 1;
-          const nearTip = curves.some(
-            (o) => Math.hypot((sign * o.x) / r - ear.x, o.y / r - ear.y) <= 0.15,
-          );
-          expect(nearTip).toBe(true);
-          expect(
-            heldByCurve({ x: ear.x, y: ear.y }),
-            'the outline segment at the ear tip is a curve',
-          ).toBe(true);
-          for (const [a, b] of segments(pts, true)) {
-            const horizontal = Math.abs(a.y - b.y) <= 0.02;
-            const belowTip =
-              Math.min(a.y, b.y) >= ear.y - 1e-9 && Math.max(a.y, b.y) <= ear.y + 0.05;
-            const nearEar = Math.abs((a.x + b.x) / 2 - ear.x) <= 0.2;
-            expect(horizontal && belowTip && nearEar && Math.abs(a.x - b.x) > 0.05).toBe(false);
-          }
-        }
-      });
-      it('7. roots both ears on the head, forward of the neck dip, tips in the head-end 0.6W', () => {
-        for (const ear of m.ears) {
-          const root = m.earSlice(ear, 0.25).mid;
-          expect(root).toBeGreaterThan(m.centreX);
-          expect(root).toBeGreaterThan(N.x);
-          expect(ear.x).toBeGreaterThanOrEqual(m.box.maxX - 0.6 * m.W);
-          expect(ear.x).toBeGreaterThan(R.x);
-        }
-      });
-    });
-
-    describe('(c) head, body, tail, legs', () => {
-      it('1. has a head lump: a 0.3r disc forward of N and below V; nose-to-N 0.35r-0.65r', () => {
-        let found = false;
-        for (const x of sampleRange(N.x + 0.15, m.box.maxX - 0.15, 60)) {
-          for (const y of sampleRange(V.y + 0.15, m.box.maxY - 0.15, 60)) {
-            if (insideRadius(pts, { x, y }) >= 0.15 - eps) found = true;
-          }
-        }
-        expect(found).toBe(true);
-        expect(m.box.maxX - N.x).toBeGreaterThanOrEqual(0.35);
-        expect(m.box.maxX - N.x).toBeLessThanOrEqual(0.65);
-      });
-      it('2. has a neck dip and a high rounded rump in the tail half', () => {
-        expect(R.x).toBeLessThan(m.centreX);
-        expect(N.y - R.y).toBeGreaterThanOrEqual(0.1);
-        expect(N.y - R.y).toBeLessThanOrEqual(0.25);
-        const curves = glyphOf('SPEED').filter(
-          (o): o is Extract<Op, { op: 'bezierCurveTo' | 'quadraticCurveTo' }> =>
-            o.op === 'bezierCurveTo' || o.op === 'quadraticCurveTo',
-        );
-        const sign = m.mirrored ? -1 : 1;
-        expect(curves.some((o) => Math.hypot((sign * o.x) / r - R.x, o.y / r - R.y) <= 0.2)).toBe(
-          true,
-        );
-        expect(
-          heldByCurve({ x: R.x, y: R.y }),
-          'the outline segment at the rump top is a curve',
-        ).toBe(true);
-      });
-      it('3. keeps a horizontal body: below V it is >= 1.3x as wide as tall', () => {
-        const b = bbox(pts.filter((p) => p.y >= V.y));
-        expect((b.maxX - b.minX) / (b.maxY - b.minY)).toBeGreaterThanOrEqual(1.3);
-      });
-      it('4. has one small rounded tail bump 0.06r-0.15r behind the notch under it', () => {
-        const footY = m.box.maxY;
-        // Rear edge profile (leftmost x per height) from the rump top down to the foot line.
-        const ys = sampleRange(R.y, footY - 0.02, 400);
-        const left = ys.map((y) => sideEdgesAt(pts, y)!.left);
-        let tail = 0;
-        for (let i = 1; i < left.length; i += 1) if (left[i]! < left[tail]!) tail = i;
-        // The notch is the first local maximum of the rear edge below the rearmost point.
-        let notch = tail;
-        while (notch + 1 < left.length && left[notch + 1]! >= left[notch]! - 1e-9) notch += 1;
-        expect(notch).toBeGreaterThan(tail);
-        // Below the notch the rear edge turns back out: a dent, not a plain slope.
-        expect(Math.min(...left.slice(notch))).toBeLessThan(left[notch]! - 1e-6);
-        expect(left[notch]! - left[tail]!).toBeGreaterThanOrEqual(0.06);
-        expect(left[notch]! - left[tail]!).toBeLessThanOrEqual(0.15);
-        expect(footY - ys[tail]!).toBeGreaterThanOrEqual(0.25);
-      });
-      it('5. has exactly one underside notch, 0.15r-0.3r deep, below mid-height', () => {
-        const footY = m.box.maxY;
-        const xs = sampleRange(m.box.minX, m.box.maxX, 600);
-        const bottom = xs.map((x) => lowerY(pts, x));
-        const grounded = xs.filter((_, i) => bottom[i]! >= footY - 0.03);
-        const hindEnd = Math.min(...grounded);
-        const frontEnd = Math.max(...grounded);
-        // Walk the bottom edge between the outer ends of the two feet; each stretch lifted
-        // clear of the foot line is one notch.
-        const stretches: Pt[][] = [];
-        let previous = false;
-        xs.forEach((x, i) => {
-          const lifted = x >= hindEnd && x <= frontEnd && bottom[i]! < footY - 0.03;
-          if (lifted && !previous) stretches.push([]);
-          if (lifted) stretches[stretches.length - 1]!.push({ x, y: bottom[i]! });
-          previous = lifted;
-        });
-        expect(stretches).toHaveLength(1);
-        const top = Math.min(...stretches[0]!.map((p) => p.y));
-        const depth = footY - top;
-        expect(depth).toBeGreaterThanOrEqual(0.15);
-        expect(depth).toBeLessThanOrEqual(0.3);
-        expect(top).toBeGreaterThan((m.box.minY + m.box.maxY) / 2);
-        const atHalf = stretches[0]!.filter((p) => p.y <= footY - depth / 2);
-        const widthHalf = Math.max(...atHalf.map((p) => p.x)) - Math.min(...atHalf.map((p) => p.x));
-        expect(widthHalf).toBeGreaterThanOrEqual(0.15);
-      });
-      it('6. stands on exactly two feet on one line, one in each half, 0.15r-0.4r long', () => {
-        const footY = m.box.maxY;
-        const down = sampleRange(m.box.minX, m.box.maxX, 1200).filter(
-          (x) => lowerY(pts, x) >= footY - 0.03,
-        );
-        const feet: number[][] = [];
-        down.forEach((x, i) => {
-          if (i === 0 || x - down[i - 1]! > 0.01) feet.push([]);
-          feet[feet.length - 1]!.push(x);
-        });
-        expect(feet).toHaveLength(2);
-        const [hind, fore] = feet as [number[], number[]];
-        expect(Math.max(...hind)).toBeLessThan(m.centreX);
-        expect(Math.min(...fore)).toBeGreaterThan(m.centreX);
-        for (const run of feet) {
-          const len = Math.max(...run) - Math.min(...run);
-          expect(len).toBeGreaterThanOrEqual(0.15);
-          expect(len).toBeLessThanOrEqual(0.4);
-        }
-        const lowest = (run: number[]): number => Math.max(...run.map((x) => lowerY(pts, x)));
-        expect(Math.abs(lowest(hind) - lowest(fore))).toBeLessThanOrEqual(0.05);
-      });
+    it('keeps the wing vertices clear of the shaft so the heads read open, not as an X', () => {
+      // An X would need two segments crossing at an interior point of both; here every
+      // wing ends on the shaft's endpoint, so no interior crossing exists (checked above).
+      for (const head of [left, right]) {
+        expect(Math.abs(head[0]!.x)).toBeLessThan(0.45);
+        expect(Math.abs(head[0]!.x)).toBeGreaterThan(0.1);
+      }
     });
   });
 
