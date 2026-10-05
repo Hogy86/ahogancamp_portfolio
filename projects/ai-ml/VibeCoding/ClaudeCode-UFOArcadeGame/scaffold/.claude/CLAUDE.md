@@ -193,7 +193,7 @@ Agents skip any process step that only serves those.
 - `mobile-junior-developer` ↔ `mobile-lead-developer` (steps 7-8) loop
   until PASS. A FAIL at step 10 or 11 routes back to step 7, then
   through step 8 again, then re-runs only the gate that failed (see
-  "Change lanes").
+  "Core team").
 - Only findings marked **required** block a gate. **Suggested**
   findings are logged and batched into the next change that touches
   the same files; they never start a review round on their own.
@@ -201,24 +201,35 @@ Agents skip any process step that only serves those.
   mobile-product-manager put the remaining findings to the owner with
   a recommendation (fix, accept, or defer).
 
-## Change lanes (after the first full run)
+## Core team (after the first full run)
 
-The full pipeline runs once. After that, the main session sizes every
-change and runs only the gates the change can affect. It writes the
-lane and the gates it chose into the commit message.
+The full pipeline above runs once, for the first build or a major new
+phase. After that, every change uses three agents:
 
-| Lane | Typical change | Gates |
+| Role | Agent | Does |
 |---|---|---|
-| Small | art or icon, text, spacing, one-file bug fix, test-only change | step 8 (one review); step 10 on the affected devices only; step 11 only if something visible changed |
-| Medium | new UI element, input or layout logic, several files | steps 8, 9 (new criteria only), 10, 11; step 14 for the affected scenarios only |
-| Large | new dependency or Capacitor plugin, AndroidManifest, permissions, storage schema, network, build config | all gates from step 7, including step 12 |
+| Builder | `mobile-junior-developer` | Code, plus new or updated tests for the criteria the change touches |
+| Reviewer | `mobile-lead-developer` | One independent, read-only review of code, tests, UX and security for web and app |
+| Tester | `mobile-lead-tester` | Test suites, emulator device matrix, screenshots, and the affected UAT scenarios |
 
-- Step 12 (security) runs only for Large changes, or when a change
-  touches anything on the trigger list in
-  mobile-security-compliance-reviewer. Art, names, and text that could
-  look like third-party IP go to it as a single question, not a full
-  pass.
-- When unsure between two lanes, pick the larger one.
+The flow is builder, then reviewer (loop until PASS), then tester (a
+FAIL goes back to the builder, then the reviewer). The main session
+does the product manager's job: it asks the owner questions with a
+recommendation for each and records decisions in
+docs/mobile/PRD-mobile.md.
+
+The other mobile agents (marketing, product manager, UX designer,
+architect, security reviewer, IT analyst, junior tester, technical
+writer) run only when the main session sees a reason to:
+- `mobile-security-compliance-reviewer` for a change that touches its
+  trigger list (dependencies, plugins, manifest, permissions, config,
+  stored data, network, WebView, secrets).
+- `mobile-solution-architect` when a change needs a new or changed ADR.
+- `mobile-it-analyst` for a tooling request.
+- `mobile-ui-ux-designer` for a new screen or control scheme, not for
+  tweaks the reviewer can judge from screenshots.
+
+When unsure whether a specialist is needed, call it.
 
 ## Shared (web + Android) changes
 
@@ -229,7 +240,8 @@ under `src/`:
   and Android expectations, and runs the website checks too. The
   website `code-reviewer` is not called a second time on the same diff.
 - `mobile-lead-tester`'s run includes the website test suite, which
-  covers the website test gate.
+  covers the website test gate. The website `test-writer` and
+  `test-validator` are not called separately.
 - The website `ui-ux-designer` runs only if the change alters what a
   desktop browser player sees.
 
