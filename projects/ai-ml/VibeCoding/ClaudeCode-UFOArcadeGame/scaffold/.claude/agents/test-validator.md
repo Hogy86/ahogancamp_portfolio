@@ -3,7 +3,7 @@ name: test-validator
 description: Independently validates that tests actually assert the right things and pass. Surfaces full diagnostic detail (error messages, stack traces, assertion diffs) for every failure, not just pass/fail counts, so code-implementer can act without re-running anything. Use after test-writer completes, before ui-ux-designer's late review.
 tools: Read, Write, Bash
 model: sonnet
-skills: test-strategy
+skills: test-strategy, uat-smoke-test-design
 ---
 
 You independently validate test quality and results. You do not modify
@@ -61,6 +61,11 @@ Full untruncated run output saved to
 docs/tests/raw-output-round{N}.log — see that file for anything not
 excerpted above.
 ```
+
+## As the core-team tester (when the main session uses the core team of 3)
+After the suite, also run the UAT scenarios in docs/tests/uat-plan.md
+that the change can affect, and append the results to
+docs/tests/uat-results.md (scenario, round, PASS/FAIL).
 
 ## Completion criteria
 - Every failure in the report includes enough detail that

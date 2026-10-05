@@ -126,6 +126,57 @@ with recommended options — see its Job 0. If the main session is
 unsure whether something needs owner input, default to asking via
 product-manager rather than guessing.
 
+## Sizing a change (owner rule, 2026-10-05, both teams)
+
+This applies to the website team and the mobile team alike. Before any
+work starts, whether on a new project or a change to an existing one,
+the main session sizes the effort as small, medium, or large. It tells
+the owner the size and the team it will use, and records both in the
+commit message.
+
+| Size | Team |
+|---|---|
+| Small | That team's core team of 3 |
+| Medium | The full team if the change needs a distinct piece of work (a change, design, or review of its own) from at least 5 of that team's roles; otherwise the core team of 3 |
+| Large, or a new project | The full team: every step of that team's pipeline |
+
+Example of a medium change that uses the full team: a security fix
+that forces UI rework needs distinct work from the security reviewer,
+developer, tester, UX designer, and solution architect. That's 5
+roles, so it runs the full pipeline.
+
+- When the count is unclear, list the roles and what each would do,
+  then count. When unsure between two sizes, pick the larger one.
+- **Installing tools:** the IT analyst (`it-analyst` or
+  `mobile-it-analyst`) still handles tool installs with the core team,
+  because it sets up the machine rather than working on the change.
+- **Re-sizing mid-change:** if the core-team reviewer reports that a
+  change touches security-sensitive areas (dependencies or plugins,
+  manifest or permissions, build or deploy config, stored data or its
+  schema, network calls, WebView settings, files that could hold
+  secrets) or needs a new or changed architecture decision (ADR), the
+  main session re-sizes the change by this rule before continuing.
+- A shared change under `src/` affects both versions. Count the roles
+  on the team that owns the change, and see "Shared (web + Android)
+  changes" below for how both versions get checked.
+
+### Website core team
+
+| Role | Agent | Does |
+|---|---|---|
+| Builder | `code-implementer` | Code, plus new or updated tests for the criteria the change touches |
+| Reviewer | `code-reviewer` | One independent, read-only review of code, tests, UX, security, and IP |
+| Tester | `test-validator` | Full test suite, raw log, and the UAT scenarios the change affects |
+
+The flow is builder, then reviewer (loop until PASS), then tester (a
+FAIL goes back to the builder, then the reviewer). The main session
+does the product manager's job: it asks the owner questions with a
+recommendation for each and records decisions in docs/PRD.md (or its
+addenda). The existing GitHub Pages workflow deploys; no other website
+agent runs, except `it-analyst` for tool installs.
+
+The mobile core team is listed in the Mobile Pipeline section.
+
 ---
 
 # Mobile Pipeline (Android)
@@ -201,28 +252,13 @@ Agents skip any process step that only serves those.
   full run, or directly with the core team) with
   a recommendation (fix, accept, or defer).
 
-## Sizing a change (owner rule, 2026-10-05)
+## Sizing a change
 
-Before any work starts, whether on a new project or a change to this
-one, the main session sizes the effort as small, medium, or large. It
-tells the owner the size and the team it will use, and records both in
-the commit message.
+The global "Sizing a change" rule above applies. Here "all 12" means
+the full mobile pipeline and the 12 `mobile-` roles are the ones
+counted.
 
-| Size | Team |
-|---|---|
-| Small | Core team of 3 (below) |
-| Medium | All 12 if the change needs a distinct piece of work (a change, design, or review of its own) from at least 5 of the 12 mobile roles; otherwise the core team of 3 |
-| Large, or a new project | All 12: the full pipeline above |
-
-Example of a medium change that uses all 12: a security fix that
-forces UI rework needs distinct work from the security reviewer,
-developer, tester, UX designer, and solution architect. That's 5
-roles, so it runs the full pipeline.
-
-When the count is unclear, list the roles and what each would do,
-then count. When unsure between two sizes, pick the larger one.
-
-## Core team (small changes, and medium changes under 5 roles)
+## Mobile core team (small changes, and medium changes under 5 roles)
 
 | Role | Agent | Does |
 |---|---|---|
@@ -234,15 +270,8 @@ The flow is builder, then reviewer (loop until PASS), then tester (a
 FAIL goes back to the builder, then the reviewer). The main session
 does the product manager's job: it asks the owner questions with a
 recommendation for each and records decisions in
-docs/mobile/PRD-mobile.md. No other mobile agent runs, with one
-exception: `mobile-it-analyst` still handles tooling requests (see
-"Tool requests"), because it installs tools rather than working on the
-change.
-
-If the reviewer reports that a change hits the security trigger list
-(dependencies, plugins, manifest, permissions, config, stored data,
-network, WebView, secrets) or needs a new ADR, the main session
-re-sizes the change by the rule above.
+docs/mobile/PRD-mobile.md. No other mobile agent runs, except
+`mobile-it-analyst` for tooling requests (see "Tool requests").
 
 ## Shared (web + Android) changes
 

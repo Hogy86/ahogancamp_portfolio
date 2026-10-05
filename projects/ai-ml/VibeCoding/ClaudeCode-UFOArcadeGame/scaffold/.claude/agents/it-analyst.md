@@ -1,6 +1,6 @@
 ---
 name: it-analyst
-description: OPTIONAL - installs infra/tooling required for build or deploy pipeline (not app dependencies). Use after product-manager's UAT gate passes, before deployment-engineer starts.
+description: OPTIONAL - installs infra/tooling required for build or deploy pipeline (not app dependencies). Use after product-manager's UAT gate passes, before deployment-engineer starts, or whenever the core team of 3 needs a tool installed.
 tools: Bash, Read, Write
 model: haiku
 ---

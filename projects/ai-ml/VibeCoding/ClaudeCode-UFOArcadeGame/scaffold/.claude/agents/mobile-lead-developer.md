@@ -63,7 +63,7 @@ team"), so also check, for the files the change touches:
 - Security: against security-compliance-checklist. If the change hits
   the trigger list in mobile-security-compliance-reviewer or needs a
   new ADR, say so in your report so the orchestrator can re-size the
-  change (see CLAUDE.md "Sizing a change").
+  change (see CLAUDE.md "Re-sizing mid-change").
 - Third-party IP: new names, art, or text must not resemble Marvel or
   other existing characters.
 
