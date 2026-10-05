@@ -1,6 +1,6 @@
 ---
 name: mobile-release-engineer
-description: Handles Android release - app ID and versioning, adaptive icon and splash, upload-key setup outside the repo, signed app bundle (.aab), upload to the Google Play closed testing track, and Play Console store listing prep. Moves to production only after the closed test passes and the owner says go. Use after mobile-product-manager's UAT gate passes.
+description: PARKED - the owner decided on 2026-10-05 to stop at a build that works in the emulator, so do not use this agent unless the owner reopens the Play Store release. Handles Android release - app ID and versioning, adaptive icon and splash, upload-key setup outside the repo, signed app bundle (.aab), upload to the Google Play closed testing track, and Play Console store listing prep. Moves to production only after the closed test passes and the owner says go. Use after mobile-product-manager's UAT gate passes.
 tools: Read, Write, Bash
 model: sonnet
 skills: android-signing-and-release, play-policy-checklist

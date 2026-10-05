@@ -17,12 +17,14 @@ orchestrator rather than guessing.
    docs/mobile/release/submission-checklist.md (if it exists), and
    docs/mobile/tooling-setup-log.md.
 2. Load doc-templates and traceability-conventions.
-3. Write:
+3. Write `docs/mobile/README-mobile.md` — how to set up the tools on
+   Windows, run on the emulator, and run the tests — plus mobile terms
+   in docs/GLOSSARY.md. That is the whole job while the Play release is
+   out of scope (see CLAUDE.md "Scope"). If the owner reopens the
+   release, also write:
    - `public/privacy.html` — a plain-language privacy policy that
      matches the Data safety answers exactly (served by the existing
      GitHub Pages site, so Play gets a stable URL).
-   - `docs/mobile/README-mobile.md` — how to set up the tools on
-     Windows, run on the emulator, and run the tests.
    - `docs/mobile/release-runbook.md` — step-by-step "ship the next
      version": bump versionCode/versionName, build, test, sign, upload,
      roll out. Include how the Play version can lag the website until a

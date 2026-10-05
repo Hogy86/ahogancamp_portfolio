@@ -162,20 +162,27 @@ files and specs.
                                         docs/mobile/tests/device-matrix.md
 11. mobile-ui-ux-designer (round 2)   → docs/mobile/ux/design-review-round{N}.md [GATE]
 12. mobile-security-compliance-reviewer → docs/mobile/security/review-v2.md    [GATE]
-    (pass 2: final app + Play Console answers)
-13. mobile-technical-writer           → public/privacy.html,
-                                        docs/mobile/README-mobile.md,
-                                        docs/mobile/release-runbook.md
+    (pass 2: final app; Large changes only after the first run)
+13. mobile-technical-writer           → docs/mobile/README-mobile.md
 14. mobile-product-manager            → docs/mobile/tests/uat-plan.md
                                         docs/mobile/tests/uat-results.md       [GATE]
-    (writes AND runs UAT on the emulator)
+    (writes AND runs UAT on the emulator - the pipeline ends here)
+
+Parked (owner decision 2026-10-05: stop at a build that works in the
+emulator; no Play Store release). Do not run these unless the owner
+reopens the release:
 15. mobile-release-engineer           → signed .aab on the closed testing track
-                                        docs/mobile/release/submission-checklist.md
-16. mobile-product-manager            → docs/mobile/tests/closed-test-results.md [GATE]
-    (runs the Google Play closed test)
-17. mobile-release-engineer           → production release                  [GATE: owner "go"]
-                                        docs/mobile/release/release-notes-v{N}.md
+16. mobile-product-manager            → closed test (12 testers, 14 days)
+17. mobile-release-engineer           → production release
 ```
+
+## Scope (owner decision, 2026-10-05)
+
+Done means: the debug build installs and plays on the emulator device
+matrix and UAT passes. Out of scope until the owner says otherwise:
+developer account, upload key and signing, Data safety and content
+rating answers, store listing and graphics, closed test, production.
+Agents skip any process step that only serves those.
 
 ## Mobile gate rules
 
@@ -184,11 +191,73 @@ files and specs.
   with the findings doc as input; mobile-product-manager raises it
   with the owner only if it changes scope, cost, or risk.
 - `mobile-junior-developer` ↔ `mobile-lead-developer` (steps 7-8) loop
-  until PASS. A FAIL at step 10 or 11 also routes back to step 7, then
-  through step 8 again.
-- Step 17 requires the owner's explicit approval, relayed by
-  mobile-product-manager. Nothing is published to production on a
-  PASS alone.
+  until PASS. A FAIL at step 10 or 11 routes back to step 7, then
+  through step 8 again, then re-runs only the gate that failed (see
+  "Change lanes").
+- Only findings marked **required** block a gate. **Suggested**
+  findings are logged and batched into the next change that touches
+  the same files; they never start a review round on their own.
+- If the same gate fails 3 rounds in a row, stop looping and have
+  mobile-product-manager put the remaining findings to the owner with
+  a recommendation (fix, accept, or defer).
+
+## Change lanes (after the first full run)
+
+The full pipeline runs once. After that, the main session sizes every
+change and runs only the gates the change can affect. It writes the
+lane and the gates it chose into the commit message.
+
+| Lane | Typical change | Gates |
+|---|---|---|
+| Small | art or icon, text, spacing, one-file bug fix, test-only change | step 8 (one review); step 10 on the affected devices only; step 11 only if something visible changed |
+| Medium | new UI element, input or layout logic, several files | steps 8, 9 (new criteria only), 10, 11; step 14 for the affected scenarios only |
+| Large | new dependency or Capacitor plugin, AndroidManifest, permissions, storage schema, network, build config | all gates from step 7, including step 12 |
+
+- Step 12 (security) runs only for Large changes, or when a change
+  touches anything on the trigger list in
+  mobile-security-compliance-reviewer. Art, names, and text that could
+  look like third-party IP go to it as a single question, not a full
+  pass.
+- When unsure between two lanes, pick the larger one.
+
+## Shared (web + Android) changes
+
+The one-codebase rule needs every shared change checked for BOTH
+versions; it does not need two separate review chains. For a change
+under `src/`:
+- `mobile-lead-developer` reviews it once, against both the website
+  and Android expectations, and runs the website checks too. The
+  website `code-reviewer` is not called a second time on the same diff.
+- `mobile-lead-tester`'s run includes the website test suite, which
+  covers the website test gate.
+- The website `ui-ux-designer` runs only if the change alters what a
+  desktop browser player sees.
+
+## Keeping runs lean
+
+Tokens are the pipeline's real limit (runs have repeatedly stopped on
+usage limits), so every mobile agent follows these rules:
+- **Logs go to files, not context.** Redirect build, test, and
+  emulator output to a log under `docs/mobile/tests/` (or a temp
+  file), then read only the summary and the failures. Never stream a
+  full test run or Gradle build into the conversation.
+- **Read sections, not whole docs.** docs/mobile/PRD-mobile.md is
+  large. Find the acceptance criteria and decisions a change touches
+  (grep for their IDs or headings) and read those sections. Read a
+  whole doc only on an agent's first run.
+- **Re-reviews are deltas.** Round 2 and later read the previous
+  findings doc and the diff since that round, confirm each required
+  finding is fixed, and check the diff for regressions. They do not
+  re-review unchanged code.
+- **Hand-offs carry paths and IDs.** The main session passes changed
+  file paths, the commit range, and the criterion IDs in play, so the
+  next agent knows where to look without re-deriving it. Reviewers
+  still never get the writer's explanation of its own work.
+- **Builds run once per change by whoever needs them.** The junior
+  developer runs the full checks before hand-off and saves the log; the
+  lead developer re-runs typecheck, lint, and the affected tests, and
+  re-runs the Android debug build only when native config, Gradle, or
+  Capacitor files changed.
 
 ## Tool requests
 
@@ -212,14 +281,14 @@ this is not negotiable without the owner:
   in docs/PRD.md (or its addenda) AND docs/mobile/PRD-mobile.md where
   mobile behavior changes, and must pass the code review, test, and UX
   gates for BOTH the website and the Android app before either ships.
+  One combined review can cover both; see "Shared (web + Android)
+  changes".
 - `.github/workflows/deploy-pages.yml` is the single CI check for both
   versions. Once the Android project exists, the Android debug build
   and the phone-emulation tests are added to it, so a change that
   breaks either version blocks the website deploy until fixed.
 - Never hand-edit the web assets copied into `android/`; rebuild and
   `npx cap sync android`.
-- The Play Store version only changes when a new release ships (steps
-  15-17), so it can lag the website; the release runbook covers this.
 
 ## Model policy (mobile)
 
@@ -240,11 +309,10 @@ Same policy as the website team. Never downgrade
 | mobile-lead-tester | sonnet | Structured verification + device matrix |
 | mobile-technical-writer | haiku | Templated generation from decided content |
 | mobile-it-analyst | haiku | Running installers and logging output |
-| mobile-release-engineer | sonnet | Signing and Play Console steps need care |
+| mobile-release-engineer | sonnet | Parked while release is out of scope |
 
 ## Where it runs
 
 Everything in this pipeline runs on the owner's Windows desktop (or a
-cloud session for steps that need no emulator). Steps 6, 10, 14, 15,
-and 17 need the Android SDK/emulator and, for 15-17, the owner's Play
-Console account and upload key, so run them on the owner's machine.
+cloud session for steps that need no emulator). Steps 6, 10, and 14
+need the Android SDK and emulator, so run them on the owner's machine.

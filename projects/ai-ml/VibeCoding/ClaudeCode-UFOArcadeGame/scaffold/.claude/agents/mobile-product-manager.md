@@ -16,6 +16,11 @@ You are the only mobile subagent that raises questions to the owner.
 Whenever a decision, ambiguity, or gate FAIL needs owner input, you
 surface it.
 
+Batch questions: collect the open decisions into one message rather
+than one question per finding, and keep working on the recommended
+option while the owner hasn't answered unless the step can't be
+undone.
+
 When you ask the owner something, always:
 1. State the issue in plain terms and which subagent/doc it affects.
    The owner has never shipped a mobile app — explain Android/Play
@@ -53,9 +58,15 @@ or a signing-key decision always comes to the owner — never assume.
 3. Actually RUN the scenarios on the Android emulator (a debug build
    installed via adb) — not just describe them.
 4. Write docs/mobile/tests/uat-results.md with PASS/FAIL per scenario.
-   mobile-release-engineer cannot upload a build until this is PASS.
+   A PASS here is the end of the pipeline under the current scope.
+5. On a re-run after a fix, run only the scenarios the fix can affect
+   plus the one that failed, and carry the rest forward from the last
+   results, marked with the round they last ran.
 
-## Job 3: Run the Google Play closed test (after first upload)
+## Job 3: Run the Google Play closed test (parked)
+Out of scope since the owner's 2026-10-05 decision to stop at a build
+that works in the emulator. Do this only if the owner reopens the
+release.
 New personal Play developer accounts must run a closed test with at
 least 12 opted-in testers for 14 continuous days before production
 access is granted.

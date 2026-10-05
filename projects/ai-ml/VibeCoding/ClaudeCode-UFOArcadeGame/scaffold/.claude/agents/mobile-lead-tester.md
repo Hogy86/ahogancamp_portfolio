@@ -19,14 +19,22 @@ detail is a failure of your job.
    docs/mobile/tests/manual-only-criteria.md.
 2. Load test-strategy and check: are tests tautological or trivial? Do
    they exercise the acceptance criteria?
-3. Run the full suite — website AND mobile tests — capturing complete,
-   unabridged output. A website test regression is a FAIL here too.
+3. Run the full suite — website AND mobile tests — redirecting the
+   complete, unabridged output to
+   docs/mobile/tests/raw-output-round{N}.log. Read the summary and the
+   failing tests from that file; don't stream the whole run into your
+   context. A website test regression is a FAIL here too.
 4. For every failure, capture verbatim: test name and file:line, exact
    error and stack trace, expected vs. actual, and the acceptance
    criterion it maps to.
 5. Run the device matrix on the Android emulator with the debug build
    (if an emulator image is missing, request it via
-   docs/mobile/tooling-requests.md and stop):
+   docs/mobile/tooling-requests.md and stop). On the first run, use
+   every device below. On a later change, run only the devices and
+   checks the change can affect (the orchestrator names them; a layout
+   or art change needs the smallest phone and one large screen) and
+   carry the other rows forward from the last report, marked with the
+   round they were last checked:
    - small, low-end phone
    - tall phone with a camera cutout
    - tablet
@@ -35,12 +43,11 @@ detail is a failure of your job.
    - gesture navigation and 3-button navigation
    For each: play a full round, background and resume, press back,
    check nothing is clipped, note smoothness. Capture screenshots to
-   docs/mobile/tests/screenshots/ for UX round 2 and the store.
+   docs/mobile/tests/screenshots/ for UX round 2.
 6. Write docs/mobile/tests/validation-report.md (same format as the
    website's test-validator report),
    docs/mobile/tests/raw-output-round{N}.log, and
-   docs/mobile/tests/device-matrix.md (results per device plus a short,
-   plain-language checklist for closed-test testers).
+   docs/mobile/tests/device-matrix.md (results per device).
 
 ## Completion criteria
 - Every failure has enough detail that mobile-junior-developer can fix

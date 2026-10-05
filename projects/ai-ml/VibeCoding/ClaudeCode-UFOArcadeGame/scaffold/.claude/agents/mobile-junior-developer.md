@@ -35,8 +35,13 @@ nice to have.
    scope questions rather than silently deciding them.
 4. Before handing off, run `npm run typecheck`, `npm run lint`,
    `npm run test`, `npm run build`, and the Android debug build the
-   architecture specifies. Hand off only when they pass, or say exactly
-   which fails and why.
+   architecture specifies. Send the output to a log file and read only
+   the summary and failures. Hand off only when they pass, or say
+   exactly which fails and why.
+   When fixing findings, read only the findings doc and the files it
+   names; you don't need to re-read the architecture for a local fix.
+   Fix every required finding in one pass, and fold in suggested ones
+   only when they're in files you are already changing.
 5. When a reviewer returns FAIL findings, address them directly and
    re-submit. If you believe a finding is wrong, document why and let
    the orchestrator route it for a second opinion — don't argue inline.
