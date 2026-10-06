@@ -2082,3 +2082,20 @@ not edited by this amendment (M11.4a's mechanism is for
 mobile-solution-architect). N1 and N3 from the UX
 review are implementation/asset notes and need no PRD change (N3 is already
 covered by M12.2).
+
+---
+
+## Owner decisions, 2026-10-06 (addendum v7)
+
+Recorded by the main session acting as product manager for the core team. Full criteria:
+`docs/PRD-addendum-v7.md` (F24-F27).
+
+- **Contact details:** the privacy page and the title screen show the developer name
+  "Aaron Hogancamp" and the developer email. This settles the privacy-page placeholder
+  open point from UAT rounds 3 and 4 (the owner chose to publish real details).
+- **Power-up guide:** the title screen (website and app) shows the four icons with labels;
+  the Android "How to play" overlay adds one sentence per power-up.
+- **Design gate:** the website `ui-ux-designer` check must pass before any change that
+  alters what desktop players see ships. Passed for this change in
+  `docs/ux/design-review-v7-round1.md`.
+- **Team:** this change used the mobile core team of 3, at the owner's request.

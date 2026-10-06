@@ -133,6 +133,8 @@ and M11.7 (no licensed IP in the app).
 
 ### 1.6 Consequences (for the record)
 
+> **Settled 2026-10-06 (owner decision):** the privacy page now shows the developer name and email. See `docs/PRD-addendum-v7.md` F26.
+
 - **Cost:** none. No account fee, no key to keep safe.
 - **What is given up:** the app is not available to anyone outside the
   owner's PC, and nothing is proven on a real phone: touch feel with real

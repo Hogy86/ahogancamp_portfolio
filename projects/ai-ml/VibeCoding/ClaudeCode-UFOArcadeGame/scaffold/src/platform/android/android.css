@@ -204,6 +204,55 @@ html.platform-android .screen-overlay > :last-child {
   }
 }
 
+/* PRD addendum v7 F25 AC1: the Help overlay's power-up rows - icon, bold label, sentence.
+   Left-aligned with the labels in one column so the sentences line up; the list itself
+   stays centred in the overlay column. */
+html.platform-android .power-up-help {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+html.platform-android .power-up-help__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c8c8e0;
+}
+
+html.platform-android .power-up-help__label {
+  min-width: 5.5em;
+  font-weight: bold;
+  color: #e8e8f0;
+}
+
+/* F24 AC4 / F25 AC3: on short landscape windows (the 640 x 360 phone leaves ~291.5 dp
+   between the insets) the title's three secondary buttons sit side by side under Start,
+   which pays for the power-up guide and contact line; they wrap (8 dp apart) if a large
+   font makes the row too wide. Targets stay 48 dp. The Help rows drop to 14 px (above
+   the 12 sp floor) so the four rows and "Got it" fit without scrolling. */
+@media (max-height: 420px) {
+  html.platform-android .title-screen .menu-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  html.platform-android .title-screen .menu-list .menu-item {
+    min-width: 0;
+    padding: 8px 20px;
+  }
+
+  html.platform-android .power-up-help {
+    font-size: 14px;
+    gap: 2px;
+  }
+}
+
 /* UAT F1 (M3.1/M3.8): Confirm and Cancel are inline buttons with no gap in the shared
    markup, so they touched. Confirm discards the run: keep >= 8 dp between them, side by
    side (4 dp margin each) and, when a large font makes them wrap, stacked (8 dp above). */

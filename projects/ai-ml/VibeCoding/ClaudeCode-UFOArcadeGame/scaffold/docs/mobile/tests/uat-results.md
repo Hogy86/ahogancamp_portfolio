@@ -248,3 +248,19 @@ test data (best score) remain installed. No app code or test was changed; nothin
 3. Owner answer on Q1 (frame-rate confirmation).
 4. Re-run UAT on one committed build: UAT-13, 14, 24, 47, 49 in full, a regression pass on the
    rest.
+
+---
+
+## Round v7 (core-team tester, addendum v7 F24-F27, phone emulation only)
+
+Run on 2026-10-06 against the uncommitted tree on HEAD 0234811. **No emulator was available** (cloud container, no Android SDK), so these are Playwright phone-emulation results (Chromium touch/mobile emulation at 640x360, 800x360, 915x412, 1280x800), not device results. Full report: `validation-report-round8.md`. Screenshots: `screenshots/*_v7.png`.
+
+| Scenario | Round | Result | Notes |
+|---|---|---|---|
+| UAT-01 (title: Best, Start / How to play / Settings / Quit, now with the power-up guide and contact line) | v7 | PASS (emulation) | Four icons labelled, buttons fully visible, nothing clipped at 640x360, 800x360, 915x412. `android_*_title_v7.png` |
+| UAT-05 (title, "How to play", Got it returns) | v7 | PASS (emulation) | Help shows four icon + label + sentence rows; Got it fully visible and reachable; `power-up-guide.spec.ts` passes in all projects. `android_*_help_v7.png` |
+| UAT-19 (640x360: title and help inside the safe area, no scrolling) | v7 | PASS (emulation) | Title and help fit, inset cases in `power-up-guide.spec.ts` pass; other UAT-19 screens unchanged and not re-run on a device |
+| UAT-44 (privacy policy matches `public/privacy.html`) | v7 | PARTIAL (static) | Placeholders `[DEVELOPER NAME]` and `[CONTACT EMAIL]` are gone; developer name and email present in `public/privacy.html`. In-app privacy screen in airplane mode not run on a device |
+| Website title at 800x600 (shared change) | v7 | PASS (emulation) | Guide and contact line fit, no overlap. `web_800x600_title_v7.png` |
+
+The earlier "known pending item" about the privacy placeholders is closed by this change (static check). A device re-run of the above is still advised on the owner's machine.

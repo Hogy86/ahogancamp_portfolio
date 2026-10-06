@@ -18,6 +18,7 @@
 // see `setWindowPromptKind` and the listener installed in the constructor.
 
 import { setText, createElement } from '../../ui/dom';
+import { createPowerUpHelpList } from '../../ui/powerUpGuide';
 import { loadSettings, saveSettings, type AndroidSettings } from './settings';
 
 export type ShellOverlayKind = 'help' | 'settings' | 'privacy';
@@ -76,6 +77,9 @@ export class AndroidOverlays {
         'THROW: throw your shield. One at a time. Catch it on the rebound for +1 life.',
       ),
       createElement('p', undefined, 'Pause button: pause the game'),
+      // PRD addendum v7 F25 AC1/AC3: the four power-ups, each with its icon, label and one
+      // sentence, between the control lines and "Got it".
+      createPowerUpHelpList(),
       gotIt,
     );
 
