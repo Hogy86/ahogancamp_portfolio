@@ -1,0 +1,33 @@
+<!doctype html>
+<!--
+  Implements docs/mobile/architecture/mobile-architecture.md §7.4 (M1.4). Static
+  HTML, no script - Capacitor's `server.errorPath` loads this instead of the app
+  when the device's WebView is below `minWebViewVersion` (capacitor.config.ts).
+  It also ends up in the web dist/, where it is unreferenced and harmless.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Update required</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #05050a;
+        color: #e8e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+        text-align: center;
+        padding: 24px;
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Please update Android System WebView from the Play Store.</p>
+  </body>
+</html>

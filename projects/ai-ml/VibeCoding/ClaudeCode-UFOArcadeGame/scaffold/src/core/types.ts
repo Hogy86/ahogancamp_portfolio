@@ -195,4 +195,17 @@ export interface World {
 
   /** True once quit has been attempted and window.close() was blocked (F6 AC9). */
   quitBlockedMessageActive: boolean;
+
+  /** F20 (docs/PRD-addendum-v3.md): the saved best score, refreshed on every commit
+   * (title/end-screen display only, F20 AC14 - never read by gameplay systems). */
+  bestScore: number;
+  /** F20 AC3: set from the most recent commit()'s isNewBest so end screens can show
+   * "New best!"; meaningless outside GAMEOVER/VICTORY. */
+  newBestThisRun: boolean;
+
+  /** F21 (docs/PRD-addendum-v4.md): the run's score at the moment the current level
+   * was entered (0 for level 1). Recorded only at true level-entry (a new run, a level
+   * advance, or Restart Game) - never by Restart Level itself, which instead reads it
+   * to roll world.score back (RESTART_LEVEL_SCORE_POLICY, src/config/constants.ts). */
+  levelStartScore: number;
 }

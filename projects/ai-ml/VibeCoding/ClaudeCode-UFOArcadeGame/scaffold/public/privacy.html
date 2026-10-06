@@ -1,0 +1,127 @@
+<!doctype html>
+<!--
+  Implements docs/mobile/architecture/mobile-architecture.md §8.7 (M11.4, M11.4a;
+  M-ADR-0009). Single shared policy file: the website serves it at the hosted URL,
+  and the Android app bundles the SAME file and shows it in-app (PrivacyOverlay).
+  Final text at step 13, mobile-technical-writer; meets §8.7's content rules:
+  no script, no external resources, no outbound links.
+
+  Content rules (§8.7): static HTML, lang="en", no script elements, no
+  event-handler attributes, no external resources (inline style element only),
+  no outbound anchor-href links, readable both standalone and inside the overlay
+  (dark background, light text, >= 16px body).
+-->
+<!--
+  Static check: this file must not contain the opening script tag text.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Privacy policy - Shield vs Robots</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #05050a;
+        color: #e8e8f0;
+        font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+      }
+      body {
+        padding: 16px 20px 32px;
+      }
+      h1 {
+        font-size: 24px;
+        margin: 0 0 16px 0;
+      }
+      h2 {
+        font-size: 18px;
+        margin: 20px 0 12px 0;
+      }
+      p, li {
+        margin: 8px 0;
+      }
+      ul {
+        margin: 8px 0 8px 20px;
+      }
+      hr {
+        border: none;
+        border-top: 1px solid #333;
+        margin: 20px 0;
+      }
+      .footer-meta {
+        font-size: 16px;
+        color: #999;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Shield vs Robots — Privacy Policy</h1>
+
+    <p><strong>Effective date:</strong> September 29, 2026</p>
+
+    <h2>What the Shield vs Robots Android App Stores</h2>
+    <p>
+      The Shield vs Robots Android app does not collect or share any data. It stores only
+      the following information locally on your device, in the app's private storage:
+    </p>
+    <ul>
+      <li><strong>Your best score:</strong> the highest score you have ever achieved.</li>
+      <li><strong>Control setting:</strong> your preference for the touch-button layout (default or swapped).</li>
+      <li><strong>Help overlay setting:</strong> whether you have seen the "How to Play" screen (shown once per install).</li>
+      <li><strong>Gameplay counters:</strong> anonymous event counts, such as sessions started, levels reached, power-ups caught, runs restarted, game-over events, victories, and shield catches.</li>
+    </ul>
+    <p>
+      All of this information stays on your device only. It is never sent to
+      any server, external service, or third party. The app does not connect
+      to the internet. It requires no account, sign-in, or permissions.
+    </p>
+    <p>
+      This information stays until you uninstall the app or clear its storage
+      (Android Settings → Apps → Shield vs Robots → Storage → Clear storage).
+      It is not included in device backups. On the website, clearing this site's
+      data in your browser removes it.
+    </p>
+
+    <h2>What the Shield vs Robots Website Stores</h2>
+    <p>
+      The web version (hosted on GitHub Pages) stores your best score and
+      anonymous gameplay event counters in your browser's localStorage only.
+      Settings (control layout, help overlay state) are <strong>not</strong> stored by the website.
+      Nothing is sent to any server or third party.
+    </p>
+
+    <h2>What the App Does Not Do</h2>
+    <ul>
+      <li>Does not collect your name, email, location, or any personal identifier.</li>
+      <li>Does not use advertising, analytics, or crash-reporting SDKs.</li>
+      <li>Does not track you across apps or devices.</li>
+    </ul>
+
+    <h2>Website Hosting</h2>
+    <p>
+      Shield vs Robots is also available as a web game on GitHub Pages.
+      GitHub Pages may log technical request data (such as your IP address)
+      under GitHub's own privacy statement.
+    </p>
+
+    <h2>Contact</h2>
+    <p>
+      <strong>Developer:</strong> [DEVELOPER NAME]<br>
+      <strong>Email:</strong> [CONTACT EMAIL]
+    </p>
+    <p>
+      For questions about this privacy policy or how the app handles data,
+      contact the developer using the email address above.
+    </p>
+
+    <hr>
+
+    <p class="footer-meta">
+      This is the privacy policy for the Shield vs Robots app and website.
+      Last updated September 29, 2026.
+    </p>
+  </body>
+</html>

@@ -323,3 +323,72 @@ describe('GameLoop - v2 boss-incoming warning does NOT gate play (F12 AC11)', ()
     loop.stop();
   });
 });
+
+// docs/mobile/architecture/mobile-architecture.md §8.2 (H6): the fixed-timestep
+// accumulator must produce the same simulation step count over 10 seconds regardless
+// of the display's actual refresh rate (30/60/90/120 Hz), and a suspend/resume gap
+// must add zero extra steps (M4.2) rather than "catching up" the elapsed background
+// time. Step count is measured via `InputManager.consumeEdges(simStepsRun)`, which
+// GameLoop calls with the EXACT per-tick step count (§5.3) - summing its arguments
+// across every tick gives the total steps run without reaching into GameLoop's
+// private accumulator.
+describe('GameLoop - fixed-timestep determinism across refresh rates (§8.2, H6)', () => {
+  let raf: ReturnType<typeof installFakeRaf>;
+
+  beforeEach(() => {
+    raf = installFakeRaf();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function totalStepsOver(frameMs: number, totalMs: number): number {
+    const world = makePlayingWorld();
+    const loop = new GameLoop(world, () => {});
+    const consumeEdgesSpy = vi.spyOn(loop.input, 'consumeEdges');
+    loop.start();
+
+    const frameCount = Math.round(totalMs / frameMs);
+    for (let i = 0; i <= frameCount; i += 1) raf.fire(i * frameMs);
+
+    loop.stop();
+    return consumeEdgesSpy.mock.calls.reduce((sum, [stepsRun]) => sum + (stepsRun ?? 0), 0);
+  }
+
+  it.each([
+    ['120 Hz', 1000 / 120],
+    ['90 Hz', 1000 / 90],
+    ['60 Hz', 1000 / 60],
+    ['30 FPS', 1000 / 30],
+  ])('gives 600 \u00b1 1 simulation steps over 10s at %s', (_label, frameMs) => {
+    const steps = totalStepsOver(frameMs, 10_000);
+    expect(steps).toBeGreaterThanOrEqual(599);
+    expect(steps).toBeLessThanOrEqual(601);
+  });
+
+  it('a suspend/resume gap of 10 minutes adds zero extra steps (M4.2)', () => {
+    const world = makePlayingWorld();
+    const loop = new GameLoop(world, () => {});
+    const consumeEdgesSpy = vi.spyOn(loop.input, 'consumeEdges');
+    loop.start();
+
+    // 1 second of real 60 Hz play before backgrounding.
+    raf.fire(0);
+    raf.fire(1000 / 60);
+
+    loop.suspend();
+    loop.resume(); // schedules a new RAF; the "gap" is that the next fire() timestamp
+    // below is 10 minutes later than the last one above - suspend/resume resets
+    // lastTimestamp/accumulator so this must NOT be read as 10 minutes of elapsed play.
+    const tenMinutesLaterMs = 1000 / 60 + 10 * 60 * 1000;
+    raf.fire(tenMinutesLaterMs);
+
+    const stepsAfterResume = consumeEdgesSpy.mock.calls
+      .slice(2) // drop the two pre-suspend ticks
+      .reduce((sum, [stepsRun]) => sum + (stepsRun ?? 0), 0);
+
+    expect(stepsAfterResume).toBe(0);
+    loop.stop();
+  });
+});

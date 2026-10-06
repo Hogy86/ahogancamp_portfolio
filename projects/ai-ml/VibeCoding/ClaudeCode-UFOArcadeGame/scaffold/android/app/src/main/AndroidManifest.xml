@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Implements docs/mobile/architecture/mobile-architecture.md §7.3 (M-ADR-0007),
+  amended by A6/A8 (review-v1 L1; review-v1b N1). Hand-edited (§3 project layout).
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:usesCleartextTraffic="false"
+        android:appCategory="game"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|density|uiMode|navigation|locale"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:screenOrientation="sensorLandscape"
+            android:enableOnBackInvokedCallback="true"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <!--
+          A6/A8 (review-v1 L1): the template's FileProvider and file_paths.xml are
+          deleted - no allowed plugin uses them, and their path grants are dead attack
+          surface. MainActivity remains the only exported component. The one tolerated
+          library component (androidx.startup.InitializationProvider, brought in by
+          AppCompat's emoji2/lifecycle-process/profileinstaller, non-exported) is NOT
+          declared here - it is added by the manifest merger automatically, and must
+          never be stripped with tools:node="remove" (§7.3 A8; it would silently
+          disable baseline-profile install and emoji2 initialization).
+        -->
+    </application>
+
+    <!--
+      M11.2 (§7.3): INTERNET is explicitly removed so no merged library can bring it
+      back. Capacitor loads bundled assets through a local request interceptor, not a
+      socket - the app is designed to work fully offline. §7.3.1 verifies this on real
+      emulator images before the step-8 review.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+
+    <!-- M1.3/M3.10: keyboard-only Chromebooks stay eligible. -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+</manifest>

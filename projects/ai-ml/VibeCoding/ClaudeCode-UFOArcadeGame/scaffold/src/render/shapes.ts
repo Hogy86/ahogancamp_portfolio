@@ -283,7 +283,10 @@ export function drawSentinel(
 
 /** Power-up icons: each type is a distinct shape (not color-only), consistent with
  * the HUD readout describing the same type by name/text. Distinguishable while still
- * falling, before the catch collision (F11 AC8). */
+ * falling, before the catch collision (F11 AC8). Shared ring + disc for all four types;
+ * only the glyph inside differs (PRD addendum v5 F23). All glyph coordinates are fractions
+ * of `radius`. The stroked glyphs (double arrow, circle, X) stay within +-0.45 of the center; the
+ * filled fist within +-0.65 and 0.75 of the center (F23 r5 AC3(d)). */
 export function drawPowerUp(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -308,36 +311,22 @@ export function drawPowerUp(
 
   switch (type) {
     case 'HIT_POWER':
-      // Upward chevron/arrow glyph.
-      ctx.beginPath();
-      ctx.moveTo(-radius * 0.5, radius * 0.3);
-      ctx.lineTo(0, -radius * 0.5);
-      ctx.lineTo(radius * 0.5, radius * 0.3);
-      ctx.stroke();
+      // PRD addendum v5 F23 AC4.1: filled fist, four knuckle bumps on top, no forearm.
+      drawFistGlyph(ctx, radius);
       break;
     case 'SPEED':
-      // Two forward-slanted speed lines.
-      ctx.beginPath();
-      ctx.moveTo(-radius * 0.5, -radius * 0.3);
-      ctx.lineTo(radius * 0.2, -radius * 0.3);
-      ctx.moveTo(-radius * 0.5, radius * 0.1);
-      ctx.lineTo(radius * 0.4, radius * 0.1);
-      ctx.stroke();
+      // Owner decision 2026-10-05: the double arrow "<-->" replaces the rabbit (F23 r6 AC4.2, Q-v5-2).
+      drawDoubleArrowGlyph(ctx, radius);
       break;
     case 'SHIELD':
-      // Small kite glyph - a distinct icon shape, independent of the player shield's
-      // current circular art (F14) so it stays visually distinguishable from the other
-      // three power-up glyphs.
+      // PRD addendum v5 F23 AC4.3: one small stroked circle, clear dark gap to the ring.
       ctx.beginPath();
-      ctx.moveTo(0, -radius * 0.5);
-      ctx.lineTo(radius * 0.4, 0);
-      ctx.lineTo(0, radius * 0.5);
-      ctx.lineTo(-radius * 0.4, 0);
-      ctx.closePath();
+      ctx.arc(0, 0, radius * 0.34, 0, Math.PI * 2);
       ctx.stroke();
       break;
     case 'PERMANENT_MULTIPLIER':
-      // "x" glyph for the permanent multiplier.
+      // PRD addendum v5 F23 AC4.4: capital "X" (two crossing diagonals). This is the one
+      // "X" allowed by v4 F22 AC8(c); review-v2 V2-M3 risk-accepted by owner 2026-09-30.
       ctx.beginPath();
       ctx.moveTo(-radius * 0.35, -radius * 0.35);
       ctx.lineTo(radius * 0.35, radius * 0.35);
@@ -348,6 +337,59 @@ export function drawPowerUp(
   }
 
   ctx.restore();
+}
+
+/** Knuckle dome spans (x0, x1) in the fist's own unit (see FIST_SCALE), left to right. */
+const FIST_KNUCKLES = [
+  [-0.26, -0.1],
+  [-0.1, 0.06],
+  [0.06, 0.22],
+  [0.22, 0.38],
+] as const;
+
+/** The fist's unit as a multiple of the token radius. The filled glyphs are drawn larger
+ * than the stroked ones so they survive the ~13 dp in-play token (F23 r5 AC3(d), AC4.1). */
+const FIST_SCALE = 1.4;
+
+/** Fist seen from the front, thumb tucked on the left: four round knuckle domes on the top
+ * edge, a flat base (no wrist), drawn as one filled outline. Each dome is a bezier with
+ * vertical end tangents, so the knuckles read as round bumps separated by sharp valleys
+ * even at 24px. Spans about 1.12r by 0.97r (F23 r5 AC4.1). */
+function drawFistGlyph(ctx: CanvasRenderingContext2D, radius: number): void {
+  const r = radius * FIST_SCALE;
+  const valleyY = -0.2 * r;
+  const domeControlY = -0.347 * r;
+  ctx.beginPath();
+  ctx.moveTo(-0.26 * r, valleyY);
+  for (const [x0, x1] of FIST_KNUCKLES) {
+    ctx.bezierCurveTo(x0 * r, domeControlY, x1 * r, domeControlY, x1 * r, valleyY);
+  }
+  ctx.lineTo(0.38 * r, 0.3 * r);
+  ctx.quadraticCurveTo(0.38 * r, 0.38 * r, 0.3 * r, 0.38 * r);
+  ctx.lineTo(-0.18 * r, 0.38 * r);
+  ctx.quadraticCurveTo(-0.26 * r, 0.38 * r, -0.26 * r, 0.3 * r);
+  ctx.quadraticCurveTo(-0.44 * r, 0.26 * r, -0.42 * r, 0.12 * r); // thumb
+  ctx.quadraticCurveTo(-0.4 * r, 0.02 * r, -0.26 * r, 0.02 * r);
+  ctx.closePath();
+  ctx.fill();
+}
+
+/** Horizontal double-headed arrow "<-->", stroked (F23 r6 AC4.2): one shaft through the
+ * centre and an open chevron head at each end. Spans the full +-0.45r; each head is
+ * 0.27r long and 0.6r tall (about 48 degrees off the shaft), so at r = 6.5 the heads are
+ * still about 4 px tall. Five segments, no crossing strokes: the heads only touch the shaft
+ * at its ends. */
+function drawDoubleArrowGlyph(ctx: CanvasRenderingContext2D, r: number): void {
+  const reach = 0.45 * r;
+  ctx.beginPath();
+  ctx.moveTo(-reach, 0);
+  ctx.lineTo(reach, 0);
+  for (const side of [-1, 1]) {
+    ctx.moveTo(side * 0.18 * r, -0.3 * r);
+    ctx.lineTo(side * reach, 0);
+    ctx.lineTo(side * 0.18 * r, 0.3 * r);
+  }
+  ctx.stroke();
 }
 
 /** Rendering-only tuning: how long an individual firework particle burst stays visible

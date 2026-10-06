@@ -1,0 +1,152 @@
+apply plugin: 'com.android.application'
+
+// docs/mobile/architecture/mobile-architecture.md §7.5.2 (M-ADR-0011). Behavior is
+// binding; this structure is the junior developer's. Applies from `npx cap add
+// android` onward - mobile-release-engineer uses it for real at step 15.
+def vvsSigningPropertiesFile = null
+def vvsSigningRejectReason = null
+
+def vvsResolveSigningPropertiesPath = {
+    def envPath = System.getenv('VVS_SIGNING_PROPERTIES')
+    if (envPath != null && !envPath.isEmpty()) return envPath
+    def prop = findProperty('vvsSigningProperties')
+    return prop != null ? prop.toString() : null
+}
+
+def vvsFindGitTopLevel = {
+    def dir = rootProject.projectDir.parentFile // walk up from android/'s parent (scaffold/)
+    while (dir != null) {
+        if (new File(dir, '.git').exists()) return dir
+        dir = dir.parentFile
+    }
+    return null
+}
+
+def vvsIsUnsafeLocation = { File candidate ->
+    def canonical = candidate.canonicalPath.toLowerCase()
+    def scaffoldRoot = rootProject.projectDir.parentFile.canonicalPath.toLowerCase()
+    if (canonical.startsWith(scaffoldRoot)) return true
+    if (canonical.contains('onedrive')) return true // covers OneDrive/OneDriveConsumer/OneDriveCommercial
+    def gitTop = vvsFindGitTopLevel()
+    if (gitTop != null && canonical.startsWith(gitTop.canonicalPath.toLowerCase())) return true
+    return false
+}
+
+def vvsPropertiesPath = vvsResolveSigningPropertiesPath()
+if (vvsPropertiesPath != null) {
+    def propertiesFile = new File(vvsPropertiesPath)
+    if (!propertiesFile.exists()) {
+        vvsSigningRejectReason = "signing.properties not found at ${vvsPropertiesPath}"
+    } else if (vvsIsUnsafeLocation(propertiesFile)) {
+        vvsSigningRejectReason = "signing.properties path is inside the repo/scaffold/OneDrive - refusing to load it"
+    } else {
+        def props = new Properties()
+        propertiesFile.withInputStream { props.load(it) }
+        def storeFile = props.getProperty('storeFile')
+        def storePassword = props.getProperty('storePassword')
+        def keyAlias = props.getProperty('keyAlias')
+        def keyPassword = props.getProperty('keyPassword')
+        if (!storeFile || !storePassword || !keyAlias || !keyPassword) {
+            vvsSigningRejectReason = "signing.properties is missing one of storeFile/storePassword/keyAlias/keyPassword"
+        // L7: `file(...)` (Gradle's own project-relative resolver, matching the
+        // `file(vvsSigningPropertiesFile.storeFile)` load below) - not `new File(...)`,
+        // which resolves a relative path against the process's working directory
+        // instead of `app/`. The two resolved to different files whenever gradlew was
+        // invoked from a different directory than `app/`, so the guard could pass while
+        // signing loaded a different, unchecked path.
+        } else if (vvsIsUnsafeLocation(file(storeFile))) {
+            vvsSigningRejectReason = "keystore (storeFile) path is inside the repo/scaffold/OneDrive - refusing to load it"
+        } else {
+            vvsSigningPropertiesFile = [storeFile: storeFile, storePassword: storePassword, keyAlias: keyAlias, keyPassword: keyPassword]
+        }
+    }
+}
+
+android {
+    namespace = "io.github.hogy86.shieldvsrobots"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "io.github.hogy86.shieldvsrobots"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        if (vvsSigningPropertiesFile != null) {
+            release {
+                storeFile file(vvsSigningPropertiesFile.storeFile)
+                storePassword vvsSigningPropertiesFile.storePassword
+                keyAlias vvsSigningPropertiesFile.keyAlias
+                keyPassword vvsSigningPropertiesFile.keyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // The release build type never signs with the debug key, anywhere
+            // (§7.5.2 rule 4) - only assigned when a valid, safely-located properties
+            // file was loaded above.
+            if (vvsSigningPropertiesFile != null) {
+                signingConfig signingConfigs.release
+            }
+        }
+    }
+}
+
+// §7.5.2 rule 5: fail closed. A release packaging task with no valid signing loaded
+// throws, UNLESS this is CI building only the unsigned artifact for the manifest
+// check (rule 6) - that path is never signed with the debug key either.
+gradle.taskGraph.whenReady { graph ->
+    def isCiUnsignedException = System.getenv('CI') == 'true' && findProperty('vvsCiUnsignedRelease') == 'true'
+    def hasReleasePackagingTask = graph.allTasks.any { task ->
+        task.path.contains(':app:') && (
+            task.name.startsWith('bundleRelease') ||
+            task.name.startsWith('assembleRelease') ||
+            task.name.startsWith('packageRelease') ||
+            task.name.startsWith('signReleaseBundle')
+        )
+    }
+    if (hasReleasePackagingTask && vvsSigningPropertiesFile == null && !isCiUnsignedException) {
+        def reason = vvsSigningRejectReason != null ? vvsSigningRejectReason : 'no signing.properties path was provided'
+        throw new GradleException("Release signing not configured or unsafe location (${reason}) - see docs/mobile/architecture/mobile-architecture.md §7.5. Refusing to build.")
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+// review-v2 V2-L4: the Capacitor template applied the Google Services plugin silently
+// whenever a google-services.json appeared. This app ships no Firebase/Google services
+// (Data safety answers and the privacy policy say so), so a stray config file must stop
+// the build instead of quietly changing it.
+if (file('google-services.json').exists()) {
+    throw new GradleException(
+        'android/app/google-services.json exists: adding Google services requires a security and Data safety review (docs/mobile/security/review-v2.md V2-L4). Remove the file.'
+    )
+}

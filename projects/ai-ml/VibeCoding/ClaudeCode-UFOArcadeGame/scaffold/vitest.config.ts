@@ -6,6 +6,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.{test,spec}.ts'],
+    // H5: widened to cover the CI checker scripts' own fixture tests
+    // (scripts/*.test.mjs) alongside the game's src/**/*.test.ts suite.
+    include: ['src/**/*.{test,spec}.ts', 'scripts/**/*.{test,spec}.mjs'],
   },
 });

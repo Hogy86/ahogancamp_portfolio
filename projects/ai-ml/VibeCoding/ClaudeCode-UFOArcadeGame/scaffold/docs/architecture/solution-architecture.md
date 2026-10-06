@@ -282,3 +282,5 @@ an application-security item and is also gated by ui-ux-designer round 2.
   F8 AC9, 8 s power-up durations F7, 10% extra-drop F7 AC1, base speeds/fire
   intervals for the F4 multipliers) live as named constants alongside
   `LevelConfig`, not scattered magic numbers.
+
+> **Pointer (2026-10-04; website code review v4 S4).** `PlatformContext` (`src/platform/Platform.ts`) gained `setTopBannerTextOnCanvas(enabled)` and `dom.hudRoot`, and `CanvasRenderer` gained the matching flag, which defaults to on. The website never calls the method, so the canvas warning words (F3 AC6, F12 AC10-11) are drawn exactly as before. Specified in `docs/mobile/architecture/amendment-A14.md` and `docs/mobile/architecture/adr/0013-android-top-banner.md`.

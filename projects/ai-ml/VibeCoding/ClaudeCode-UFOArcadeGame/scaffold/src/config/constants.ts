@@ -171,6 +171,16 @@ export const ENEMY_LASER_RADIUS = 6;
  */
 export const FORMATION_WARNING_ENABLED = true;
 
+/** F3 AC6: the non-colour text cue shown with the pulsing border. Shared so the canvas
+ * (web) and the Android DOM warning (M2.3b) can never drift apart. */
+// F22 AC4 (docs/PRD-addendum-v4.md): "Sentinel(s)" renamed to "robots" everywhere
+// player-facing; the internal drawSentinel/VANGUARD_* identifiers are unchanged
+// (F22 AC12 - internal names are explicitly optional to rename).
+export const FORMATION_WARNING_TEXT = 'WARNING: ROBOTS APPROACHING';
+
+/** F12 AC10-11: the boss-incoming telegraph text (shared canvas/Android DOM banner). */
+export const BOSS_WARNING_TEXT = 'BOSS INCOMING';
+
 /** F3 AC6: warning triggers one row above the player's row. */
 export const FORMATION_WARNING_ROW_MARGIN_PX = ENEMY_HEIGHT + FORMATION_STEP_DOWN;
 
@@ -179,3 +189,11 @@ export const INSTRUMENTATION_STORAGE_KEY = 'vvs:metrics';
 
 /** Max levels (F5 AC4). */
 export const MAX_LEVEL = 10;
+
+/** F21 (docs/PRD-addendum-v4.md, owner decision Q-v3-1 (b)): Restart Level rolls the
+ * run's score back to its level-start value ('rollback'), removing points earned in
+ * the abandoned attempt. This game-rule constant is shared and has the same value on
+ * every platform (M0.3) - only Restart Level reads it (GameStateMachine.ts); it does
+ * not affect level advance, pause/Resume, or Restart Game, which already reset/keep
+ * the score by their own existing rules. */
+export const RESTART_LEVEL_SCORE_POLICY: 'keep' | 'rollback' = 'rollback';

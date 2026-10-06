@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Implements docs/mobile/architecture/mobile-architecture.md §7.4 (M9.2) and
+  docs/mobile/ux/store-assets-spec.md §1: the adaptive-icon/splash background is the
+  game's own background color, not the Capacitor template's white.
+-->
+<resources>
+    <color name="ic_launcher_background">#05050a</color>
+</resources>

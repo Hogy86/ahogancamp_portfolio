@@ -1,0 +1,499 @@
+/* Implements docs/mobile/architecture/mobile-architecture.md §6.5/§5.3 (M2.6, M2.11,
+   M3.1-M3.9). Every selector is scoped under html.platform-android - src/style.css is
+   never edited (UX N1 / carry-forward 4). Imported only by the Android platform module,
+   so it never ships in the web bundle. */
+
+html.platform-android,
+html.platform-android body {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  overscroll-behavior: none;
+}
+
+html.platform-android #app-root {
+  /* screenFit.ts sets left/top/transform inline per computeLayout(); margin is
+     overridden here so the web-only `margin: 24px auto` never applies. */
+  margin: 0;
+}
+
+/* M2.11: HUD/control-text floor so text stays legible at the real playfield scale. */
+html.platform-android .hud-panel,
+html.platform-android #control-text {
+  font-size: max(15px, calc(12px / var(--pf-scale, 1)));
+}
+
+/* design-review-round4 N1 (M2.4): at the 12 sp floor the panels are ~24 logical px
+   text on a 640x360 phone (scale ~0.5), so the shared stacked layout (Score over Lives,
+   Level over Power, line-height 1.5) reached ~y 104 and covered the first formation row
+   (top at FORMATION_TOP_MARGIN = 70) and any shield thrown into it. Each group is one
+   row here and the boxes are tighter; the font size is untouched. One row is about
+   1.2 * 24 + 4 + 2 + 2 + 4 (root padding) = ~45 logical px, clear of y 70. */
+html.platform-android #hud-root {
+  padding: 4px 12px;
+}
+
+/* code-review-round15 M1 (M2.11): a group wraps instead of overflowing. Without the wrap
+   a no-wrap row could not shrink, and at the 130% WebView text-zoom cap the right group
+   (Level, Power, effect) ran past the playfield under the Pause button. At the default
+   font the level-start states still fit one row (hud-clearance.spec.ts). Trade-off: at
+   the 130% cap on a 640x360 phone a wrapped second row can reach ~95 logical px and cover
+   the first formation row; M2.11 (no overlap with controls, no clipping) outranks N1's
+   clearance, which is stated at the default font. */
+html.platform-android #hud-root {
+  column-gap: 8px;
+}
+
+html.platform-android #hud-root > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+html.platform-android #hud-root > div:last-child {
+  justify-content: flex-end;
+}
+
+html.platform-android .hud-panel {
+  line-height: 1.2;
+  padding: 2px 8px;
+  margin: 1px;
+}
+
+/* design-review-round3 B1 (M2.4: nothing covers ShieldMan's row): the shared
+   `#control-text` sits at the playfield's bottom edge, exactly on the hero (whose top
+   is 48 logical px above the bottom, PLAYER_Y = 600 - 48). On Android it sits 24 dp
+   (on screen) above that row instead - `24px / --pf-scale` converts dp back to the
+   scaled playfield's logical px - which is still far below the level-1 formation.
+   `nowrap`: the longer word copy would otherwise wrap inside the 50%-wide
+   shrink-to-fit box its `left: 50%` gives it. The 12 sp floor above is unchanged. */
+html.platform-android #control-text {
+  bottom: calc(48px + 24px / var(--pf-scale, 1));
+  white-space: nowrap;
+}
+
+/* design-review-round3 F1: the game-screen overlays are translucent, so the HUD panels
+   (empty stubs on the title, stale text on Game Over) and the hint bled through the
+   menus. `data-vvs-state` is published by AndroidPlatform.onFrame. The hint shows only
+   while playing; the HUD also stays on PAUSED (the dimmed HUD helps orientation). */
+html.platform-android:not([data-vvs-state='PLAYING']) #control-text {
+  visibility: hidden;
+}
+
+html.platform-android:not([data-vvs-state='PLAYING']):not([data-vvs-state='PAUSED']) #hud-root {
+  visibility: hidden;
+}
+
+/* design-review-round3 F10: the active-power-up panel is empty most of the time and
+   read as a rendering glitch (an empty outlined bar under "Power"). */
+html.platform-android .hud-panel:empty {
+  display: none;
+}
+
+/* design-review-round3 F4: an open shell overlay (Help/Settings/Privacy) is opaque,
+   but the title menu beneath it is hidden outright so nothing can show around it. */
+html.platform-android.vvs-shell-overlay-open #overlay-root {
+  visibility: hidden;
+}
+
+/* C1: every menu/shell-overlay button gets a real ≥48dp touch target, regardless of
+   playfield scale - `src/style.css`'s `.menu-item` is unscoped px sizing meant for the
+   (also unscaled, on web) desktop-mouse case. */
+html.platform-android .menu-item {
+  min-height: 48px;
+}
+
+/* code-review-round3 M1 (real-device evidence, svr_api36_pixel7): `.menu-item` is a
+   `<button>` on Android (web renders the same class on an `<li>`, which never has
+   native control chrome), so without an explicit appearance/background/color it falls
+   back to the platform's native button chrome (confirmed via CDP: computed
+   `background-color: rgb(239,239,239)`, `color: rgb(0,0,0)`, `appearance: auto`) - a
+   light, unreadable button on the dark game background. This rule belongs here, not in
+   the shared `src/style.css` (§6.5), since only the Android `<button>` markup has the
+   native-chrome problem. */
+html.platform-android .menu-item {
+  appearance: none;
+  -webkit-appearance: none;
+  background: #0b0b14;
+  color: #e8e8f0;
+  font-family: inherit;
+}
+
+/* Opaque equivalent of the shared `.menu-item.selected` gold wash
+   (`rgba(255, 216, 115, 0.12)` over `src/style.css`'s transparent default), so the
+   selected pause/menu item doesn't let the title text underneath show through either. */
+html.platform-android .menu-item.selected {
+  background: #2a2515;
+}
+
+/* M1: with `.menu-item` opaque above, the Help/Settings panels (`.screen-overlay`,
+   shared with web) must also be fully opaque on Android so no title text shows through
+   around the buttons - web keeps the shared translucent wash (`rgba(2, 2, 8, 0.86)`),
+   which is fine there because web never stacks a `<button>` menu over another visible
+   screen. */
+html.platform-android #shell-overlay-root > .screen-overlay {
+  background: #05050a;
+}
+
+/* design-review-round3 F5: one gap between every title/pause/end-screen row. The shared
+   `.menu-list` adds a 16px top margin on top of the overlay's 12px gap, which left a
+   much larger gap between Start and How to play than between the buttons below it
+   (the short-window media query below already evens them at 8px). */
+html.platform-android .menu-list {
+  margin: 0;
+  gap: 12px;
+}
+
+/* Validation round 4 F1 (PRD-mobile M2.3 / M2.3b rule 3): every menu, dialog and
+   shell overlay (title, pause, confirm, game over, game complete, Help, Settings,
+   Privacy) is a `.screen-overlay` filling `#safe-layer`, i.e. exactly the area inside
+   the full edge insets. The shared style.css centers its column with
+   `justify-content: center`, which on a short window lets an over-tall column spill
+   equally into BOTH the top and bottom gesture bands (640 x 360 dp with real insets:
+   the title's heading and Quit were 13 dp inside the bands). Here the container
+   instead scrolls when its content really is taller than the safe area (large font
+   scale, unusual insets), and the first/last child's `auto` margins keep the column
+   centered whenever it does fit - `justify-content: safe center` would do the same
+   in one line but needs Chromium 115, and the WebView floor is 69. `pan-y` re-enables
+   the vertical drag the html-level `touch-action: none` above would otherwise block;
+   taps on the buttons are unaffected. */
+html.platform-android .screen-overlay {
+  justify-content: flex-start;
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+html.platform-android .screen-overlay > :first-child {
+  margin-top: auto;
+}
+
+html.platform-android .screen-overlay > :last-child {
+  margin-bottom: auto;
+}
+
+/* Short landscape windows (a phone is 360-412 dp tall): tighter spacing so the whole
+   title menu (heading, best line, Start, How to play, Settings, Quit) fits in the
+   ~304 dp left after the gesture bands at 640 x 360 dp with normal font. Touch targets
+   stay 48 dp (`.menu-item` above) and text stays well above the 12 sp floor - only
+   gaps, margins and the heading size shrink. */
+@media (max-height: 420px) {
+  /* UAT F2 (M3.1): 8 dp, not 6 - the title's Start button is a direct child of the
+     overlay, so this gap (not .menu-list's) separates it from How to play. */
+  html.platform-android .screen-overlay {
+    gap: 8px;
+  }
+
+  html.platform-android .screen-overlay h1 {
+    font-size: 30px;
+    /* UAT F2: 8 dp gaps add 10 dp to the title column (293 dp at 291.5 available);
+       the default 1.33 line height (40 dp) -> 1.2 (36 dp) pays for it. */
+    line-height: 1.2;
+    letter-spacing: 1px;
+    margin: 0;
+  }
+
+  html.platform-android .menu-list {
+    margin: 0;
+    gap: 8px;
+  }
+
+  html.platform-android .confirm-box {
+    padding: 8px 16px;
+  }
+}
+
+/* UAT F1 (M3.1/M3.8): Confirm and Cancel are inline buttons with no gap in the shared
+   markup, so they touched. Confirm discards the run: keep >= 8 dp between them, side by
+   side (4 dp margin each) and, when a large font makes them wrap, stacked (8 dp above). */
+html.platform-android .confirm-box .menu-item {
+  margin: 8px 4px 0;
+}
+
+html.platform-android #safe-layer {
+  position: fixed;
+  z-index: 30;
+}
+
+/* Both are absolutely-positioned children of #safe-layer (§6.5). Explicit stacking
+   (rather than relying on DOM order alone) guarantees shell overlays (Help/Settings/
+   Privacy - RotatePrompt is a separate `<body>` child, not one of these, see
+   `screenFit.ts`) always paint above the game-screen overlay when both happen to be
+   present in the DOM at once. */
+html.platform-android #overlay-root {
+  z-index: 21;
+  /* code-review-round2 C1: #overlay-root is a full-size sibling that stays in the DOM
+     (empty) during PLAYING. Without this, it sits above the touch layer and swallows
+     every tap meant for the move zone / THROW / PAUSE, even though it draws nothing. */
+  pointer-events: none;
+}
+
+/* Title/pause/end-screen menus (ScreenController's `.screen-overlay` children of
+   #overlay-root) still need to be tappable - only the always-present, otherwise-empty
+   parent is inert. */
+html.platform-android #overlay-root > .screen-overlay {
+  pointer-events: auto;
+}
+
+html.platform-android #shell-overlay-root {
+  position: absolute;
+  /* code-review-round4 (found gathering §7.3.1 mid-image evidence, svr_api30_mid,
+     real WebView 83.0.4103.106): the `inset` CSS shorthand was not supported until
+     Chromium 87 (Nov 2020) - WebView 83 silently ignores it, leaving this element
+     with NO top/right/bottom/left at all, so it collapses to a zero-size box. Every
+     shell overlay (`.screen-overlay`, `width: 100%`/`height: 100%` in the shared
+     `src/style.css`) then resolves its own 100% against that zero-size containing
+     block, rendering Settings/Help/Privacy centered on a 0-width box - only the
+     right half of each button's content (from x=0 outward) ends up on screen, the
+     rest goes negative/off-screen. `top`/`left` plus explicit `width`/`height`
+     (rather than the `right`/`bottom` longhand, which Vite's production CSS
+     minifier re-collapses right back into the unsupported `inset` shorthand at
+     build time - confirmed in the actual `dist-android` bundle, not just source)
+     fills the same `#safe-layer` containing block without ever spelling out
+     `right`/`bottom`, so nothing here can be re-merged into `inset`. */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 22;
+  /* Each child overlay (Help/Settings/Privacy) toggles its own `.hidden` class
+     (AndroidOverlays); this container itself has no visible box of its own when every
+     child is hidden, so it never blocks clicks meant for #overlay-root/canvas.
+     RotatePrompt is not a child of this container - see #shell-overlay-root's own
+     comment above and `screenFit.ts`. */
+  pointer-events: none;
+}
+
+html.platform-android #shell-overlay-root > *:not(.hidden) {
+  pointer-events: auto;
+}
+
+html.platform-android .touch-layer {
+  position: absolute;
+  /* code-review-round4: same `inset` shorthand compat/minifier issue as
+     #shell-overlay-root above - `top`/`left`/`width`/`height` instead, which the
+     minifier cannot re-collapse into `inset` (unsupported on WebView < Chromium 87). */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Explicit z-index (rather than the implicit 0 an unset z-index resolves to among
+     positioned siblings) so this layer stacks above #overlay-root (21). Only the
+     individual controls are `pointer-events: auto` (the layer itself is `none`), so a
+     higher z-index here never blocks #shell-overlay-root (22, above this) or the
+     playfield underneath. */
+  z-index: 21;
+  pointer-events: none;
+}
+
+html.platform-android .touch-layer--hidden {
+  display: none;
+}
+
+/* C1/C2: `left`/`top` for `.move-zone`, `.touch-button--throw` and `.touch-button--pause`
+   are set inline by `TouchControls.applyLayout()` from `computeLayout()`'s already
+   safe-layer-relative, already swap-mirrored absolute positions - never from a
+   side-dependent (`left:`/`right:`) static rule, which is what let "Swap controls"
+   silently do nothing (C2). */
+html.platform-android .touch-button {
+  position: absolute;
+  width: var(--vvs-button-size, 64px);
+  height: var(--vvs-button-size, 64px);
+  pointer-events: auto;
+  border-radius: 8px;
+  border: 2px solid #4a4a66;
+  background: rgba(20, 20, 34, 0.55);
+  color: #e8e8f0;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* M3: the visible glyph inside each touch button; `aria-hidden` (set in TouchControls)
+   keeps it out of the accessible name, which stays the button's `aria-label`. */
+html.platform-android .touch-glyph {
+  font-size: 24px;
+  line-height: 1;
+}
+
+/* design-review-round3 F2: arrows and pause bars are inline SVG (glyphs.ts). */
+html.platform-android .touch-glyph-svg {
+  display: block;
+  width: 28px;
+  height: 28px;
+}
+
+/* The THROW glyph is the word "THROW" (WAIT while recharging - see TouchControls.ts) drawn
+   as SVG text (glyphs.ts createWordGlyph): 13 user units bold (the 12 sp floor,
+   design-review-round4 L1) at a fixed `textLength` of 44 (32 for WAIT). As CSS text it
+   measured 51.6 px at the default font and 66.3 px at the 130% text-zoom cap, wider than
+   the 52 px padding box of the smallest (56dp, 2px border) button (code-review-round15
+   M2). This fixed 44 px box fits the padding box at any font scale; it overflows the
+   button's 40 px content box (default `padding: 1px 6px`) by 2 px per side, which is fine. */
+html.platform-android .touch-glyph-word {
+  width: 44px;
+  height: 20px;
+}
+
+html.platform-android .move-zone {
+  position: absolute;
+  pointer-events: auto;
+}
+
+/* Left/right button positions are relative to `.move-zone` itself (which JS repositions as a
+   whole) - the buttons' left-to-right order within it never mirrors, only the
+   move-zone's own placement does (§6.3: "Swap controls mirrors x ... the sums are
+   the same"). */
+html.platform-android .touch-button--left {
+  left: 0;
+  top: 0;
+}
+
+html.platform-android .touch-button--right {
+  left: calc(var(--vvs-button-size, 64px) + 8px);
+  top: 0;
+}
+
+html.platform-android .touch-button--pause {
+  width: 48px;
+  height: 48px;
+}
+
+html.platform-android .touch-button--throw.not-ready {
+  opacity: 0.45;
+  border-style: dashed; /* shape change, not color alone (NFR-9) */
+}
+
+html.platform-android .hidden {
+  display: none;
+}
+
+/* §6.2.1 (Amendment A11): unlike Help/Settings/Privacy (which stay inside the
+   inset-safe `#safe-layer`, `.screen-overlay`), RotatePrompt is appended directly to
+   `<body>` (screenFit.ts) so its BACKGROUND covers the true full viewport, edge to
+   edge, under any cutout/gesture inset too (M2.10a behavior 2: "a full-viewport layer
+   ... covers the window"). `z-index` above `#safe-layer` (30) so it visually and
+   pointer-event-wise covers every other layer regardless of DOM order. Explicit
+   `top`/`left`/`width`/`height` rather than the `inset` shorthand - same WebView <
+   Chromium 87 compatibility reason as `#shell-overlay-root`/`.touch-layer` above.
+   `box-sizing: border-box` so the insets `screenFit.ts` applies as inline `padding`
+   shrink the CONTENT area (keeping the message "inside the edge insets", M2.10a) while
+   the element's own 100%/100% box - and therefore its background - stays full-size. */
+html.platform-android .rotate-prompt {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 40;
+  box-sizing: border-box;
+  background: #05050a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+html.platform-android .rotate-prompt p {
+  margin: 0;
+  color: #c8c8e0;
+}
+
+html.platform-android .rotate-prompt.hidden {
+  display: none;
+}
+
+/* §8.7: a full panel, not the shared centered `.screen-overlay` layout - the Close
+   button sits in a header row with the heading, at the top on the THROW-side edge
+   (mirrored by `.shell-overlays--swapped`, C2), and the iframe fills the rest.
+   code-review-round2 C2: `.privacy-overlay` and `.hidden` have equal specificity
+   (both single-class selectors), so source order alone decided the winner and
+   `.privacy-overlay` (declared later) always beat `.hidden`, leaving the panel
+   visible (display: flex) from cold launch on every screen. `.privacy-overlay.hidden`
+   below has higher specificity than either alone, so hidden always wins regardless of
+   declaration order. */
+html.platform-android .privacy-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 12px 16px;
+  touch-action: pan-y;
+  /* M1: §8.7 requires an opaque panel, not the shared translucent `.screen-overlay`
+     wash (which lets the dimmed game show through underneath). */
+  background: #05050a;
+}
+
+html.platform-android .privacy-overlay.hidden {
+  display: none;
+}
+
+html.platform-android .privacy-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* THROW is on the left when controls are swapped; row-reverse mirrors the header so
+   Close (last in DOM order, see overlays.ts) lands on that same left edge. */
+html.platform-android .shell-overlays--swapped .privacy-header {
+  flex-direction: row-reverse;
+}
+
+html.platform-android .privacy-header h1 {
+  flex: 1;
+  text-align: center;
+  margin: 0;
+}
+
+/* M1: Close is a real action button, not a full-width `.menu-item` (220px) - a
+   compact control that still clears the 48dp touch-target floor. */
+html.platform-android .privacy-close {
+  min-width: 48px;
+  width: auto;
+  padding: 0 16px;
+}
+
+html.platform-android .privacy-overlay .privacy-frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: #05050a;
+  touch-action: pan-y;
+}
+
+/* UAT round 2 F4 (M2.3b rule 2, M2.6): the "WARNING: ROBOTS APPROACHING" and "BOSS
+   INCOMING" words, one DOM row directly below the HUD (topBanner.ts sets `top`). Same font floor as the HUD panels;
+   it sits in the playfield's top area, which is empty whenever the warning fires (the
+   formation has to be at ShieldMan's row). Centred, nowrap: ~27 caps at 12 sp is far
+   narrower than the playfield even at the 130% font cap. */
+html.platform-android #top-banner {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  pointer-events: none;
+  white-space: nowrap;
+  font-weight: bold;
+  font-size: max(15px, calc(12px / var(--pf-scale, 1)));
+  line-height: 1.2;
+  padding: 2px 8px;
+  color: #ff5a5a;
+  background: rgba(5, 5, 12, 0.72);
+  border: 1px solid #ff5a5a;
+  border-radius: 4px;
+}
+
+/* BOSS INCOMING keeps its amber (LEVEL_INTRO_TEXT_COLOR) from the canvas; the dark
+   background does the job the canvas text outline did. */
+html.platform-android #top-banner[data-kind='boss'] {
+  color: #ffd873;
+  border-color: #ffd873;
+}
+
+html.platform-android #top-banner[hidden] {
+  display: none;
+}

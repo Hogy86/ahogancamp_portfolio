@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- M1/§6.6: `android:windowLayoutInDisplayCutoutMode` is API-version-qualified across
+     this folder, values-v28/ and values-v30/ (mirroring how androidx.core:core-splashscreen
+     already ships its own values-v27/values-v29/values-v30 overrides for the same
+     attribute). This base (unqualified) folder applies to API < 28, where the attribute
+     does not exist yet, so it is omitted here entirely - a no-op, not a bug. See
+     values-v28/styles.xml and values-v30/styles.xml for the versions that set it.
+     validation-report-round2 F1: an unqualified "always" here crashed API 28 devices
+     with `UnsupportedOperationException: Unknown windowLayoutInDisplayCutoutMode: 3`. -->
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:background">@null</item>
+    </style>
+
+    <!-- H8/M9.4: the Android 12+ splash screen API (via androidx.core:core-splashscreen,
+         already a dependency) replaces the old static `@drawable/splash` bitmaps -
+         background and icon are the SAME art as the adaptive launcher icon, not
+         separate template images. -->
+    <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/AppTheme.NoActionBar</item>
+    </style>
+</resources>
