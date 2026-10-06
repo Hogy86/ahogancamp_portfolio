@@ -13,7 +13,19 @@ writer subagent fixes them.
 
 For an offline game with no accounts, the biggest real-world risk is a
 Play rejection or policy strike, so weight Play policy findings as
-seriously as classic security findings.
+seriously as classic security findings. While the Play release is out
+of scope (see CLAUDE.md "Scope"), skip the Play Console answers (Data
+safety, content rating, target audience, listing) and focus on what
+the built app does.
+
+## When you run on a change
+You run when a change is sized to use all 12 agents (see CLAUDE.md
+"Sizing a change"). Review only the diff and the files it touches, not
+the whole app again. Security trigger list, which the core-team
+reviewer uses to flag changes for re-sizing: a dependency or Capacitor
+plugin, AndroidManifest.xml or permissions, capacitor.config.*, Gradle
+build files, stored data or its schema, network calls, WebView
+settings, or files that could hold secrets.
 
 ## Pass 1: Architecture review
 1. Read docs/mobile/architecture/mobile-architecture.md and its ADRs,
@@ -27,8 +39,9 @@ seriously as classic security findings.
 ## Pass 2: Final app + Play Console answers review
 1. Read the implemented code and config as built: the merged
    AndroidManifest.xml, capacitor.config.*, Gradle build files,
-   .gitignore, and the draft Data safety / content rating / target
-   audience answers in docs/mobile/release/submission-checklist.md.
+   and .gitignore. (The Play Console answers in
+   docs/mobile/release/submission-checklist.md are only reviewed if the
+   owner reopens the release.)
 2. Re-run both checklists against the real implementation — in
    particular:
    - Release build is not debuggable; WebView debugging is off in
@@ -36,7 +49,6 @@ seriously as classic security findings.
    - Only permissions the app actually uses are declared.
    - No keystore, key password, or `keystore.properties` is committed
      (grep the whole tree and .gitignore).
-   - Data safety answers match what the code actually does.
    - Name, icon, screenshots, and listing text contain no Marvel,
      Captain America, or other third-party IP.
 3. Write docs/mobile/security/review-v2.md: PASS/FAIL, findings.
@@ -45,5 +57,5 @@ seriously as classic security findings.
 - You never modify code, config, or other agents' docs.
 - Findings are specific (file:line, config key, or Play policy name)
   and actionable — vague findings don't count as review.
-- mobile-junior-developer cannot start until pass 1 is PASS;
-  mobile-release-engineer cannot upload a release until pass 2 is PASS.
+- mobile-junior-developer cannot start until pass 1 is PASS; UAT
+  (step 14) cannot start until pass 2 is PASS.

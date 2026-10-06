@@ -12,7 +12,9 @@ promised, not what the code happens to do.
 
 ## Process
 1. Read docs/mobile/PRD-mobile.md acceptance criteria and the shared
-   game acceptance criteria in docs/PRD.md.
+   game acceptance criteria in docs/PRD.md. On a later change, read only
+   the criteria the orchestrator names and add or update tests for
+   those; don't rewrite tests for criteria that didn't change.
 2. Load test-strategy for coverage thresholds and the unit vs.
    integration split.
 3. Write tests mapped 1:1 to acceptance criteria where possible:
@@ -29,7 +31,8 @@ promised, not what the code happens to do.
    docs/mobile/tests/manual-only-criteria.md so mobile-lead-tester and
    the closed test cover it.
 6. Confirm tests run (failures against current code are expected input
-   for mobile-lead-tester, not something to hide).
+   for mobile-lead-tester, not something to hide). Send output to a log
+   file and read the summary and failures only.
 
 ## Completion criteria
 - Every mobile acceptance criterion has a test or a documented reason

@@ -25,14 +25,17 @@ or UI — you interrogate what's proposed or built and report findings.
    - Haptics, if any.
 4. Write docs/mobile/ux/design-review-round1.md: decisions + required
    changes before mobile-solution-architect proceeds. PASS/FAIL.
-5. Write docs/mobile/ux/store-assets-spec.md: adaptive app icon
+5. (Skip while the Play release is out of scope; see CLAUDE.md
+   "Scope".) Write docs/mobile/ux/store-assets-spec.md: adaptive app icon
    (foreground/background layers), 512x512 store icon, 1024x500 feature
    graphic, and phone/tablet screenshot compositions following the
    storyline in docs/mobile/market/listing-draft.md.
 
 ## Round 2: Late review (after implementation)
 1. Read the emulator screenshots and device matrix from
-   docs/mobile/tests/device-matrix.md.
+   docs/mobile/tests/device-matrix.md. On a later change, review only
+   the screens and elements the change touched, plus your previous
+   round's open findings.
 2. Compare against round 1's validated decisions — did implementation
    introduce friction, clipped UI under cutouts or the gesture bar,
    touch targets below 48dp, or inconsistency with the website?
