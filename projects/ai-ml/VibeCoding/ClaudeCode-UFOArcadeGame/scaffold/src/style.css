@@ -205,3 +205,36 @@ body {
   padding: 16px 20px;
   background: rgba(40, 5, 5, 0.8);
 }
+
+/* PRD addendum v7 F24: the title screen's power-up guide - four icons (drawn by the game's
+   own drawPowerUp on small canvases, ui/powerUpGuide.ts), each with a text label, in one
+   row. The icons are aria-hidden; the labels are the readable text. */
+.power-up-guide {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+}
+
+.power-up-guide__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  color: #c8c8e0;
+}
+
+.power-up-icon {
+  display: block;
+  flex: none;
+}
+
+/* F26 AC2: one small developer contact line on the title screen. */
+.screen-overlay .developer-contact {
+  font-size: 13px;
+  color: #9a9ab8;
+  white-space: nowrap;
+}

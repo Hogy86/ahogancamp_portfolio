@@ -2,7 +2,8 @@
 // formation warning and BOSS INCOMING words by default (website unchanged), and skips only
 // the words (never the border) after setTopBannerTextOnCanvas(false) (Android uses a DOM
 // banner). jsdom has no real 2D canvas, so a recording context logs each call with the
-// style in force at that moment.
+// style in force at that moment. PRD addendum v7 F27 AC2 (code-review-round21 L4): the
+// border is also asserted in both default (words-on-canvas) cases.
 
 import { describe, expect, it } from 'vitest';
 import { CanvasRenderer } from './CanvasRenderer';
@@ -65,6 +66,8 @@ function playingWorld(patch: Partial<World>): World {
 const texts = (calls: Call[], name: string): Call[] =>
   calls.filter((c) => c.name === name && typeof c.args[0] === 'string');
 const BORDER = [3, 3, PLAYFIELD_WIDTH - 6, PLAYFIELD_HEIGHT - 6];
+const borderCalls = (calls: Call[]): Call[] =>
+  calls.filter((c) => c.name === 'strokeRect' && String(c.args) === String(BORDER));
 
 describe('shared warning copy (F22 AC4, F3 AC6, F12 AC10-11)', () => {
   it('keeps the exact player-facing strings', () => {
@@ -82,6 +85,9 @@ describe('CanvasRenderer top-centre warning words', () => {
     expect(fills[0]!.args).toEqual([FORMATION_WARNING_TEXT, PLAYFIELD_WIDTH / 2, 24]);
     expect(fills[0]!.font).toBe('bold 16px system-ui, sans-serif');
     expect(fills[0]!.fillStyle).toBe('#ff5a5a');
+    const border = borderCalls(calls);
+    expect(border).toHaveLength(1);
+    expect(['#ff5a5a', '#ffb3b3']).toContain(border[0]!.strokeStyle);
   });
 
   it('draws the boss warning as stroke then fill in bold 20px amber by default', () => {
@@ -94,6 +100,9 @@ describe('CanvasRenderer top-centre warning words', () => {
       expect(c.font).toBe('bold 20px system-ui, sans-serif');
     }
     expect(textCalls[1]!.fillStyle).toBe(LEVEL_INTRO_TEXT_COLOR);
+    const border = borderCalls(calls);
+    expect(border).toHaveLength(1);
+    expect(border[0]!.strokeStyle).toBe(LEVEL_INTRO_TEXT_COLOR);
   });
 
   it('after setTopBannerTextOnCanvas(false) draws no warning words but keeps both borders', () => {

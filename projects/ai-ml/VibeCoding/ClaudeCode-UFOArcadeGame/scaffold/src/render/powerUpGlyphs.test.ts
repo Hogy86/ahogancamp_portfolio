@@ -1,6 +1,7 @@
 // Tests PRD addendum v5 F23 AC1-AC4, AC6(a) and AC7 (source search): the four power-up
 // glyphs (fist, double arrow "<-->", circle, capital X) drawn by `drawPowerUp`. The double
-// arrow is r2's AC4.2, restored by the owner's decision of 2026-10-05. AC5/AC8-AC10 are not
+// arrow is F23 r6 AC4.2 (owner decision 2026-10-05, Q-v5-2). PRD addendum v7 F27 AC1/AC3
+// (code-review-round21 L1/L3): the arrow checks fail for an X-like arrow. AC5/AC8-AC10 are not
 // geometry and are covered elsewhere (existing gameplay suites) or listed in
 // docs/mobile/tests/manual-only-criteria.md (AC6(b), Q-v5-1). jsdom has no real 2D
 // canvas, so the tests run the real exported function against a recording 2D-context stub that
@@ -109,10 +110,6 @@ function allPoints(glyph: Op[], r: number): Pt[] {
 type SubPath = {
   pts: Pt[];
   closed: boolean;
-  /** src[i] is what drew the segment that ENDS at pts[i] ('curve' or 'line'; src[0] is the
-   * moveTo). closeSrc is what drew the closing segment from the last point back to pts[0]. */
-  src: ('move' | 'line' | 'curve')[];
-  closeSrc: 'line' | 'curve';
 };
 function subpaths(glyph: Op[], r: number): SubPath[] {
   const out: SubPath[] = [];
@@ -120,11 +117,10 @@ function subpaths(glyph: Op[], r: number): SubPath[] {
   const last = (): Pt => cur!.pts[cur!.pts.length - 1]!;
   for (const o of glyph) {
     if (o.op === 'moveTo') {
-      cur = { pts: [{ x: o.x / r, y: o.y / r }], closed: false, src: ['move'], closeSrc: 'line' };
+      cur = { pts: [{ x: o.x / r, y: o.y / r }], closed: false };
       out.push(cur);
     } else if (o.op === 'lineTo' && cur) {
       cur.pts.push({ x: o.x / r, y: o.y / r });
-      cur.src.push('line');
     } else if (o.op === 'quadraticCurveTo' && cur) {
       const p0 = last();
       const c = { x: o.cx / r, y: o.cy / r };
@@ -136,7 +132,6 @@ function subpaths(glyph: Op[], r: number): SubPath[] {
           x: u * u * p0.x + 2 * u * t * c.x + t * t * p2.x,
           y: u * u * p0.y + 2 * u * t * c.y + t * t * p2.y,
         });
-        cur.src.push('curve');
       }
     } else if (o.op === 'bezierCurveTo' && cur) {
       const p0 = last();
@@ -150,7 +145,6 @@ function subpaths(glyph: Op[], r: number): SubPath[] {
           x: u ** 3 * p0.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t ** 3 * p3.x,
           y: u ** 3 * p0.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t ** 3 * p3.y,
         });
-        cur.src.push('curve');
       }
     } else if (o.op === 'closePath' && cur) {
       cur.closed = true;
@@ -159,8 +153,6 @@ function subpaths(glyph: Op[], r: number): SubPath[] {
       const end = last();
       if (cur.pts.length > 1 && Math.hypot(end.x - first.x, end.y - first.y) < 1e-12) {
         cur.pts.pop();
-        const popped = cur.src.pop();
-        if (popped === 'curve') cur.closeSrc = 'curve';
       }
     }
   }
@@ -306,6 +298,28 @@ function signature(glyph: Op[], r: number): Record<PowerUpType, boolean> {
   };
 }
 
+const EPS = 1e-9;
+const samePoint = (p: Pt, q: Pt): boolean => Math.hypot(p.x - q.x, p.y - q.y) < EPS;
+
+/** True when two segments share no point at all, or share exactly one point that is an
+ * endpoint of both (two strokes joined at a corner). Any interior crossing, a T-junction,
+ * or a collinear overlap is false - that is what would turn the arrow into an X. */
+function meetOnlyAtSharedEndpoint(s: Seg, t: Seg): boolean {
+  if (!segmentsMeet(s, t)) return true;
+  for (const p of s) {
+    for (const q of t) {
+      if (!samePoint(p, q)) continue;
+      const sOther = samePoint(s[0], p) ? s[1] : s[0];
+      const tOther = samePoint(t[0], q) ? t[1] : t[0];
+      const collinear = Math.abs(orient(p, sOther, tOther)) < EPS;
+      // Collinear and pointing the same way from the shared point means they overlap.
+      const sameWay = (sOther.x - p.x) * (tOther.x - p.x) + (sOther.y - p.y) * (tOther.y - p.y) > 0;
+      return !(collinear && sameWay);
+    }
+  }
+  return false;
+}
+
 describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
   const glyphOf = (t: PowerUpType): Op[] => split(record(t, r)).glyph;
 
@@ -340,21 +354,28 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
       expect(paths.map((p) => p.pts.length)).toEqual([2, 3, 3]);
       const segs = paths.flatMap((p) => segments(p.pts, false));
       expect(segs).toHaveLength(5);
-      const shaft = segs[0]!;
-      for (const head of segs.slice(1)) {
-        // A head wing may touch the shaft only at the shaft's own endpoint.
-        const touchesAtEnd =
-          Math.hypot(head[1].x - shaft[0].x, head[1].y - shaft[0].y) < 1e-9 ||
-          Math.hypot(head[1].x - shaft[1].x, head[1].y - shaft[1].y) < 1e-9 ||
-          Math.hypot(head[0].x - shaft[0].x, head[0].y - shaft[0].y) < 1e-9 ||
-          Math.hypot(head[0].x - shaft[1].x, head[0].y - shaft[1].y) < 1e-9;
-        expect(segmentsMeet(shaft, head) ? touchesAtEnd : true).toBe(true);
+      // F27 AC1 / round-21 L1 (a): every pair of the five strokes, wing against wing
+      // included, may meet only at an endpoint they share - no crossing anywhere.
+      for (let i = 0; i < segs.length; i += 1) {
+        for (let j = i + 1; j < segs.length; j += 1) {
+          expect(meetOnlyAtSharedEndpoint(segs[i]!, segs[j]!), `segments ${i} and ${j}`).toBe(true);
+        }
       }
-      // The wings of one head never cross each other (no X at an arrowhead).
-      expect(segmentsMeet(segs[1]!, segs[2]!)).toBe(true);
+      // The two wings of one head join at the head's tip.
       expect(segs[1]![1]).toEqual(segs[2]![0]);
-      expect(segmentsMeet(segs[3]!, segs[4]!)).toBe(true);
       expect(segs[3]![1]).toEqual(segs[4]![0]);
+    });
+
+    it('SPEED has exactly 1 horizontal, 0 vertical and 4 diagonal segments (no "+")', () => {
+      const segs = subpaths(glyphOf('SPEED'), r).flatMap((p) => segments(p.pts, false));
+      const kinds = segs.map(([a, b]) => {
+        if (Math.abs(a.y - b.y) < EPS) return 'horizontal';
+        if (Math.abs(a.x - b.x) < EPS) return 'vertical';
+        return 'diagonal';
+      });
+      expect(kinds.filter((k) => k === 'horizontal')).toHaveLength(1);
+      expect(kinds.filter((k) => k === 'vertical')).toHaveLength(0);
+      expect(kinds.filter((k) => k === 'diagonal')).toHaveLength(4);
     });
 
     it('SHIELD is exactly one full circle and nothing else', () => {
@@ -511,7 +532,7 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
     });
   });
 
-  describe('AC4.2: SPEED is a double-headed arrow "<-->" (r2, restored 2026-10-05)', () => {
+  describe('AC4.2: SPEED is a double-headed arrow "<-->" (F23 r6, Q-v5-2)', () => {
     const paths = subpaths(glyphOf('SPEED'), r);
     const [shaft, left, right] = paths.map((p) => p.pts) as [Pt[], Pt[], Pt[]];
     it('has a horizontal shaft through the center spanning the full +-0.45r', () => {
@@ -538,11 +559,21 @@ describe.each(RADII)('F23 power-up glyphs at r = %d', (r) => {
       }
     });
     it('keeps the wing vertices clear of the shaft so the heads read open, not as an X', () => {
-      // An X would need two segments crossing at an interior point of both; here every
-      // wing ends on the shaft's endpoint, so no interior crossing exists (checked above).
+      // An X needs two strokes crossing at an interior point; the pairwise check in AC1
+      // rules that out for every pair, wing against wing included. These bounds keep
+      // each head on its own side of the centre so the heads cannot reach across it.
       for (const head of [left, right]) {
         expect(Math.abs(head[0]!.x)).toBeLessThan(0.45);
         expect(Math.abs(head[0]!.x)).toBeGreaterThan(0.1);
+      }
+    });
+    it('puts the left wing ends at x < 0 and the right wing ends at x > 0', () => {
+      for (const end of [left[0]!, left[2]!]) expect(end.x).toBeLessThan(0);
+      for (const end of [right[0]!, right[2]!]) expect(end.x).toBeGreaterThan(0);
+    });
+    it('keeps every wing end at least 0.25r from the centre', () => {
+      for (const end of [left[0]!, left[2]!, right[0]!, right[2]!]) {
+        expect(Math.hypot(end.x, end.y)).toBeGreaterThanOrEqual(0.25);
       }
     });
   });

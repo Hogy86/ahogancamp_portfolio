@@ -13,11 +13,15 @@
 // state transitions themselves (GameStateMachine.test.ts already covers those);
 // this file answers "does ScreenController actually render what the state
 // machine decided," which is the gap flagged in validation-report.md.
+// PRD addendum v7 F24 AC1-AC3 (power-up guide on the title, both versions) and F26 AC2/AC3
+// (developer contact line from src/config/contact.ts, textContent only).
 
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ScreenController } from './ScreenController';
 import { PAUSE_MENU_OPTIONS } from '../core/GameStateMachine';
 import { makePlayingWorld } from '../test-utils/worldFactory';
+import { DEVELOPER_EMAIL, DEVELOPER_NAME } from '../config/contact';
+import type { PlatformCopy } from '../platform/Platform';
 import type { World } from '../core/types';
 
 function pausedWorld(): World {
@@ -32,8 +36,14 @@ describe('ScreenController (F6 AC2/AC8/AC9/AC10, F8 AC4, F10 AC5, F19)', () => {
   let controller: ScreenController;
 
   beforeEach(() => {
+    // jsdom has no 2D canvas; the title's power-up icons then stay blank (see powerUpGuide.ts).
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     root = document.createElement('div');
     controller = new ScreenController(root);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('F6 AC1/AC8: PLAYING renders no overlay at all', () => {
@@ -217,6 +227,66 @@ describe('ScreenController (F6 AC2/AC8/AC9/AC10, F8 AC4, F10 AC5, F19)', () => {
       expect(scoreParagraph).toBeDefined();
       expect(scoreParagraph!.children).toHaveLength(0);
       expect(scoreParagraph!.innerHTML).toBe(scoreParagraph!.textContent);
+    });
+  });
+
+  describe('F24 / F26: power-up guide and developer contact on the title screen', () => {
+    const ANDROID_COPY: PlatformCopy = {
+      controlHint: '',
+      titleStartLabel: 'Start',
+      titleExtraActions: ['help', 'settings', 'quit'],
+      menuHint: null,
+      confirmHint: null,
+      gameOverActionLabel: 'Play again',
+    };
+
+    function titleWorld(): World {
+      const world = makePlayingWorld();
+      world.state = 'TITLE';
+      return world;
+    }
+
+    for (const [version, copy] of [
+      ['website', undefined],
+      ['Android', ANDROID_COPY],
+    ] as const) {
+      it(`${version}: shows the four labelled power-ups in order with decorative icons`, () => {
+        const screen = new ScreenController(root, copy);
+        screen.render(titleWorld());
+        const items = Array.from(root.querySelectorAll('.power-up-guide li'));
+        expect(items.map((li) => li.textContent)).toEqual([
+          'Power',
+          'Speed',
+          'Shield',
+          'Multiplier',
+        ]);
+        for (const li of items) {
+          expect(li.querySelector('canvas')!.getAttribute('aria-hidden')).toBe('true');
+        }
+      });
+
+      it(`${version}: shows one developer line with the name and email from config`, () => {
+        const screen = new ScreenController(root, copy);
+        screen.render(titleWorld());
+        const lines = root.querySelectorAll('.developer-contact');
+        expect(lines).toHaveLength(1);
+        expect(lines[0]!.textContent).toBe(`Developer: ${DEVELOPER_NAME} · ${DEVELOPER_EMAIL}`);
+        expect(lines[0]!.childElementCount).toBe(0);
+      });
+    }
+
+    it('Android: the Start button and the three menu buttons are still there', () => {
+      const screen = new ScreenController(root, ANDROID_COPY);
+      screen.render(titleWorld());
+      const actions = Array.from(root.querySelectorAll<HTMLElement>('button[data-action]')).map(
+        (b) => b.dataset.action,
+      );
+      expect(actions).toEqual(['start', 'help', 'settings', 'quit']);
+    });
+
+    it('shows neither on the pause or end screens', () => {
+      controller.render(pausedWorld());
+      expect(root.querySelector('.power-up-guide, .developer-contact')).toBeNull();
     });
   });
 });

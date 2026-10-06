@@ -25,6 +25,8 @@
 // no change to the textContent-only DOM-writing contract.
 
 import { clearChildren, createElement } from './dom';
+import { createPowerUpGuide } from './powerUpGuide';
+import { DEVELOPER_EMAIL, DEVELOPER_NAME } from '../config/contact';
 import { PAUSE_MENU_OPTIONS } from '../core/GameStateMachine';
 import type { PlatformCopy } from '../platform/Platform';
 import type { World } from '../core/types';
@@ -88,7 +90,7 @@ export class ScreenController {
   }
 
   private renderTitle(world: World): void {
-    const overlay = createElement('div', 'screen-overlay');
+    const overlay = createElement('div', 'screen-overlay title-screen');
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-label', 'Title screen');
     // F22 AC1/AC3 (docs/PRD-addendum-v4.md): renamed product, "Shield Invaders"
@@ -110,7 +112,8 @@ export class ScreenController {
       overlay.append(start);
       const list = createElement('ul', 'menu-list');
       this.copy.titleExtraActions.forEach((action) => {
-        const label = action === 'help' ? 'How to play' : action === 'settings' ? 'Settings' : 'Quit';
+        const label =
+          action === 'help' ? 'How to play' : action === 'settings' ? 'Settings' : 'Quit';
         // L4: a real, focusable `<button>` (not `<li>`) for accessibility.
         const item = createElement('button', 'menu-item', label);
         item.dataset.action = action;
@@ -125,10 +128,17 @@ export class ScreenController {
         createElement(
           'p',
           undefined,
-          this.copy?.menuHint ?? '← → move · Space throw · Esc pause · Up/Down + Enter to navigate menus',
+          this.copy?.menuHint ??
+            '← → move · Space throw · Esc pause · Up/Down + Enter to navigate menus',
         ),
       );
     }
+    // PRD addendum v7 F24 (power-up guide) and F26 AC2 (developer contact line), both
+    // versions. The contact line is textContent only (ui/dom.ts).
+    overlay.append(
+      createPowerUpGuide(),
+      createElement('p', 'developer-contact', `Developer: ${DEVELOPER_NAME} · ${DEVELOPER_EMAIL}`),
+    );
     this.root.append(overlay);
   }
 
@@ -153,7 +163,11 @@ export class ScreenController {
       // keyboard-hint concept - same `this.copy?.x || !this.copy` pattern as menuHint.
       if (this.copy?.confirmHint || !this.copy) {
         confirmBox.append(
-          createElement('p', undefined, this.copy?.confirmHint ?? 'Press Enter to confirm, or Esc to cancel.'),
+          createElement(
+            'p',
+            undefined,
+            this.copy?.confirmHint ?? 'Press Enter to confirm, or Esc to cancel.',
+          ),
         );
       }
       if (this.copy) {
