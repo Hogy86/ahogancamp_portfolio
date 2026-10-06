@@ -193,6 +193,8 @@ when the formation is empty).
 **Acceptance Criteria:**
 1. A boss phase occurs on **level 5 and level 10 only**; levels 1-4 and 6-9
    have no boss at any point.
+> **Superseded 2026-10-06 (owner decision):** AC2 below is replaced by `docs/PRD-addendum-v6.md`. Boss health is now N× the toughest regular tier, N being the level number (level 5: 15; level 10: 40), and hit-power multipliers can no longer one-shot the boss. The text below is kept as history.
+
 2. The boss's hit points equal **5× the highest regular-enemy HP tier present
    in that level's `hpMix`** (Item B, RESOLVED). Level 5's toughest regular
    tier is 3-hit → **boss = 15 hits**; level 10's toughest regular tier is
