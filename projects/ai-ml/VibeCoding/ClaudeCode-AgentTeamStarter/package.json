@@ -1,0 +1,11 @@
+{
+  "name": "agent-team-starter",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "agents:check": "node scripts/check-agents.mjs",
+    "pack:list": "node scripts/install-pack.mjs --list",
+    "pack:install": "node scripts/install-pack.mjs",
+    "test:template": "node --test \"scripts/*.test.mjs\""
+  }
+}

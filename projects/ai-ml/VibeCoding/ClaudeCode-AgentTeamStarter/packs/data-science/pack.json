@@ -1,0 +1,58 @@
+{
+  "id": "data-science",
+  "name": "Data science pack",
+  "version": "0.1.0",
+  "status": "planned",
+  "summary": "Analysis, statistics or machine learning in Python: cleaning data, building and evaluating models, and reporting results.",
+  "fitsWhen": [
+    "a question answered from data (analysis, dashboard, report)",
+    "a statistical study or experiment",
+    "training and evaluating a machine learning model"
+  ],
+  "modules": {
+    "analysis": {
+      "default": true,
+      "summary": "Data cleaning, analysis, models and a written result, reproducible from a clean run.",
+      "core": {
+        "builder": "code-implementer",
+        "reviewer": "code-reviewer",
+        "tester": "test-validator"
+      },
+      "fullTeam": [
+        "product-manager",
+        "data-analyst",
+        "solution-architect",
+        "statistician",
+        "security-compliance-reviewer",
+        "code-implementer",
+        "code-reviewer",
+        "test-validator",
+        "docs-writer",
+        "it-analyst"
+      ],
+      "pipelineSkill": "data-science-full-pipeline",
+      "checks": {
+        "check:quiet": "node scripts/quiet-check.mjs \"lint=ruff check .\" \"test=python -m pytest -q\"",
+        "repro:quiet": "node scripts/quiet-check.mjs \"repro=python -m pipeline.run --from-raw\""
+      }
+    }
+  },
+  "agents": {
+    "product-manager": { "from": "game", "role": "planner", "changes": "Turns the owner's question into a measurable goal and success metric before any data work." },
+    "data-analyst": { "build": "new", "basedOn": "template", "role": "planner", "model": "sonnet", "plan": "Profiles the raw data (columns, types, missing values, ranges) and writes the cleaning plan. Summaries only, never whole tables." },
+    "solution-architect": { "from": "game", "role": "planner", "changes": "Decides the Python environment, data storage, pipeline layout and experiment tracking." },
+    "statistician": { "build": "new", "basedOn": "game/code-reviewer", "role": "reviewer", "readOnly": true, "model": "opus", "plan": "Independently reviews the method: assumptions, sample size, leakage, train and test splits, metrics and how results are stated." },
+    "security-compliance-reviewer": { "from": "game", "role": "reviewer", "readOnly": true, "changes": "Adds personal data, dataset licences and what may be committed." },
+    "code-implementer": { "from": "game", "role": "builder", "addSkills": ["data-cleaning-standards"], "changes": "Code lives in modules, notebooks stay thin and are saved without outputs, random seeds are fixed, raw data is never committed." },
+    "code-reviewer": { "from": "game", "role": "reviewer", "readOnly": true, "addSkills": ["data-cleaning-standards", "statistics-review-checklist", "ml-evaluation-checklist"] },
+    "test-validator": { "from": "game", "role": "tester", "changes": "Re-runs the pipeline from raw data and checks the results match within a stated tolerance." },
+    "docs-writer": { "from": "game", "role": "support", "changes": "Writes a data card and, for models, a model card." },
+    "it-analyst": { "from": "game", "role": "support", "changes": "Sets up Python, the virtual environment and any database drivers." }
+  },
+  "skillsToBuild": {
+    "data-cleaning-standards": "How to profile, clean and document data changes; every cleaning step is code, not hand edits.",
+    "statistics-review-checklist": "Assumptions, effect sizes, multiple comparisons, confidence intervals, plain-language claims.",
+    "ml-evaluation-checklist": "Leakage, splits, baselines, metrics that match the goal, overfitting signs.",
+    "data-science-full-pipeline": "Question, data profile, cleaning plan, method review, build, independent method review, reproducibility run, write-up."
+  }
+}
