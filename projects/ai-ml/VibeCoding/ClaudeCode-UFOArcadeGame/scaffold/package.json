@@ -17,6 +17,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e:mobile": "playwright test -c playwright.mobile.config.ts",
+    "check:quiet": "node scripts/quiet-check.mjs typecheck lint test",
+    "check:quiet:full": "node scripts/quiet-check.mjs typecheck lint test build",
+    "e2e:quiet": "node scripts/quiet-check.mjs build:android test:e2e:mobile",
     "check:secrets": "node scripts/check-no-secrets.mjs",
     "check:android-styles": "node scripts/check-android-styles.mjs"
   },

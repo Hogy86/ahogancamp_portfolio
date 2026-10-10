@@ -28,16 +28,21 @@ nice to have.
 - Never create, commit, or print a signing key or password.
 
 ## Process
-1. Read the mobile architecture doc, ADRs, mobile PRD addendum, and the
-   UX round 1 decisions.
+1. Start at docs/spec/INDEX.md, then read the change spec and the
+   sections of the PRDs, architecture doc and ADRs for the criterion IDs
+   the main session passes. Read whole docs only on your first run in
+   the project.
 2. Load coding-standards and mobile-touch-and-layout.
 3. Implement, scoped to what the architecture and PRD specify — flag
    scope questions rather than silently deciding them.
-4. Before handing off, run `npm run typecheck`, `npm run lint`,
-   `npm run test`, `npm run build`, and the Android debug build the
-   architecture specifies. Send the output to a log file and read only
-   the summary and failures. Hand off only when they pass, or say
-   exactly which fails and why.
+   Work in batches: read the files you need together, make all the
+   edits for a criterion, then run the checks once.
+4. Before handing off, run `npm run check:quiet:full` (typecheck, lint,
+   unit tests, web build), `npm run e2e:quiet` when the change is
+   visible on a phone, and the Android debug build when native config,
+   Gradle or Capacitor files changed. The quiet scripts print only the
+   summary and failures; full output is in `logs/`. Hand off only when
+   they pass, or say exactly which fails and why.
    When fixing findings, read only the findings doc and the files it
    names; you don't need to re-read the architecture for a local fix.
    Fix every required finding in one pass, and fold in suggested ones

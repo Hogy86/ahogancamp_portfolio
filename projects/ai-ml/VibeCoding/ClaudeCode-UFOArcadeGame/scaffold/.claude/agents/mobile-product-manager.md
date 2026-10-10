@@ -48,7 +48,7 @@ or a signing-key decision always comes to the owner — never assume.
    and performance on a low-end device.
 4. State explicitly that game rules are shared with the website: any
    rule change must update the shared PRD acceptance criteria and pass
-   BOTH web and mobile gates (see CLAUDE.md "Mobile pipeline").
+   BOTH web and mobile gates (see CLAUDE.md "One codebase").
 
 ## Job 2: Write and RUN UAT (before release)
 1. Read docs/mobile/PRD-mobile.md acceptance criteria and

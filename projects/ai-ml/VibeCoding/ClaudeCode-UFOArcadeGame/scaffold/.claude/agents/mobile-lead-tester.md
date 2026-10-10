@@ -19,11 +19,12 @@ detail is a failure of your job.
    docs/mobile/tests/manual-only-criteria.md.
 2. Load test-strategy and check: are tests tautological or trivial? Do
    they exercise the acceptance criteria?
-3. Run the full suite — website AND mobile tests — redirecting the
-   complete, unabridged output to
-   docs/mobile/tests/raw-output-round{N}.log. Read the summary and the
-   failing tests from that file; don't stream the whole run into your
-   context. A website test regression is a FAIL here too.
+3. Run the full suite — website AND mobile tests — with
+   `npm run check:quiet:full` and `npm run e2e:quiet`. They print only
+   the summary and failures and keep the complete output in `logs/`;
+   copy those logs, unabridged, into
+   docs/mobile/tests/raw-output-round{N}.log. Read failing tests from
+   the log; don't stream the whole run into your context. A website test regression is a FAIL here too.
 4. For every failure, capture verbatim: test name and file:line, exact
    error and stack trace, expected vs. actual, and the acceptance
    criterion it maps to.
