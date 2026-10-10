@@ -1,5 +1,10 @@
 # Agent team starter
 
+> **Moved.** The live template is now its own repo:
+> [Hogy86/new-claude-project-template](https://github.com/Hogy86/new-claude-project-template).
+> Make new projects from there, and make template changes there. This folder
+> is the first version, kept as the record.
+
 A starting point for new projects built by a team of Claude Code agents,
 with the token-tuning lessons from the Shield vs Robots game already built
 in. The first thing a new project does is choose its agent team: Claude
