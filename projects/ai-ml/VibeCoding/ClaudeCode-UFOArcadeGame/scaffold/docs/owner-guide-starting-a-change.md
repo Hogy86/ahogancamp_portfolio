@@ -12,8 +12,11 @@ Claude follows are in `.claude/CLAUDE.md`; this page is only your side.
   context on every call.
 - Reply **inside that change's thread** for follow-ups about the same change
   (feedback, "fix this too", approvals).
-- **On your Windows PC:** type `/clear` (or close and reopen Claude Code)
-  before starting the next change.
+- **In Claude desktop (Code tab):** start a **new session** for each
+  change. That does the job of `/clear`: the earlier task's history is
+  left behind.
+- **In a terminal:** type `/clear` (or exit and start `claude` again)
+  before the next change.
 
 ## 2. What to put in the first message
 
@@ -34,14 +37,16 @@ team) before starting. If it doesn't, ask: "What size and team?"
 ## 3. Running on your PC instead of the cloud
 
 Emulator work (the Android device matrix and UAT) has to run on your PC.
-When you start Claude Code there:
+Whichever way you start Claude Code there, its folder must be the
+**scaffold folder**
+(`...\projects\ai-ml\VibeCoding\ClaudeCode-UFOArcadeGame\scaffold`),
+not the repo root. From there, Claude Code registers the role agents by
+name and uses the model each one specifies.
 
-1. Open a terminal **in the scaffold folder**
-   (`...\projects\ai-ml\VibeCoding\ClaudeCode-UFOArcadeGame\scaffold`),
-   not the repo root. From there, Claude Code registers the role agents by
-   name and uses the model each one specifies.
-2. Run `git pull` first so you have the latest rules.
-3. Start `claude`.
+- **Claude desktop (Code tab):** start a new session and pick the scaffold
+  folder as its folder. Ask it to pull `master` first.
+- **Terminal:** open it in the scaffold folder, run `git pull`, then
+  `claude`.
 
 Cloud sessions start at the repo root. The root `CLAUDE.md` there tells
 them where the game lives and to pass each agent's model explicitly, so you
@@ -57,7 +62,8 @@ don't need to do anything for those.
 
 ## 5. After a merge
 
-- Pull `master` on your PC before the next local session.
+- Pull `master` on your PC before the next local session (or ask the new
+  session to do it).
 - If something looks wrong in the spec, say so in a new message. Claude
   fixes it in a new addendum; the old ones are never rewritten.
 
