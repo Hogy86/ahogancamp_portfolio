@@ -1,0 +1,65 @@
+{
+  "id": "saas-aws",
+  "name": "SaaS on AWS pack",
+  "version": "0.1.0",
+  "status": "planned",
+  "summary": "A hosted web product with user accounts on AWS: front end, API, database and infrastructure as code.",
+  "fitsWhen": [
+    "a web app other people sign up for and log in to",
+    "several customers (tenants) sharing one system",
+    "hosted on AWS"
+  ],
+  "modules": {
+    "app": {
+      "default": true,
+      "summary": "Front end, API, database and the AWS infrastructure, deployed by code.",
+      "core": {
+        "builder": "code-implementer",
+        "reviewer": "code-reviewer",
+        "tester": "test-validator"
+      },
+      "fullTeam": [
+        "marketing-analyst",
+        "product-manager",
+        "ui-ux-designer",
+        "solution-architect",
+        "data-storage-architect",
+        "security-compliance-reviewer",
+        "code-implementer",
+        "code-reviewer",
+        "test-writer",
+        "test-validator",
+        "cost-reviewer",
+        "docs-writer",
+        "it-analyst",
+        "cloud-infra-engineer"
+      ],
+      "pipelineSkill": "saas-aws-full-pipeline",
+      "checks": {
+        "check:quiet": "node scripts/quiet-check.mjs typecheck lint test",
+        "infra:quiet": "node scripts/quiet-check.mjs infra:synth infra:diff"
+      }
+    }
+  },
+  "agents": {
+    "marketing-analyst": { "from": "game", "role": "planner", "changes": "Pricing tiers and competitor research for a subscription product." },
+    "product-manager": { "from": "game", "role": "planner" },
+    "ui-ux-designer": { "from": "game", "role": "specialist", "changes": "Sign-up, login, settings and billing flows." },
+    "solution-architect": { "from": "game", "role": "planner", "addSkills": ["aws-well-architected-checklist"], "changes": "Picks the AWS services, the tenant model and the infrastructure-as-code tool, each with an ADR." },
+    "data-storage-architect": { "from": "game", "role": "planner", "changes": "Tenant isolation in the data model, backups and data retention." },
+    "security-compliance-reviewer": { "from": "game", "role": "reviewer", "readOnly": true, "addSkills": ["multi-tenant-security-checklist"], "changes": "Adds authentication, least-privilege IAM, secrets handling and tenant isolation." },
+    "code-implementer": { "from": "game", "role": "builder" },
+    "code-reviewer": { "from": "game", "role": "reviewer", "readOnly": true, "addSkills": ["multi-tenant-security-checklist"] },
+    "test-writer": { "from": "game", "role": "builder" },
+    "test-validator": { "from": "game", "role": "tester", "changes": "Adds integration tests against local stand-ins for AWS services." },
+    "cost-reviewer": { "build": "new", "basedOn": "template", "role": "reviewer", "readOnly": true, "model": "sonnet", "plan": "Estimates the monthly AWS cost of each infrastructure change from the infra diff and flags anything that grows with traffic." },
+    "docs-writer": { "from": "game", "role": "support" },
+    "it-analyst": { "from": "game", "role": "support", "changes": "Installs the AWS CLI and the infrastructure tool; never stores credentials in the repo." },
+    "cloud-infra-engineer": { "build": "new", "basedOn": "game/deployment-engineer", "role": "support", "model": "sonnet", "plan": "Writes the infrastructure as code and deploys to a test environment. Production deploys wait for the owner's go." }
+  },
+  "skillsToBuild": {
+    "aws-well-architected-checklist": "Short checklist from the AWS Well-Architected pillars that applies to a small team.",
+    "multi-tenant-security-checklist": "Tenant isolation, auth flows, IAM least privilege, secrets, audit logging.",
+    "saas-aws-full-pipeline": "Based on game/website-full-pipeline, with cloud-infra-engineer and cost-reviewer, and a production gate that needs the owner."
+  }
+}

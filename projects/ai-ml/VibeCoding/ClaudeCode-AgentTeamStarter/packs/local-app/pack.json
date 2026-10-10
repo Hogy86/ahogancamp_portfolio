@@ -1,0 +1,60 @@
+{
+  "id": "local-app",
+  "name": "Local app pack",
+  "version": "0.1.0",
+  "status": "planned",
+  "summary": "An app that runs on one computer (desktop or local web app) and keeps its data in SQLite or MySQL.",
+  "fitsWhen": [
+    "a desktop or local-only app with a database",
+    "SQLite for a single user, MySQL when several users or tools share the data",
+    "no cloud hosting"
+  ],
+  "modules": {
+    "app": {
+      "default": true,
+      "summary": "The app, its database schema and migrations, and an installer.",
+      "core": {
+        "builder": "code-implementer",
+        "reviewer": "code-reviewer",
+        "tester": "test-validator"
+      },
+      "fullTeam": [
+        "product-manager",
+        "ui-ux-designer",
+        "solution-architect",
+        "data-storage-architect",
+        "security-compliance-reviewer",
+        "code-implementer",
+        "code-reviewer",
+        "test-writer",
+        "test-validator",
+        "docs-writer",
+        "it-analyst",
+        "packaging-engineer"
+      ],
+      "pipelineSkill": "local-app-full-pipeline",
+      "checks": {
+        "check:quiet": "node scripts/quiet-check.mjs typecheck lint test",
+        "db:quiet": "node scripts/quiet-check.mjs db:migrate:test test:db"
+      }
+    }
+  },
+  "agents": {
+    "product-manager": { "from": "game", "role": "planner" },
+    "ui-ux-designer": { "from": "game", "role": "specialist", "changes": "Desktop and forms heuristics instead of game feel." },
+    "solution-architect": { "from": "game", "role": "planner", "changes": "Must decide SQLite or MySQL with an ADR, the migration tool, and where the data file or server lives." },
+    "data-storage-architect": { "from": "game", "role": "planner", "changes": "Always runs (not optional): schema, migrations, backups, and what happens on upgrade." },
+    "security-compliance-reviewer": { "from": "game", "role": "reviewer", "readOnly": true, "addSkills": ["migrations-and-backup-checklist"], "changes": "Adds SQL injection, credentials for MySQL, and data-at-rest checks." },
+    "code-implementer": { "from": "game", "role": "builder", "addSkills": ["data-modeling-standards", "migrations-and-backup-checklist"], "changes": "Every schema change ships with a migration and its test." },
+    "code-reviewer": { "from": "game", "role": "reviewer", "readOnly": true, "addSkills": ["data-modeling-standards", "migrations-and-backup-checklist"] },
+    "test-writer": { "from": "game", "role": "builder" },
+    "test-validator": { "from": "game", "role": "tester", "changes": "Runs migrations on a seeded copy of the previous schema and checks no data is lost." },
+    "docs-writer": { "from": "game", "role": "support", "changes": "Adds an install, backup and restore guide for the user." },
+    "it-analyst": { "from": "game", "role": "support", "changes": "Installs the database server (MySQL) or SQLite tools locally." },
+    "packaging-engineer": { "build": "new", "basedOn": "game/deployment-engineer", "role": "support", "model": "sonnet", "plan": "Builds the installer or packaged app instead of a Docker deploy, and runs a fresh-install smoke test." }
+  },
+  "skillsToBuild": {
+    "migrations-and-backup-checklist": "No destructive migration without a backup step; every migration runs forward on a copy of real-shaped data; rollback plan.",
+    "local-app-full-pipeline": "Based on game/website-full-pipeline, with packaging-engineer in place of deployment-engineer and data-storage-architect always in."
+  }
+}

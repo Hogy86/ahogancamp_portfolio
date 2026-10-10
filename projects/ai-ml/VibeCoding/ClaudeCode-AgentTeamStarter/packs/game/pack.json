@@ -1,0 +1,181 @@
+{
+  "id": "game",
+  "name": "Game pack",
+  "version": "1.0.0",
+  "status": "ready",
+  "summary": "Browser game built with Vite and TypeScript, with an optional Android app from the same code via Capacitor.",
+  "fitsWhen": [
+    "an arcade or casual game that runs in the browser",
+    "the same game as an Android (later iPhone) app",
+    "offline play, local high scores, no accounts"
+  ],
+  "origin": "Shield vs Robots (portfolio repo, projects/ai-ml/VibeCoding/ClaudeCode-UFOArcadeGame/scaffold), after the 2026-10-10 token-tuning changes.",
+  "claudeRules": "claude-rules.md",
+  "modules": {
+    "web": {
+      "default": true,
+      "summary": "The browser game and its website deploy.",
+      "core": {
+        "builder": "code-implementer",
+        "reviewer": "code-reviewer",
+        "tester": "test-validator"
+      },
+      "fullTeam": [
+        "marketing-analyst",
+        "product-manager",
+        "ui-ux-designer",
+        "solution-architect",
+        "data-storage-architect",
+        "security-compliance-reviewer",
+        "code-implementer",
+        "code-reviewer",
+        "test-writer",
+        "test-validator",
+        "docs-writer",
+        "it-analyst",
+        "deployment-engineer"
+      ],
+      "pipelineSkill": "website-full-pipeline",
+      "checks": {
+        "check:quiet": "node scripts/quiet-check.mjs typecheck lint test",
+        "check:quiet:full": "node scripts/quiet-check.mjs typecheck lint test build"
+      }
+    },
+    "android": {
+      "default": false,
+      "requires": [
+        "web"
+      ],
+      "summary": "An Android app built from the same game code with Capacitor, tested on the emulator.",
+      "core": {
+        "builder": "mobile-junior-developer",
+        "reviewer": "mobile-lead-developer",
+        "tester": "mobile-lead-tester"
+      },
+      "fullTeam": [
+        "mobile-marketing-analyst",
+        "mobile-product-manager",
+        "mobile-ui-ux-designer",
+        "mobile-solution-architect",
+        "mobile-security-compliance-reviewer",
+        "mobile-it-analyst",
+        "mobile-junior-developer",
+        "mobile-lead-developer",
+        "mobile-junior-tester",
+        "mobile-lead-tester",
+        "mobile-technical-writer",
+        "mobile-release-engineer"
+      ],
+      "pipelineSkill": "mobile-full-pipeline",
+      "checks": {
+        "e2e:quiet": "node scripts/quiet-check.mjs build:android test:e2e:mobile"
+      }
+    }
+  },
+  "agents": {
+    "marketing-analyst": {
+      "role": "planner",
+      "reusable": true
+    },
+    "product-manager": {
+      "role": "planner",
+      "reusable": true
+    },
+    "ui-ux-designer": {
+      "role": "specialist",
+      "reusable": true
+    },
+    "solution-architect": {
+      "role": "planner",
+      "reusable": true
+    },
+    "data-storage-architect": {
+      "role": "planner",
+      "reusable": true
+    },
+    "security-compliance-reviewer": {
+      "role": "reviewer",
+      "readOnly": true,
+      "reusable": true
+    },
+    "code-implementer": {
+      "role": "builder",
+      "reusable": true
+    },
+    "code-reviewer": {
+      "role": "reviewer",
+      "readOnly": true,
+      "reusable": true
+    },
+    "test-writer": {
+      "role": "builder",
+      "reusable": true
+    },
+    "test-validator": {
+      "role": "tester",
+      "reusable": true
+    },
+    "docs-writer": {
+      "role": "support",
+      "reusable": true
+    },
+    "it-analyst": {
+      "role": "support",
+      "reusable": true
+    },
+    "deployment-engineer": {
+      "role": "support",
+      "reusable": true
+    },
+    "mobile-marketing-analyst": {
+      "role": "planner",
+      "reusable": false
+    },
+    "mobile-product-manager": {
+      "role": "planner",
+      "reusable": false
+    },
+    "mobile-ui-ux-designer": {
+      "role": "specialist",
+      "reusable": false
+    },
+    "mobile-solution-architect": {
+      "role": "planner",
+      "reusable": false
+    },
+    "mobile-security-compliance-reviewer": {
+      "role": "reviewer",
+      "readOnly": true,
+      "reusable": false
+    },
+    "mobile-it-analyst": {
+      "role": "support",
+      "reusable": true
+    },
+    "mobile-junior-developer": {
+      "role": "builder",
+      "reusable": false
+    },
+    "mobile-lead-developer": {
+      "role": "reviewer",
+      "readOnly": true,
+      "reusable": false
+    },
+    "mobile-junior-tester": {
+      "role": "builder",
+      "reusable": false
+    },
+    "mobile-lead-tester": {
+      "role": "tester",
+      "reusable": false
+    },
+    "mobile-technical-writer": {
+      "role": "support",
+      "reusable": false
+    },
+    "mobile-release-engineer": {
+      "role": "support",
+      "reusable": true
+    }
+  }
+}
